@@ -1,3 +1,12 @@
+
+---
+name: User Story
+about: Describe a user need and its expected behavior
+title: "[US] "
+labels: ["user-story"]
+assignees: ""
+---
+
 ## User Story
 As a **[type of user]**,  
 I want **[some goal]**,  
