@@ -1,11 +1,3 @@
----
-name: Task
-about: Technical task needed to implement a feature
-title: "[TX.Y] "
-labels: ["task"]
-assignees: ""
----
-
 ## Description
 Clear and concise description of the task to be done.
 
