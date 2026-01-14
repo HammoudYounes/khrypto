@@ -1,0 +1,72 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    display: grid;
+    grid-template-rows: 60px 1fr;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr 2.7fr 1fr;
+    width: 100%;
+}
+
+.player-info-sec,
+.chat-moves-sec {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+}
+
+
+.player-info-sec{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.game-sec {
+    background-color: #e0e0e0;
+    border: 1px solid #999;
+    padding: 20px;
+}
+
+
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    width: 100%;
+    height: 93%;
+    position: relative;
+    border-top: 1px solid black;
+    border-left: 1px solid black;
+    box-sizing: border-box;
+}
+
+.rot-button {
+    height: 7%;
+}
+
+.case {
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
