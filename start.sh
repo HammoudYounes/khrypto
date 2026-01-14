@@ -1,48 +1,27 @@
 #!/bin/bash
 
-# Check if node is installed
-if ! command -v node &> /dev/null; then
-    echo "Error: Node.js is not installed."
-    exit 1
-fi
-
-# Function to cleanup background processes on exit
+# Function to kill all background processes (child jobs) when the script exits
 cleanup() {
     echo "Stopping all services..."
-    pkill -P $$
-    exit
+    kill $(jobs -p)
 }
 
-# Trap SIGINT and SIGTERM arguments
-trap cleanup SIGINT SIGTERM EXIT
+# Trap the EXIT signal (happens on Ctrl+C) to run cleanup
+trap cleanup SIGINT EXIT
 
-echo "=========================================="
-echo "    Starting PS8 Microservices Project    "
-echo "=========================================="
+echo "Starting Laser Chess Architecture..."
 
-# Start Gateway Service
-echo "[Gateway] Checking dependencies..."
-(
-    cd services/gateway
-    if [ ! -d "node_modules" ]; then
-        echo "[Gateway] Installing dependencies..."
-        npm install --silent
-    fi
-    echo "[Gateway] Starting service on port 8000..."
-    node index.js
-) &
+# 1. Start Gateway Service (Entry Point -> Port 8000)
+echo "[Gateway] Launching..."
+(cd services/gateway && node index.js) &
 
-# Start Files Service
-echo "[Files] Checking dependencies..."
-(
-    cd services/files
-    if [ ! -d "node_modules" ]; then
-        echo "[Files] Installing dependencies..."
-        npm install --silent
-    fi
-    echo "[Files] Starting service on port 8001..."
-    node index.js
-) &
+# 2. Start File Service (Frontend Assets -> Port 8001)
+echo "[Files] Launching..."
+(cd services/files && node index.js) &
 
-# Wait for all background processes
+# 3. Start Engine Service (Game Logic -> Port 8002)
+echo "[Engine] Launching..."
+(cd services/engine && node index.js) &
+
+# Wait ensures the script stays running so the background services don't close
 wait
