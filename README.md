@@ -56,14 +56,14 @@ To call a service:
 
 - **main**: Main branch, must always be stable.
 - **dev**: Development branch for the next milestone, branched from `main`.
-- **feature/[TX.Y]text**: Branch for a new feature, branched from `develop`.
+- **feature/[TX.Y]text**: Branch for a new feature, branched from `dev`.
     - `TX.Y` is the task number associated with the feature on GitHub.
     - `text` is a short and indicative name for the feature.
 
 **Workflow:**
-1. To implement a new feature, create a branch `feature/[TX.Y]text` from `develop`.
-2. Once implementation is finished, merge the feature into `develop` via a **Pull Request**.
-3. When a milestone is finished, merge `develop` into `main` via a **Pull Request**.
+1. To implement a new feature, create a branch `feature/[TX.Y]text` from `dev`.
+2. Once implementation is finished, merge the feature into `dev` via a **Pull Request**.
+3. When a milestone is finished, merge `dev` into `main` via a **Pull Request**.
 
 ### Commit Messages
 
