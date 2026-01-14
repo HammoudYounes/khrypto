@@ -55,7 +55,7 @@ To call a service:
 ### Git WorkFlow
 
 - **main**: Main branch, must always be stable.
-- **develop**: Development branch for the next milestone, branched from `main`.
+- **dev**: Development branch for the next milestone, branched from `main`.
 - **feature/[TX.Y]text**: Branch for a new feature, branched from `develop`.
     - `TX.Y` is the task number associated with the feature on GitHub.
     - `text` is a short and indicative name for the feature.
