@@ -61,7 +61,7 @@ To call a service:
     - `text` is a short and indicative name for the feature.
 
 **Workflow:**
-1. To implement a new feature, create a branch `feature/[TX.Y]text` from `dev`.
+1. To implement a new feature, create a branch `feature/TX.Y/text` from `dev`.
 2. Once implementation is finished, merge the feature into `dev` via a **Pull Request**.
 3. When a milestone is finished, merge `dev` into `main` via a **Pull Request**.
 

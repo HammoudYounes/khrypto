@@ -18,8 +18,8 @@ http.createServer(function (request, response) {
     try {
         // If the URL starts by /api, then it's a REST request (you can change that if you want).
         if (filePath[1] === "api") {
-            //TODO: Add middlewares and call microservices depending on the request.
-
+            console.log("Routing API request to Engine Service");
+            proxy.web(request, response, { target: "http://127.0.0.1:8002" });
         // If it doesn't start by /api, then it's a request for a file.
         } else {
             console.log("Request for a file received, transferring to the file service")
