@@ -1,13 +1,25 @@
 const http = require('http');
+const corsHelper = require('../helpers/cors.js');
+const { initializeBoard } = require('./initBoard');
+
 
 const gameState = {
-    board: Array(10).fill(null).map(() => Array(10).fill(null)),
+    board: initializeBoard(),
     turn: 0,
-    reserves: { 0: 7, 1: 7 }
+    reserves: { 0: 7, 1: 7 }, 
+    winner: null
 };
 
 const server = http.createServer((req, res) => {
+    corsHelper.addCors(res);
 
+    if (req.method === 'OPTIONS') {
+        res.statusCode = 204;
+        res.end();
+        return;
+    }
+
+    res.setHeader('Content-Type', 'application/json');
 
     if (req.url === '/api/state' && req.method === 'GET') {
         res.statusCode = 200;
@@ -19,5 +31,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(8002, () => {
-    console.log("Engine Service running on port 8002 with CORS enabled");
+    console.log("Engine service (v2) listening on port 8002");
 });

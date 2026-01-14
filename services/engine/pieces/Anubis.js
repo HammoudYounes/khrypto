@@ -1,3 +1,4 @@
+const { Piece } = require('./Piece');
 class Anubis extends Piece {
     constructor(player, orientation) {
         super(player, orientation);
@@ -14,3 +15,4 @@ class Anubis extends Piece {
         }
     }
 }
+module.exports = {Anubis}

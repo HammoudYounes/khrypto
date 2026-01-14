@@ -1,3 +1,5 @@
+
+const { Piece } = require('./Piece');
 class Sphinx extends Piece {
     constructor(player, orientation) {
         super(player, orientation);
@@ -9,3 +11,4 @@ class Sphinx extends Piece {
         return { action: 'BLOCK' };
     }
 }
+module.exports = {Sphinx}                                  
