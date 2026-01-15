@@ -17,7 +17,7 @@ echo "[Gateway] Launching..."
 
 # 2. Start File Service (Frontend Assets -> Port 8001)
 echo "[Files] Launching..."
-(cd services/files && node index.js) &
+(cd services/files &&  node index.js) &
 
 # 3. Start Engine Service (Game Logic -> Port 8002)
 echo "[Engine] Launching..."
