@@ -1,69 +1,95 @@
 const boardElement = document.getElementById('board');
 
+function initBoard() {
+    boardElement.innerHTML = ''; 
+    
+    for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < 10; col++) {
+            const pieceDiv = document.createElement('div');
+            pieceDiv.classList.add('case');
+            
+            pieceDiv.dataset.row = row;
+            pieceDiv.dataset.col = col;
+            
+            pieceDiv.style.gridRowStart = row + 1;
+            pieceDiv.style.gridColumnStart = col + 1;
+            
+            boardElement.appendChild(pieceDiv);
+        }
+    }
+}
+
+function updatePieces(boardData) {
+    const cells = boardElement.children;
+
+    for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < 10; col++) {
+
+            const index = row * 10 + col;
+            const cell = cells[index];
+            const pieceData = boardData[row][col];
+
+            cell.innerHTML = '';
+
+            if (pieceData) {
+                const img = createPieceImage(pieceData);
+                cell.appendChild(img);
+            }
+        }
+    }
+}
+
+function createPieceImage(pieceData) {
+    const pieceIMG = document.createElement('img');
+    const color = pieceData.player === 0 ? 'green' : 'red';
+    const type = pieceData.type.toLowerCase();
+
+    pieceIMG.src = `assets/${color}_${type}.png`;
+    pieceIMG.alt = `${color} ${type}`;
+    pieceIMG.classList.add('piece-image');
+
+    let degree = 0;
+    let scaleY = 1;
+
+    if (type === "pharaoh") {
+        degree = 0; 
+    } 
+    else if (type === "sphinx") {
+        switch (pieceData.orientation) {
+            case 0: degree = -90; break;
+            case 1: degree = 0; break;
+            case 2: degree = 90; break;
+            case 3: degree = 180; break;
+        }
+
+        if (pieceData.orientation === 3) {
+            scaleY = scaleY * -1;
+        }
+    } 
+    else if (type === "scarab") {
+        degree = 90 * (pieceData.orientation) - 45;
+    } 
+    else if (type === "pyramid") {
+        degree = 90 * (pieceData.orientation);
+    } 
+    else {
+        degree = 90 * (pieceData.orientation) - 180;
+    }
+
+    pieceIMG.style.transform = `rotate(${degree}deg) scaleY(${scaleY})`;
+    
+    return pieceIMG;
+}
+
+initBoard();
+
 const socket = io("http://localhost:8000", {
     path: '/socket.io',
     transports: ['websocket', 'polling'] 
 });
 
 socket.on('gameInit', (gameState) => {
-    console.log("Etat  reçu du serveur !", gameState);
-    renderBoard(gameState.board); // On redessine le plateau immédiatement
+    console.log("État reçu du serveur !", gameState);
+    // On met à jour seulement les pièces
+    updatePieces(gameState.board); 
 });
-
-
-function renderBoard(boardData) {
-    // Clear previous state
-    boardElement.innerHTML = '';
-
-    // Loop through Rows (y)
-    for (let row = 0; row < 10; row++) {
-        // Boucle sur les Colonnes (x)
-        for (let col = 0; col < 10; col++) {
-
-            const pieceData = boardData[row][col];
-            const pieceDiv = document.createElement('div');
-            pieceDiv.classList.add('case');
-            console.log(pieceData)
-            if (pieceData) {
-                const pieceIMG = document.createElement('img')
-                const color = pieceData.player === 0 ? 'green' : 'red';
-                const type = pieceData.type.toLowerCase();
-                pieceIMG.src = `assets/${color}_${type}.png`;
-                pieceIMG.alt = `${color} ${type}`;
-                pieceIMG.classList.add('piece-image');
-                
-                let degree = 0
-
-                if(type === "pharaoh"){
-                    degree = color === "green" ? 0 : 180
-                }
-                else if(type === "sphinx"){
-                    //TODO PROBAPLY NOT GOOD
-                    switch(pieceData.orientation){
-                        case 0: degree = -90
-                        case 1: degree = 0
-                        case 2: degree = 90
-                        case 3: degree = color === "green" ? 180 : 0
-                    }
-                }
-                else{
-                    degree = 90*(pieceData.orientation) - 180
-                }
-
-
-                pieceIMG.style.transform = 'rotate(' + degree + 'deg)'
-                pieceDiv.appendChild(pieceIMG);
-                pieceDiv.appendChild(pieceIMG);
-
-            
-            }
-
-            pieceDiv.style.gridRowStart = row + 1;
-            pieceDiv.style.gridColumnStart = col + 1;
-
-            boardElement.appendChild(pieceDiv);
-        }
-    }
-}
-
-renderBoard()
