@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GamePage</title>
+    <link rel="stylesheet" href="gamePage.css">
+    <script src="../js/socket.io.js"></script>
+    <script src="renderBoard.js" defer></script>
+</head>
+
+<body>
+    <header>
+        <h1>Game Header</h1>
+    </header>
+    <main>
+        <div class="player-info-sec">
+            <div class="opposing-player">joueur 2</div>
+            <div class="current-player">joueur 1</div>
+        </div>
+        <div class="game-sec">
+            <div id="board"></div>
+            <div class="rot-buttons">
+                <button>droite</button>
+                <button>gauche</button>
+            </div>
+        </div>
+        <div class="chat-moves-sec">Right Section</div>
+    </main>
+</body>
+
+
+</html>
