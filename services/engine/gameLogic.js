@@ -42,6 +42,7 @@ function applyAction(gameState, action, playerId) {
     const piece = gameState.board[y][x];
 
 
+
     switch (type){
         case 'PLACE':
 
@@ -59,6 +60,7 @@ function applyAction(gameState, action, playerId) {
             
             gameState.reserves[playerId] -= 1;
             break;
+            
         case 'SWAP':
             if (!piece) throw new Error("No piece at selected position.");
             if (piece.player !== playerId) throw new Error("You can only move your own pieces.");
