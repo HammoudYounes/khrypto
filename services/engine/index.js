@@ -8,7 +8,12 @@ const gameState = {
     board: initializeBoard(),
     turn: 0,
     reserves: { 0: 7, 1: 7 }, 
-    winner: null
+    winner: null,
+    turnCount: 0, 
+    swapHistory: {
+        0: { Sphinx: -10, Pharaoh: -10 },
+        1: { Sphinx: -10, Pharaoh: -10 }
+    }
 };
 
  
