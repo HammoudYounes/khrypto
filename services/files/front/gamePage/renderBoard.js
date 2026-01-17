@@ -1,5 +1,18 @@
 const boardElement = document.getElementById('board');
 
+boardElement.addEventListener('click', (event) => {
+    const clickedCell = event.target.closest('.case');
+
+    if (!clickedCell) return;
+
+    const y = parseInt(clickedCell.dataset.row, 10);
+    const x = parseInt(clickedCell.dataset.col, 10);
+
+    console.log(`Case cliquée : Row ${y}, Col ${x}`);
+
+});
+
+
 function initBoard() {
     boardElement.innerHTML = ''; 
     
@@ -90,6 +103,5 @@ const socket = io("http://localhost:8000", {
 
 socket.on('gameInit', (gameState) => {
     console.log("État reçu du serveur !", gameState);
-    // On met à jour seulement les pièces
     updatePieces(gameState.board); 
 });
