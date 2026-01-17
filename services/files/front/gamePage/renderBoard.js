@@ -70,7 +70,7 @@ function createPieceImage(pieceData) {
         degree = 90 * (pieceData.orientation) - 45;
     } 
     else if (type === "pyramid") {
-        degree = 90 * (pieceData.orientation);
+        degree = 90 * (pieceData.orientation) - 90;
     } 
     else {
         degree = 90 * (pieceData.orientation) - 180;
