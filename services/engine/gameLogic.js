@@ -107,6 +107,36 @@ function applyAction(gameState, action, playerId) {
             }
             break;
 
+        case 'MOVE':
+            // Vérification du type de pièce
+            if (piece.type === 'Sphinx' || piece.type === 'Pharaoh') {
+                throw new Error("Le Sphinx et le Pharaon ne peuvent pas se déplacer !");
+            }
+
+            const { destX, destY } = action;
+
+            if (!isValidCoordinate(destX, destY)) {
+                throw new Error("Destination hors du plateau.");
+            }
+
+            const dx = Math.abs(destX - x);
+            const dy = Math.abs(destY - y);
+            const isAdjacent = (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+
+            if (!isAdjacent) {
+                throw new Error("Déplacement invalide : Vous ne pouvez bouger que d'une case orthogonalement.");
+            }
+
+            if (gameState.board[destY][destX] !== null) {
+                throw new Error("La case de destination est occupée !");
+            }
+
+            gameState.board[destY][destX] = piece; // Place la pièce sur la nouvelle case
+            gameState.board[y][x] = null;          // Vide l'ancienne case
+
+            console.log(`Joueur ${playerId} déplace ${piece.type} de (${x},${y}) vers (${destX},${destY})`);
+            break;
+
         case 'ROTATE':
             if (!piece) {
                 console.log("No piece at selected position."); return;
