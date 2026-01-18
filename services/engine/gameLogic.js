@@ -1,6 +1,5 @@
-const { DIRECTIONS } = require('./pieces/Piece');
-const { Pyramid } = require('./pieces/Pyramid');
-
+const { DIRECTIONS } = require('./pieces/Piece'); 
+const {Pyramid} = require('./pieces/Pyramid');
 const BOARD_SIZE = 10;
 
 
@@ -39,6 +38,11 @@ function applyAction(gameState, action, playerId) {
     }
 
     const { type, x, y } = action;
+
+    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+        throw new Error("Invalid coordinates!");
+    }
+
     const piece = gameState.board[y][x];
 
     let laserShouldFire = true;
@@ -103,6 +107,26 @@ function applyAction(gameState, action, playerId) {
             }
             break;
 
+        case 'ROTATE':
+            if (!piece) {
+                console.log("No piece at selected position."); return;
+            }
+            if (piece.player !== playerId) { console.log("You can only move your own pieces."); return; }
+            // RULE: Pharaoh cannot rotate
+            if (piece.type === 'Pharaoh') {
+                throw new Error("The Pharaoh cannot rotate!");
+            }
+
+            const { direction } = action;
+            if (direction !== 1 && direction !== -1) {
+                throw new Error("Invalid rotation direction (1 or -1 required).");
+            }
+
+            piece.rotate(direction);
+            break;
+
+        default:
+            throw new Error("Unknown action type.");
     }
 
 
@@ -116,6 +140,7 @@ function computeLaserPath(gameState, playerId, laserShouldFire) {
     if (!laserShouldFire) {
         return null;
     }
+
 
     let path = [];
     let hitCoords = [];

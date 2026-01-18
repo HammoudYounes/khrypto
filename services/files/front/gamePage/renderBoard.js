@@ -1,4 +1,6 @@
 const boardElement = document.getElementById('board');
+const btnRotateLeft = document.getElementById('btn-rotate-left');
+const btnRotateRight = document.getElementById('btn-rotate-right');
 let currentGameState = null;
 let selectedPiece = null; // {x, y}
 
@@ -28,6 +30,7 @@ function handleCellClick(x, y) {
     if (!selectedPiece) {
         if (clickedPiece && clickedPiece.player === currentPlayerId) {
             selectPiece(x, y);
+            updateRotationButtons(clickedPiece);
         }
         return;
     }
@@ -51,6 +54,12 @@ function handleCellClick(x, y) {
 
     if (clickedPiece && clickedPiece.player === currentPlayerId) {
         selectPiece(x, y);
+        updateRotationButtons(clickedPiece);
+        return;
+    }
+
+    if (clickedPiece && clickedPiece.player === currentPlayerId) {
+        selectPiece(x, y);
     } else {
         deselect();
     }
@@ -64,6 +73,7 @@ function selectPiece(x, y) {
 function deselect() {
     selectedPiece = null;
     updateVisualSelection();
+    updateRotationButtons(null);
 }
 
 function updateVisualSelection() {
@@ -344,6 +354,52 @@ function createPieceImage(pieceData) {
     pieceIMG.style.transform = `rotate(${degree}deg) scaleY(${scaleY}) scale(${scale}) translateY(${translateY}%)`;
 
     return pieceIMG;
+}
+
+
+function updateRotationButtons(piece) {
+    btnRotateLeft.disabled = true;
+    btnRotateRight.disabled = true;
+
+    if (!piece) return;
+
+    if (piece.type === 'Pharaoh') {
+        console.log("Pharaon sélectionné : Rotation impossible");
+        return;
+    }
+
+    btnRotateLeft.disabled = false;
+    btnRotateRight.disabled = false;
+}
+
+btnRotateLeft.addEventListener('click', () => {
+    if (selectedPiece) {
+        sendRotateAction(selectedPiece.x, selectedPiece.y, -1); // -1 = Gauche (Anti-horaire)
+    }
+});
+
+btnRotateRight.addEventListener('click', () => {
+    if (selectedPiece) {
+        sendRotateAction(selectedPiece.x, selectedPiece.y, 1); // 1 = Droite (Horaire)
+    }
+});
+
+function sendRotateAction(x, y, direction) {
+    const playerId = currentGameState.turn;
+
+    console.log(`Envoi Rotation -> X:${x}, Y:${y}, Sens:${direction}`);
+
+    socket.emit('player:action', {
+        playerId: playerId,
+        action: {
+            type: 'ROTATE',
+            x: x,
+            y: y,
+            direction: direction
+        }
+    });
+
+    deselect();
 }
 
 
