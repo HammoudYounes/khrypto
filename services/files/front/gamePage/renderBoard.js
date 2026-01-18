@@ -146,7 +146,7 @@ function showValidMoves(x, y) {
 
 
 function sendSwapAction(x, y, targetX, targetY, playerId) {
-    console.log(`Envoi action SWAP: (${x},${y}) <-> (${targetX},${targetY}) pour Joueur ${playerId}`);
+    console.log(`Sending SWAP action: (${x},${y}) <-> (${targetX},${targetY}) for Player ${playerId}`);
     socket.emit('player:action', {
         playerId: playerId,
         action: {
@@ -254,8 +254,8 @@ function calculateCooldown(gameState, playerId, type) {
 }
 
 function updateTurnIndicator(gameState) {
-    const p1Container = document.querySelector('.current-player'); // Joueur 1 (P0)
-    const p2Container = document.querySelector('.opposing-player'); // Joueur 2 (P1)
+    const p1Container = document.querySelector('.current-player');
+    const p2Container = document.querySelector('.opposing-player');
 
     // Clear previous
     p1Container.classList.remove('turn-active');
@@ -269,9 +269,9 @@ function updateTurnIndicator(gameState) {
 }
 
 
-//PYRAMID PLACEMENT LOGIC END
+// PYRAMID PLACEMENT LOGIC END
 
-//This function create the board's cases (div) and add some event listener
+// This function creates the board's cells (div) and adds some event listeners
 function initBoard() {
     boardElement.innerHTML = '';
 
@@ -286,20 +286,20 @@ function initBoard() {
             pieceDiv.style.gridRowStart = row + 1;
             pieceDiv.style.gridColumnStart = col + 1;
 
-            //allows overflying by another element
+            // Allows hovering by another element
             pieceDiv.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'copy';
                 pieceDiv.classList.add('drag-hover');
             });
 
-            //Clean when there is no more element overflying the case
+            // Clean up when there is no more element hovering over the cell
             pieceDiv.addEventListener('dragleave', () => {
                 pieceDiv.classList.remove('drag-hover');
             });
 
 
-            //manage the drop of a pyramid after a drag and drop action (PLACE)
+            // Manage the drop of a pyramid after a drag and drop action (PLACE)
             pieceDiv.addEventListener('drop', (event) => {
                 event.preventDefault();
                 pieceDiv.classList.remove('drag-hover');
@@ -326,7 +326,7 @@ function initBoard() {
 }
 
 function sendPlaceAction(x, y, orientation, playerId) {
-    console.log(`Envoi action PLACE en (${x}, ${y}) pour le Joueur ${playerId}`);
+    console.log(`Sending PLACE action at (${x}, ${y}) for Player ${playerId}`);
 
     socket.emit('player:action', {
         playerId: playerId,
@@ -479,8 +479,98 @@ function sendMoveAction(originX, originY, destX, destY) {
 
 
 
+//LASER RENDERING LOGIC
 
+async function animateLaserSequence(laserResult, color) {
+    const canvas = document.getElementById('laserCanvas');
+    const ctx = canvas.getContext('2d');
+    const board = document.getElementById('board');
 
+    canvas.width = board.clientWidth;
+    canvas.height = board.clientHeight;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color;
+
+    const path = laserResult.path;
+
+    // Transform the list of destroyed pieces into a Set of "x,y" strings for fast lookup
+    const destroyedSet = new Set();
+    if (laserResult.hitCoords) {
+        laserResult.hitCoords.forEach(coord => destroyedSet.add(`${coord.x},${coord.y}`));
+    }
+
+    ctx.beginPath();
+
+    // Iterate through the path segment by segment
+    for (let i = 0; i < path.length - 1; i++) {
+        const start = path[i];
+        const end = path[i + 1];
+
+        const startPos = getCenterCoordinates(start.x, start.y);
+        const endPos = getCenterCoordinates(end.x, end.y);
+
+        if (i === 0) {
+            ctx.moveTo(startPos.px, startPos.py);
+        }
+
+        ctx.lineTo(endPos.px, endPos.py);
+        ctx.stroke();
+
+        await sleep(100);
+
+        if (destroyedSet.has(`${end.x},${end.y}`)) {
+            drawExplosion(ctx, endPos.px, endPos.py);
+
+            removePieceFromBoard(end.x, end.y);
+
+            await sleep(150);
+        }
+    }
+
+    await sleep(500);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Helper to get the center of a cell in pixels relative to the canvas
+function getCenterCoordinates(x, y) {
+    const cell = document.querySelector(`.case[data-row='${y}'][data-col='${x}']`);
+    if (!cell) return { px: 0, py: 0 };
+
+    const px = cell.offsetLeft + cell.offsetWidth / 2;
+    const py = cell.offsetTop + cell.offsetHeight / 2;
+
+    return { px, py };
+}
+
+function removePieceFromBoard(x, y) {
+    const cell = document.querySelector(`.case[data-row='${y}'][data-col='${x}']`);
+    if (cell) {
+        cell.innerHTML = '';
+
+        // Optional: add css animation for the disappearance
+    }
+}
+
+function drawExplosion(ctx, x, y) {
+    ctx.save();
+    ctx.fillStyle = 'yellow';
+    ctx.shadowColor = 'orange';
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
+}
+
+//LASER RENDERING LOGIC END
 
 initBoard();
 initDraggableReserve();
@@ -492,23 +582,33 @@ const socket = io("http://localhost:8000", {
 });
 
 socket.on('gameInit', (gameState) => {
-    console.log("État reçu du serveur !", gameState);
-    currentGameState = gameState;
-    updatePieces(gameState.board);
-    updatePyramidReserve(gameState.reserves);
-    updateCooldownDisplay(gameState);
-    updateTurnIndicator(gameState);
+    console.log("State received from server!", gameState);
+    finalizeTurn(gameState)
 });
 
 socket.on('game:action_response', (gameState) => {
-    console.log("État reçu du serveur !", gameState);
-    currentGameState = gameState.finalState;
-    updatePieces(gameState.finalState.board);
-    updatePyramidReserve(gameState.finalState.reserves);
-    updateCooldownDisplay(gameState.finalState);
-    updateTurnIndicator(gameState.finalState);
-    updateVisualSelection();
+    console.log("State received from server!", gameState);
+    if (gameState.boardAfterMove) {
+        updatePieces(gameState.boardAfterMove);
+    }
+
+    if (gameState.laserResult && gameState.laserResult.path && gameState.laserResult.path.length > 0) {
+        animateLaserSequence(gameState.laserResult, currentGameState.turn === 0 ? "green" : "red").then(() => {
+            finalizeTurn(gameState.finalState);
+        });
+    } else {
+        finalizeTurn(gameState.finalState);
+    }
 });
+
+function finalizeTurn(state) {
+    currentGameState = state;
+    updatePieces(state.board); 
+    updatePyramidReserve(state.reserves);
+    updateCooldownDisplay(state);
+    updateTurnIndicator(state);
+    updateVisualSelection();
+}
 
 socket.on('game:error', (data) => {
     alert(data.message);

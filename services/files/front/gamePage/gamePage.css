@@ -89,14 +89,19 @@ main {
     overflow: hidden;
 }
 
-#board {
+.board-wrapper {
     width: auto;
     height: 90%;
     aspect-ratio: 1 / 1;
+    position: relative;
+}
+
+#board {
+    width: 100%;
+    height: 100%;
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     grid-template-rows: repeat(10, 1fr);
-    position: relative;
     border-top: 1px solid black;
     border-left: 1px solid black;
     box-sizing: border-box;
