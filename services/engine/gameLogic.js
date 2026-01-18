@@ -11,6 +11,11 @@ function applyAction(gameState, action, playerId) {
     }
 
     const { type, x, y } = action;
+
+    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+        throw new Error("Invalid coordinates!");
+    }
+
     const piece = gameState.board[y][x];
 
     if (!piece) throw new Error("No piece at selected position.");
@@ -19,7 +24,29 @@ function applyAction(gameState, action, playerId) {
         case 'SWAP':
             break;
 
-        
+        case 'ROTATE':
+            // RULE: Pharaoh cannot rotate
+            if (piece.type === 'Pharaoh') {
+                throw new Error("The Pharaoh cannot rotate!");
+            }
+
+            const { direction } = action;
+            if (direction !== 1 && direction !== -1) {
+                throw new Error("Invalid rotation direction (1 or -1 required).");
+            }
+
+            piece.rotate(direction);
+            break;
+
+        default:
+            throw new Error("Unknown action type.");
+    }
+    // Fire the laser immediately after the action
+    fireLaser(gameState, playerId);
+
+    // If the game is not over, switch turns
+    if (gameState.winner === null) {
+        gameState.turn = (gameState.turn + 1) % 2;
     }
 
 }
