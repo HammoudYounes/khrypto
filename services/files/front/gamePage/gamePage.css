@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 html,
 body {
     margin: 0;
@@ -22,7 +26,8 @@ main {
     display: grid;
     grid-template-columns: 1fr 2.7fr 1fr;
     width: 100%;
-    height: auto;
+    height: 100%;
+    overflow: hidden;
 }
 
 .player-info-sec,
@@ -35,26 +40,58 @@ main {
 .player-info-sec {
     display: flex;
     flex-direction: column;
+    /* Les empiler verticalement */
     align-items: center;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 10px;
+    /* Espace entre les deux blocs */
+    padding: 10px;
+    height: 100%;
+    /* Prend toute la hauteur disponible du parent (main) */
+    overflow: hidden;
+    /* Empêche le contenu de dépasser */
 }
+
+.opposing-player,
+.current-player {
+    flex: 1;
+    /* Force les deux divs à prendre chacun 50% de l'espace disponible */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    /* CRUCIAL : permet au flex item de rétrécir si l'écran est petit */
+    border: 1px dashed #ccc;
+    /* Juste pour visualiser la zone, à retirer */
+}
+
+.player-preview-cell {
+    width: 27%;
+    /* 2.7fr / 10 / 1fr approx */
+    aspect-ratio: 1/1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
 
 .game-sec {
-    background-color: #e0e0e0;
-    border: 1px solid #999;
-    padding: 10px;
-    box-sizing: border-box;
-
-
-
-
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
 }
-
-
 
 #board {
     width: auto;
-    height: 77%;
+    height: 90%;
     aspect-ratio: 1 / 1;
     display: grid;
     grid-template-columns: repeat(10, 1fr);
@@ -63,20 +100,17 @@ main {
     border-top: 1px solid black;
     border-left: 1px solid black;
     box-sizing: border-box;
-
-    grid-row: 0/1;
 }
 
-.rot-button {
+.rot-buttons {
     width: 100%;
     display: flex;
     justify-content: center;
     gap: 10px;
     padding-top: 10px;
-    grid-row: 1/2;
 }
 
-.rot-button button {
+.rot-buttons button {
     padding: 5px 15px;
     cursor: pointer;
 }
@@ -93,7 +127,22 @@ main {
 
 .piece-image {
     position: relative;
-    width: 150%;
+    width: 250%;
     object-fit: fill;
+    pointer-events: none;
 }
 
+.player-preview-cell .piece-image {
+    pointer-events: auto;
+}
+
+.pyramid-count {
+    margin-top: 5px;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.case.drag-hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    border: 2px dashed gold;
+}
