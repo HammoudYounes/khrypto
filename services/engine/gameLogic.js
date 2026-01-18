@@ -1,5 +1,5 @@
 const { DIRECTIONS } = require('./pieces/Piece'); 
-
+const {Pyramid} = require('./pieces/Pyramid');
 const BOARD_SIZE = 10;
 
 
