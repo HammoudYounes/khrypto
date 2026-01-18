@@ -187,6 +187,21 @@ function calculateCooldown(gameState, playerId, type) {
     return 0;
 }
 
+function updateTurnIndicator(gameState) {
+    const p1Container = document.querySelector('.current-player'); // Joueur 1 (P0)
+    const p2Container = document.querySelector('.opposing-player'); // Joueur 2 (P1)
+
+    // Clear previous
+    p1Container.classList.remove('turn-active');
+    p2Container.classList.remove('turn-active');
+
+    if (gameState.turn === 0) {
+        p1Container.classList.add('turn-active');
+    } else {
+        p2Container.classList.add('turn-active');
+    }
+}
+
 
 //PYRAMID PLACEMENT LOGIC END
 
@@ -195,8 +210,8 @@ function initBoard() {
     boardElement.innerHTML = '';
 
     for (let row = 0; row < 10; row++) {
-        for (let col = 0; col < 10; col++) { 
-            const pieceDiv = document.createElement('div'); 
+        for (let col = 0; col < 10; col++) {
+            const pieceDiv = document.createElement('div');
             pieceDiv.classList.add('case');
 
             pieceDiv.dataset.row = row;
@@ -348,14 +363,16 @@ socket.on('gameInit', (gameState) => {
     updatePieces(gameState.board);
     updatePyramidReserve(gameState.reserves);
     updateCooldownDisplay(gameState);
+    updateTurnIndicator(gameState);
 });
 
-socket.on('game:state', (gameState) => {
+socket.on('game:action_response', (gameState) => {
     console.log("État reçu du serveur !", gameState);
-    currentGameState = gameState;
-    updatePieces(gameState.board);
-    updatePyramidReserve(gameState.reserves);
-    updateCooldownDisplay(gameState);
+    currentGameState = gameState.finalState;
+    updatePieces(gameState.finalState.board);
+    updatePyramidReserve(gameState.finalState.reserves);
+    updateCooldownDisplay(gameState.finalState);
+    updateTurnIndicator(gameState.finalState);
     updateVisualSelection();
 });
 

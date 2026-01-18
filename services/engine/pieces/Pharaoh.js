@@ -7,7 +7,7 @@ class Pharaoh extends Piece {
     }
 
     acceptLaser(laserDirection) {
-        return { action: 'DESTROY' }; 
+        return { action: 'PASS' }; 
     }
 }
 
