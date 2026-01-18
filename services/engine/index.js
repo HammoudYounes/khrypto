@@ -44,7 +44,6 @@ io.on('connection', (socket) => {
             // Run the Game Loop Logic
             applyAction(gameState, payload.action, payload.playerId);
 
-            // Broadcast Updates
             io.emit('game:state', gameState);
             
             // Emit the laser animation path (optional but cool)
