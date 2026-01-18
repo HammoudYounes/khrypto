@@ -13,6 +13,44 @@ boardElement.addEventListener('click', (event) => {
 });
 
 
+//PYRAMID PLACEMENT LOGIC
+const reserveOrientations = {
+    0: 1,
+    1: 1 
+};
+
+function initPlayerControls(playerId, imgId, btnLeftId, btnRightId) {
+    const img = document.getElementById(imgId);
+    const btnLeft = document.getElementById(btnLeftId);
+    const btnRight = document.getElementById(btnRightId);
+
+    if (!img || !btnLeft || !btnRight) return;
+
+    const updateVisual = () => {
+        const orientation = reserveOrientations[playerId];
+        const degree = (90 * orientation) - 90;
+        img.style.transform = `rotate(${degree}deg)`;
+    };
+
+    updateVisual();
+
+    btnLeft.addEventListener('click', () => {
+        reserveOrientations[playerId] = (reserveOrientations[playerId] - 1 + 4) % 4;
+        updateVisual();
+    });
+
+    btnRight.addEventListener('click', () => {
+        reserveOrientations[playerId] = (reserveOrientations[playerId] + 1) % 4;
+        updateVisual();
+    });
+}
+
+function initReserveListeners() {
+    initPlayerControls(0, 'p1-reserve-piece', 'btn-p1-left', 'btn-p1-right');
+    
+    initPlayerControls(1, 'p2-reserve-piece', 'btn-p2-left', 'btn-p2-right');
+}
+
 function initDraggableReserve() {
     const p1Img = document.querySelector('.current-player .piece-image');
     if (p1Img) setupDraggableItem(p1Img, 0);
@@ -28,6 +66,10 @@ function setupDraggableItem(img, playerId) {
     img.addEventListener('dragstart', (event) => {
         event.dataTransfer.setData('actionType', 'PLACE');
         event.dataTransfer.setData('playerId', playerId.toString()); 
+
+        const currentOrientation = reserveOrientations[playerId];
+        event.dataTransfer.setData('orientation', currentOrientation.toString());
+        
         event.dataTransfer.effectAllowed = 'copy';
         console.log(`Drag started: Pyramide Joueur ${playerId + 1} (ID: ${playerId})`);
     });
@@ -40,6 +82,8 @@ function updatePyramidReserve(reserves){
     countP1.innerHTML = reserves[1].toString()
 }
 
+
+//PYRAMID PLACEMENT LOGIC END
 
 //This function create the board's cases (div) and add some event listener
 function initBoard() {
@@ -68,6 +112,7 @@ function initBoard() {
                 pieceDiv.classList.remove('drag-hover');
             });
 
+
             //manage the drop of a pyramid after a drag and drop action (PLACE)
             pieceDiv.addEventListener('drop', (event) => {
                 event.preventDefault();
@@ -75,14 +120,17 @@ function initBoard() {
 
                 const actionType = event.dataTransfer.getData('actionType');
                 const originPlayerId = event.dataTransfer.getData('playerId');
+                const orientationStr = event.dataTransfer.getData('orientation');
 
                 if (actionType === 'PLACE' && originPlayerId !== null) {
                     const x = parseInt(pieceDiv.dataset.col, 10);
                     const y = parseInt(pieceDiv.dataset.row, 10);
 
                     const playerId = parseInt(originPlayerId, 10);
+                    
+                    const orientation = orientationStr ? parseInt(orientationStr, 10) : 0;
 
-                    sendPlaceAction(x, y, 0,playerId);
+                    sendPlaceAction(x, y, orientation,playerId);
                 }
             });
 
@@ -182,7 +230,7 @@ function createPieceImage(pieceData) {
 
 initBoard();
 initDraggableReserve();
-
+initReserveListeners();
 
 const socket = io("http://localhost:8000", {
     path: '/socket.io',
@@ -196,6 +244,7 @@ socket.on('gameInit', (gameState) => {
 });
 
 socket.on('game:state', (gameState) => {
+    console.log("État reçu du serveur !", gameState);
     updatePieces(gameState.board);
     updatePyramidReserve(gameState.reserves)
 });

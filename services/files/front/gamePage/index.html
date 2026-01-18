@@ -18,15 +18,28 @@
             <div class="opposing-player">
                 <p>joueur 2</p>
                 <div class="player-preview-cell">
-                    <img src="assets/red_pyramid.png" alt="red_pyramid" class="piece-image">
+                    <img id="p2-reserve-piece" src="assets/red_pyramid.png" alt="red_pyramid" class="piece-image">
                 </div>
+
+                <div class="reserve-controls" style="margin-top: 5px; display: flex; gap: 5px;">
+                    <button id="btn-p2-left">↺</button>
+                    <button id="btn-p2-right">↻</button>
+                </div>
+
                 <p class="pyramid-count" id="p2-pyramid-count">0</p>
             </div>
+
             <div class="current-player">
                 <p>joueur 1</p>
                 <div class="player-preview-cell">
-                    <img src="assets/green_pyramid.png" alt="red_pyramid" class="piece-image">
+                    <img id="p1-reserve-piece" src="assets/green_pyramid.png" alt="green_pyramid" class="piece-image">
                 </div>
+
+                <div class="reserve-controls" style="margin-top: 5px; display: flex; gap: 5px;">
+                    <button id="btn-p1-left">↺</button>
+                    <button id="btn-p1-right">↻</button>
+                </div>
+
                 <p class="pyramid-count" id="p1-pyramid-count">0</p>
             </div>
         </div>
