@@ -40,6 +40,19 @@ function handleCellClick(x, y) {
         return;
     }
 
+    if (!clickedPiece) {
+        const dx = Math.abs(x - selectedPiece.x);
+        const dy = Math.abs(y - selectedPiece.y);
+        const isAdjacent = (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+
+        if (isAdjacent) {
+            sendMoveAction(selectedPiece.x, selectedPiece.y, x, y);
+        } else {
+            // Si on clique sur une case vide trop loin, on désélectionne juste
+            deselect();
+        }
+        return;
+    }
 
     const originPiece = currentGameState.board[selectedPiece.y][selectedPiece.x];
 
@@ -66,6 +79,7 @@ function handleCellClick(x, y) {
 }
 
 function selectPiece(x, y) {
+
     selectedPiece = { x, y };
     updateVisualSelection();
 }
@@ -73,12 +87,20 @@ function selectPiece(x, y) {
 function deselect() {
     selectedPiece = null;
     updateVisualSelection();
-    updateRotationButtons(null);
+
 }
 
 function updateVisualSelection() {
     const allCases = document.querySelectorAll('.case');
-    allCases.forEach(c => c.classList.remove('selected'));
+    allCases.forEach(c =>{
+        c.classList.remove('selected');
+        c.classList.remove('valid-move');
+    });
+
+    if (!selectedPiece) {
+        updateRotationButtons(null);
+        return;
+    }
 
     if (selectedPiece) {
         const cell = document.querySelector(`.case[data-row='${selectedPiece.y}'][data-col='${selectedPiece.x}']`);
@@ -86,6 +108,40 @@ function updateVisualSelection() {
             cell.classList.add('selected');
         }
     }
+
+    if (currentGameState && currentGameState.board) {
+        const piece = currentGameState.board[selectedPiece.y][selectedPiece.x];
+
+        updateRotationButtons(piece);
+
+        if (piece && (piece.type === 'Anubis' || piece.type === 'Pyramid' || piece.type === 'Scarab')) {
+            showValidMoves(selectedPiece.x, selectedPiece.y);
+        }
+    }
+}
+
+function showValidMoves(x, y) {
+    const directions = [
+        { dx: 0, dy: -1 }, // Haut
+        { dx: 0, dy: 1 },  // Bas
+        { dx: -1, dy: 0 }, // Gauche
+        { dx: 1, dy: 0 }   // Droite
+    ];
+
+    directions.forEach(dir => {
+        const targetX = x + dir.dx;
+        const targetY = y + dir.dy;
+
+        if (targetX >= 0 && targetX < 10 && targetY >= 0 && targetY < 10) {
+            const targetPiece = currentGameState.board[targetY][targetX];
+            if (!targetPiece) {
+                const targetCell = document.querySelector(`.case[data-row='${targetY}'][data-col='${targetX}']`);
+                if (targetCell) {
+                    targetCell.classList.add('valid-move');
+                }
+            }
+        }
+    });
 }
 
 
@@ -401,6 +457,28 @@ function sendRotateAction(x, y, direction) {
 
     deselect();
 }
+
+function sendMoveAction(originX, originY, destX, destY) {
+    const playerId = currentGameState.turn;
+
+    console.log(`Envoi Move : (${originX},${originY}) vers (${destX},${destY})`);
+
+    socket.emit('player:action', {
+        playerId: playerId,
+        action: {
+            type: 'MOVE',
+            x: originX,      // Case de départ (pour identifier la pièce)
+            y: originY,
+            destX: destX,    // Case d'arrivée
+            destY: destY
+        }
+    });
+
+    deselect();
+}
+
+
+
 
 
 
