@@ -1,22 +1,104 @@
 const boardElement = document.getElementById('board');
+let currentGameState = null;
+let selectedPiece = null; // {x, y}
 
 boardElement.addEventListener('click', (event) => {
     const clickedCell = event.target.closest('.case');
 
-    if (!clickedCell) return;
+    if (!clickedCell) {
+        deselect();
+        return;
+    }
 
     const y = parseInt(clickedCell.dataset.row, 10);
     const x = parseInt(clickedCell.dataset.col, 10);
 
-    console.log(`Case cliquée : Row ${y}, Col ${x}`);
+    console.log(`Selected Cell : Row ${y}, Col ${x}`);
 
+    handleCellClick(x, y);
 });
+
+function handleCellClick(x, y) {
+    if (!currentGameState) return;
+
+    const clickedPiece = currentGameState.board[y][x];
+
+    const currentPlayerId = currentGameState.turn;
+
+    if (!selectedPiece) {
+        if (clickedPiece && clickedPiece.player === currentPlayerId) {
+            selectPiece(x, y);
+        }
+        return;
+    }
+
+    if (selectedPiece.x === x && selectedPiece.y === y) {
+        deselect();
+        return;
+    }
+
+
+    const originPiece = currentGameState.board[selectedPiece.y][selectedPiece.x];
+
+    if (originPiece && (originPiece.type === 'Scarab')) {
+        if (clickedPiece && clickedPiece.player === currentPlayerId &&
+            (clickedPiece.type === 'Sphinx' || clickedPiece.type === 'Pharaoh')) {
+            sendSwapAction(selectedPiece.x, selectedPiece.y, x, y, currentPlayerId);
+            deselect();
+            return;
+        }
+    }
+
+    if (clickedPiece && clickedPiece.player === currentPlayerId) {
+        selectPiece(x, y);
+    } else {
+        deselect();
+    }
+}
+
+function selectPiece(x, y) {
+    selectedPiece = { x, y };
+    updateVisualSelection();
+}
+
+function deselect() {
+    selectedPiece = null;
+    updateVisualSelection();
+}
+
+function updateVisualSelection() {
+    const allCases = document.querySelectorAll('.case');
+    allCases.forEach(c => c.classList.remove('selected'));
+
+    if (selectedPiece) {
+        const cell = document.querySelector(`.case[data-row='${selectedPiece.y}'][data-col='${selectedPiece.x}']`);
+        if (cell) {
+            cell.classList.add('selected');
+        }
+    }
+}
+
+
+function sendSwapAction(x, y, targetX, targetY, playerId) {
+    console.log(`Envoi action SWAP: (${x},${y}) <-> (${targetX},${targetY}) pour Joueur ${playerId}`);
+    socket.emit('player:action', {
+        playerId: playerId,
+        action: {
+            type: 'SWAP',
+            x: x,
+            y: y,
+            targetX: targetX,
+            targetY: targetY
+        }
+    });
+}
+
 
 
 //PYRAMID PLACEMENT LOGIC
 const reserveOrientations = {
     0: 1,
-    1: 1 
+    1: 1
 };
 
 function initPlayerControls(playerId, imgId, btnLeftId, btnRightId) {
@@ -47,7 +129,7 @@ function initPlayerControls(playerId, imgId, btnLeftId, btnRightId) {
 
 function initReserveListeners() {
     initPlayerControls(0, 'p1-reserve-piece', 'btn-p1-left', 'btn-p1-right');
-    
+
     initPlayerControls(1, 'p2-reserve-piece', 'btn-p2-left', 'btn-p2-right');
 }
 
@@ -65,21 +147,44 @@ function setupDraggableItem(img, playerId) {
 
     img.addEventListener('dragstart', (event) => {
         event.dataTransfer.setData('actionType', 'PLACE');
-        event.dataTransfer.setData('playerId', playerId.toString()); 
+        event.dataTransfer.setData('playerId', playerId.toString());
 
         const currentOrientation = reserveOrientations[playerId];
         event.dataTransfer.setData('orientation', currentOrientation.toString());
-        
+
         event.dataTransfer.effectAllowed = 'copy';
         console.log(`Drag started: Pyramide Joueur ${playerId + 1} (ID: ${playerId})`);
     });
 }
 
-function updatePyramidReserve(reserves){
-    const countP0= document.getElementById("p1-pyramid-count")
-    const countP1= document.getElementById("p2-pyramid-count")
+function updatePyramidReserve(reserves) {
+    const countP0 = document.getElementById("p1-pyramid-count")
+    const countP1 = document.getElementById("p2-pyramid-count")
     countP0.innerHTML = reserves[0].toString()
     countP1.innerHTML = reserves[1].toString()
+}
+
+function updateCooldownDisplay(gameState) {
+    if (!gameState.swapHistory) return;
+
+    const p0Sphinx = calculateCooldown(gameState, 0, 'Sphinx');
+    const p0Pharaoh = calculateCooldown(gameState, 0, 'Pharaoh');
+    const p1Sphinx = calculateCooldown(gameState, 1, 'Sphinx');
+    const p1Pharaoh = calculateCooldown(gameState, 1, 'Pharaoh');
+
+    document.getElementById('p1-sphinx-cooldown').textContent = p0Sphinx;
+    document.getElementById('p1-pharaoh-cooldown').textContent = p0Pharaoh;
+    document.getElementById('p2-sphinx-cooldown').textContent = p1Sphinx;
+    document.getElementById('p2-pharaoh-cooldown').textContent = p1Pharaoh;
+}
+
+function calculateCooldown(gameState, playerId, type) {
+    const lastSwapTurn = gameState.swapHistory[playerId][type];
+    const turnsPassed = gameState.turnCount - lastSwapTurn;
+    if (turnsPassed < 8) {
+        return Math.ceil((8 - turnsPassed) / 2);
+    }
+    return 0;
 }
 
 
@@ -93,7 +198,7 @@ function initBoard() {
         for (let col = 0; col < 10; col++) { 
             const pieceDiv = document.createElement('div'); 
             pieceDiv.classList.add('case');
-            
+
             pieceDiv.dataset.row = row;
             pieceDiv.dataset.col = col;
 
@@ -102,9 +207,9 @@ function initBoard() {
 
             //allows overflying by another element
             pieceDiv.addEventListener('dragover', (event) => {
-                event.preventDefault(); 
+                event.preventDefault();
                 event.dataTransfer.dropEffect = 'copy';
-                pieceDiv.classList.add('drag-hover'); 
+                pieceDiv.classList.add('drag-hover');
             });
 
             //Clean when there is no more element overflying the case
@@ -127,10 +232,10 @@ function initBoard() {
                     const y = parseInt(pieceDiv.dataset.row, 10);
 
                     const playerId = parseInt(originPlayerId, 10);
-                    
+
                     const orientation = orientationStr ? parseInt(orientationStr, 10) : 0;
 
-                    sendPlaceAction(x, y, orientation,playerId);
+                    sendPlaceAction(x, y, orientation, playerId);
                 }
             });
 
@@ -141,7 +246,7 @@ function initBoard() {
 
 function sendPlaceAction(x, y, orientation, playerId) {
     console.log(`Envoi action PLACE en (${x}, ${y}) pour le Joueur ${playerId}`);
-    
+
     socket.emit('player:action', {
         playerId: playerId,
         action: {
@@ -239,14 +344,19 @@ const socket = io("http://localhost:8000", {
 
 socket.on('gameInit', (gameState) => {
     console.log("État reçu du serveur !", gameState);
+    currentGameState = gameState;
     updatePieces(gameState.board);
-    updatePyramidReserve(gameState.reserves)
+    updatePyramidReserve(gameState.reserves);
+    updateCooldownDisplay(gameState);
 });
 
 socket.on('game:state', (gameState) => {
     console.log("État reçu du serveur !", gameState);
+    currentGameState = gameState;
     updatePieces(gameState.board);
-    updatePyramidReserve(gameState.reserves)
+    updatePyramidReserve(gameState.reserves);
+    updateCooldownDisplay(gameState);
+    updateVisualSelection();
 });
 
 socket.on('game:error', (data) => {

@@ -41,8 +41,8 @@ function applyAction(gameState, action, playerId) {
     const { type, x, y } = action;
     const piece = gameState.board[y][x];
 
-    //if (!piece) throw new Error("No piece at selected position.");
-    //if (piece.player !== playerId) throw new Error("You can only move your own pieces.");
+
+
     switch (type){
         case 'PLACE':
 
@@ -59,17 +59,56 @@ function applyAction(gameState, action, playerId) {
             gameState.board[y][x] = new Pyramid(playerId, action.orientation); 
             
             gameState.reserves[playerId] -= 1;
+            break;
             
         case 'SWAP':
+            if (!piece) {
+                console.log("No piece at selected position."); return;
+            }
+            if (piece.player !== playerId) { console.log("You can only move your own pieces."); return; }
+            if (!piece.canSwap) {
+                console.log("Only Scarabs can swap."); return;
+            }
+
+            const { targetX, targetY } = action;
+
+            if (!isValidCoordinate(targetX, targetY)) { console.log("Invalid target coordinates."); return; }
+
+            const targetPiece = gameState.board[targetY][targetX];
+
+            if (!targetPiece) { console.log("Target cell is empty."); return; }
+
+            if (targetPiece.player !== playerId) { console.log("Cannot swap with opponent's pieces."); return; }
+
+            if (!['Sphinx', 'Pharaoh'].includes(targetPiece.type)) { console.log("Can only swap with Sphinx or Pharaoh."); return; }
+
+            const lastSwapTurn = gameState.swapHistory[playerId][targetPiece.type];
+            const turnsPassed = gameState.turnCount - lastSwapTurn;
+
+            if (turnsPassed < 8) {
+                const turnsRemaining = Math.ceil((8 - turnsPassed) / 2);
+                console.log(`Swap with ${targetPiece.type} is cooling down. Wait ${turnsRemaining} more of your turns.`);
+                return;
+            }
+
+            gameState.board[y][x] = targetPiece; 
+            gameState.board[targetY][targetX] = piece;
+
+            gameState.swapHistory[playerId][targetPiece.type] = gameState.turnCount;
+
+            if (targetPiece.type === 'Sphinx') {
+                laserShouldFire = false;
+            }
+
             break;
 
-        
+
     }
 
 }
 
 
-function fireLaser(gameState, playerId) {}
+function fireLaser(gameState, playerId,laserShouldFire) { }
 
 
 module.exports = { applyAction };
