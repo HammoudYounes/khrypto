@@ -12,7 +12,7 @@ function isValidCoordinate(x, y) {
 // Helper to check placement constraints rule for the pyramid
 function checkPlacementConstraints(gameState, x, y, playerId) {
     const orthogonalDirs = [
-        { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, 
+        { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
         { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
     ];
 
@@ -39,6 +39,11 @@ function applyAction(gameState, action, playerId) {
     }
 
     const { type, x, y } = action;
+
+    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+        throw new Error("Invalid coordinates!");
+    }
+
     const piece = gameState.board[y][x];
 
 
@@ -55,12 +60,12 @@ function applyAction(gameState, action, playerId) {
                 console.log("Not allowed to place it here")
                 return;
             }
-            
-            gameState.board[y][x] = new Pyramid(playerId, action.orientation); 
-            
+
+            gameState.board[y][x] = new Pyramid(playerId, action.orientation);
+
             gameState.reserves[playerId] -= 1;
             break;
-            
+
         case 'SWAP':
             if (!piece) {
                 console.log("No piece at selected position."); return;
@@ -91,7 +96,7 @@ function applyAction(gameState, action, playerId) {
                 return;
             }
 
-            gameState.board[y][x] = targetPiece; 
+            gameState.board[y][x] = targetPiece;
             gameState.board[targetY][targetX] = piece;
 
             gameState.swapHistory[playerId][targetPiece.type] = gameState.turnCount;
@@ -102,8 +107,28 @@ function applyAction(gameState, action, playerId) {
 
             break;
 
+        case 'ROTATE':
+            if (!piece) {
+                console.log("No piece at selected position."); return;
+            }
+            if (piece.player !== playerId) { console.log("You can only move your own pieces."); return; }
+            // RULE: Pharaoh cannot rotate
+            if (piece.type === 'Pharaoh') {
+                throw new Error("The Pharaoh cannot rotate!");
+            }
 
+            const { direction } = action;
+            if (direction !== 1 && direction !== -1) {
+                throw new Error("Invalid rotation direction (1 or -1 required).");
+            }
+
+            piece.rotate(direction);
+            break;
+
+        default:
+            throw new Error("Unknown action type.");
     }
+
 
 }
 
