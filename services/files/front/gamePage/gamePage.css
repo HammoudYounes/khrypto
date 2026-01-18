@@ -146,3 +146,9 @@ main {
     background-color: rgba(255, 255, 255, 0.4);
     border: 2px dashed gold;
 }
+
+.case.selected {
+    border: 3px solid yellow;
+    background-color: rgba(255, 255, 0, 0.2); 
+    box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.5);
+}

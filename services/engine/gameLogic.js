@@ -62,28 +62,33 @@ function applyAction(gameState, action, playerId) {
             break;
             
         case 'SWAP':
-            if (!piece) throw new Error("No piece at selected position.");
-            if (piece.player !== playerId) throw new Error("You can only move your own pieces.");
-            if (!piece.canSwap) throw new Error("Only Scarabs can swap.");
+            if (!piece) {
+                console.log("No piece at selected position."); return;
+            }
+            if (piece.player !== playerId) { console.log("You can only move your own pieces."); return; }
+            if (!piece.canSwap) {
+                console.log("Only Scarabs can swap."); return;
+            }
 
             const { targetX, targetY } = action;
 
-            if (!isValidCoordinate(targetX, targetY)) throw new Error("Invalid target coordinates.");
+            if (!isValidCoordinate(targetX, targetY)) { console.log("Invalid target coordinates."); return; }
 
             const targetPiece = gameState.board[targetY][targetX];
 
-            if (!targetPiece) throw new Error("Target cell is empty.");
+            if (!targetPiece) { console.log("Target cell is empty."); return; }
 
-            if (targetPiece.player !== playerId) throw new Error("Cannot swap with opponent's pieces.");
+            if (targetPiece.player !== playerId) { console.log("Cannot swap with opponent's pieces."); return; }
 
-            if (!['Sphinx', 'Pharaoh'].includes(targetPiece.type)) throw new Error("Can only swap with Sphinx or Pharaoh.");
+            if (!['Sphinx', 'Pharaoh'].includes(targetPiece.type)) { console.log("Can only swap with Sphinx or Pharaoh."); return; }
 
             const lastSwapTurn = gameState.swapHistory[playerId][targetPiece.type];
             const turnsPassed = gameState.turnCount - lastSwapTurn;
 
             if (turnsPassed < 8) {
                 const turnsRemaining = Math.ceil((8 - turnsPassed) / 2);
-                throw new Error(`Swap with ${targetPiece.type} is cooling down. Wait ${turnsRemaining} more of your turns.`);
+                console.log(`Swap with ${targetPiece.type} is cooling down. Wait ${turnsRemaining} more of your turns.`);
+                return;
             }
 
             gameState.board[y][x] = targetPiece; 
