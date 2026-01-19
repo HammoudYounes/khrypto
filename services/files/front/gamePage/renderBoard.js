@@ -95,6 +95,7 @@ function updateVisualSelection() {
     allCases.forEach(c =>{
         c.classList.remove('selected');
         c.classList.remove('valid-move');
+        c.classList.remove('swap-target');
     });
 
     if (!selectedPiece) {
@@ -113,9 +114,13 @@ function updateVisualSelection() {
         const piece = currentGameState.board[selectedPiece.y][selectedPiece.x];
 
         updateRotationButtons(piece);
-
-        if (piece && (piece.type === 'Anubis' || piece.type === 'Pyramid' || piece.type === 'Scarab')) {
-            showValidMoves(selectedPiece.x, selectedPiece.y);
+        if (piece) {
+            if (piece.type === 'Scarab') {
+                showValidMoves(selectedPiece.x, selectedPiece.y);
+                highlightSwapTargets(piece.player); // <--- NOUVEAU : Appel de la fonction
+            } else if (piece.type === 'Anubis' || piece.type === 'Pyramid' || piece.type === 'Scarab') {
+                showValidMoves(selectedPiece.x, selectedPiece.y);
+            }
         }
     }
 }
@@ -478,7 +483,25 @@ function sendMoveAction(originX, originY, destX, destY) {
 }
 
 
+function highlightSwapTargets(playerId) {
+    for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 10; x++) {
+            const targetPiece = currentGameState.board[y][x];
 
+            if (targetPiece) {
+                if (targetPiece.player === playerId &&
+                    (targetPiece.type === 'Sphinx' || targetPiece.type === 'Pharaoh')) {
+
+                    const cooldown = calculateCooldown(currentGameState, playerId, targetPiece.type);
+                    if (cooldown === 0) {
+                        const cell = document.querySelector(`.case[data-row='${y}'][data-col='${x}']`);
+                        if (cell) cell.classList.add('swap-target');
+                    }
+                }
+            }
+        }
+    }
+}
 //LASER RENDERING LOGIC
 
 async function animateLaserSequence(laserResult, color) {
@@ -603,7 +626,7 @@ socket.on('game:action_response', (gameState) => {
 
 function finalizeTurn(state) {
     currentGameState = state;
-    updatePieces(state.board); 
+    updatePieces(state.board);
     updatePyramidReserve(state.reserves);
     updateCooldownDisplay(state);
     updateTurnIndicator(state);
