@@ -595,6 +595,40 @@ function drawExplosion(ctx, x, y) {
 
 //LASER RENDERING LOGIC END
 
+
+//GAME OVER PANEL
+function gameOverManager(winners){
+    const modal = document.getElementById('gameOverModal');
+    const messageElement = document.getElementById('victoryMessage');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let message = "";
+
+    if (winners[0] === true && winners[1] === true) {
+        message = "Equality!";
+    } else if (winners[0] === true) {
+        message = "Player 1 Win!";
+    } else if (winners[1] === true) {
+        message = "Player 2 Win!";
+    }
+
+    messageElement.innerText = message;
+
+    modal.style.display = "flex";
+
+    restartBtn.onclick = function() {
+        console.log("Restarting game...");
+        
+        socket.emit("game:restart");
+
+        modal.style.display = "none";
+    };
+
+}
+
+
+
+
 initBoard();
 initDraggableReserve();
 initReserveListeners();
@@ -604,7 +638,7 @@ const socket = io("http://localhost:8000", {
     transports: ['websocket', 'polling']
 });
 
-socket.on('gameInit', (gameState) => {
+socket.on('game:init', (gameState) => {
     console.log("State received from server!", gameState);
     finalizeTurn(gameState)
 });
@@ -619,7 +653,8 @@ socket.on('game:action_response', (gameState) => {
         animateLaserSequence(gameState.laserResult, currentGameState.turn === 0 ? "green" : "red").then(() => {
             finalizeTurn(gameState.finalState);
         });
-    } else {
+    } 
+    else {
         finalizeTurn(gameState.finalState);
     }
 });
@@ -632,6 +667,14 @@ function finalizeTurn(state) {
     updateTurnIndicator(state);
     updateVisualSelection();
 }
+
+
+socket.on('game:over', (winner) =>{
+    setTimeout(() => {
+        gameOverManager(winner);
+    }, 2000);
+})
+
 
 socket.on('game:error', (data) => {
     alert(data.message);

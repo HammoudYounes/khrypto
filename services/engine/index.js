@@ -11,7 +11,7 @@ const gameState = {
     board: initializeBoard(),
     turn: 0,
     reserves: { 0: 7, 1: 7 },
-    winner: null,
+    winner: {0: false, 1: false},
     turnCount: 0,
     swapHistory: {
         0: { Sphinx: -10, Pharaoh: -10 },
@@ -20,6 +20,21 @@ const gameState = {
     pendingReserves: { 0: [], 1: [] },
     canPassTurn:false,
 };
+
+function resetGameState(){
+    gameState.board = initializeBoard(),
+    gameState.turn = 0,
+    gameState.reserves =  { 0: 7, 1: 7 };
+    gameState.winner = {0: false, 1: false};
+    gameState.turnCount = 0;
+    gameState.swapHistory =  {
+        0: { Sphinx: -10, Pharaoh: -10 },
+        1: { Sphinx: -10, Pharaoh: -10 }
+    };
+    gameState.pendingReserves = { 0: [], 1: [] };
+    gameState.canPassTurn = false; 
+}
+
 
  
 const server = http.createServer((req, res) => {
@@ -40,7 +55,12 @@ const io = new Server(server,{
 io.on('connection', (socket) => {
     console.log('Un joueur est connecté !');
 
-    socket.emit('gameInit', gameState);
+    socket.emit('game:init', gameState);
+
+    socket.on('game:restart', () =>{
+        resetGameState();
+        socket.emit('game:init', gameState)
+    })
 
     socket.on('player:action', (payload) => {
         try {
@@ -57,7 +77,7 @@ io.on('connection', (socket) => {
                 applyDestructions(gameState, laserResult.hitCoords);
 
 
-            if (gameState.winner === null && gameState.canPassTurn) {
+            if (gameState.winner[0] === false && gameState.winner[1] === false && gameState.canPassTurn) {
                 gameState.turn = (gameState.turn + 1) % 2;
                 gameState.turnCount = (gameState.turnCount || 0) + 1;
 
@@ -85,12 +105,9 @@ io.on('connection', (socket) => {
                 finalState: gameState 
             });
 
-            /*
-            if (gameState.winner !== null) {
-                io.emit('game:over', { winner: gameState.winner });
-            Cannot read properties of null (reading 'hitCoords')}
-             */
-
+            if (gameState.winner[0] === true || gameState.winner[1] === true) {
+                io.emit('game:over', gameState.winner);
+            }
         } catch (e) {
             console.error("Action Error:", e.message);
             socket.emit('game:error', { message: e.message });

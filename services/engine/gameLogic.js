@@ -241,9 +241,13 @@ function applyDestructions(gameState, hitCoords) {
             if (piece) {
                 console.log(`[Laser] Destroying ${piece.type} at (${x}, ${y})`);
 
-                if (piece.type === 'Pharaoh') {
+                if (gameState.turnCount === 100){
+                    gameState.winner[0] = gameState.winner[1] = true;
+                }
+                else if(piece.type === 'Pharaoh') {
                     // Win Condition
-                    gameState.winner = (piece.player + 1) % 2;
+                    let winningPlayer = (piece.player + 1) % 2;
+                    gameState.winner[winningPlayer] = true;
                 }
                 else if (piece.type === 'Pyramid') {
                     const beneficiary = (piece.player + 1) % 2;
