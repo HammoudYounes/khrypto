@@ -1,8 +1,39 @@
-import { sendSwapAction } from "./networkManager";
+/**
+ * interactionManager.js
+ * Manages user interactions: clicks, drag & drop, piece selection
+ */
 
-//Cell click
+import { state } from './gameState.js';
+import { sendMoveAction, sendSwapAction, sendRotateAction } from './networkManager.js';
+import { updateVisualSelection, updateRotationButtons } from './boardRenderer.js';
 
-    //Cell click handling for rotation/shift/swap
+// ========== DRAG & DROP SETUP ==========
+
+export function initDraggableReserve() {
+    const p1Img = document.querySelector('.current-player .piece-image');
+    if (p1Img) setupDraggableItem(p1Img, 0);
+
+    const p2Img = document.querySelector('.opposing-player .piece-image');
+    if (p2Img) setupDraggableItem(p2Img, 1);
+}
+
+export function setupDraggableItem(img, playerId) {
+    img.setAttribute('draggable', true);
+    img.style.cursor = 'grab';
+
+    img.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('actionType', 'PLACE');
+        event.dataTransfer.setData('playerId', playerId.toString());
+
+        const currentOrientation = state.reserveOrientations[playerId];
+        event.dataTransfer.setData('orientation', currentOrientation.toString());
+
+        event.dataTransfer.effectAllowed = 'copy';
+        console.log(`Drag started: Pyramide Joueur ${playerId + 1} (ID: ${playerId})`);
+    });
+}
+
+// ========== CELL CLICK HANDLING ==========
 
 export function cellClickListner(boardElement) {
     boardElement.addEventListener('click', (event) => {
@@ -13,8 +44,8 @@ export function cellClickListner(boardElement) {
             return;
         }
 
-        const y = parseInt(clickedCell.dataset.row, 9);
-        const x = parseInt(clickedCell.dataset.col, 9);
+        const y = parseInt(clickedCell.dataset.row, 10);
+        const x = parseInt(clickedCell.dataset.col, 10);
 
         console.log(`Selected Cell : Row ${y}, Col ${x}`);
 
@@ -24,13 +55,13 @@ export function cellClickListner(boardElement) {
 }
 
 function handleCellClick(x, y) {
-    if (!currentGameState) return;
+    if (!state.currentGameState) return;
 
-    const clickedPiece = currentGameState.board[y][x];
+    const clickedPiece = state.currentGameState.board[y][x];
 
-    const currentPlayerId = currentGameState.turn;
+    const currentPlayerId = state.currentGameState.turn;
 
-    if (!selectedPiece) {
+    if (!state.selectedPiece) {
         if (clickedPiece && clickedPiece.player === currentPlayerId) {
             selectPiece(x, y);
             updateRotationButtons(clickedPiece);
@@ -38,30 +69,29 @@ function handleCellClick(x, y) {
         return;
     }
 
-    if (selectedPiece.x === x && selectedPiece.y === y) {
+    if (state.selectedPiece.x === x && state.selectedPiece.y === y) {
         deselect();
         return;
     }
 
     if (!clickedPiece) {
-        const dx = Math.abs(x - selectedPiece.x);
-        const dy = Math.abs(y - selectedPiece.y);
+        const dx = Math.abs(x - state.selectedPiece.x);
+        const dy = Math.abs(y - state.selectedPiece.y);
         const isAdjacent = (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
 
         if (isAdjacent) {
-            sendMoveAction(selectedPiece.x, selectedPiece.y, x, y);
-        } else {
-            deselect();
+            sendMoveAction(state.selectedPiece.x, state.selectedPiece.y, x, y);
         }
+        deselect();
         return;
     }
 
-    const originPiece = currentGameState.board[selectedPiece.y][selectedPiece.x];
+    const originPiece = state.currentGameState.board[state.selectedPiece.y][state.selectedPiece.x];
 
     if (originPiece && (originPiece.type === 'Scarab')) {
         if (clickedPiece && clickedPiece.player === currentPlayerId &&
             (clickedPiece.type === 'Sphinx' || clickedPiece.type === 'Pharaoh')) {
-            sendSwapAction(selectedPiece.x, selectedPiece.y, x, y, currentPlayerId);
+            sendSwapAction(state.selectedPiece.x, state.selectedPiece.y, x, y, currentPlayerId);
             deselect();
             return;
         }
@@ -70,92 +100,40 @@ function handleCellClick(x, y) {
     if (clickedPiece && clickedPiece.player === currentPlayerId) {
         selectPiece(x, y);
         updateRotationButtons(clickedPiece);
-        return;
-    }
-
-    if (clickedPiece && clickedPiece.player === currentPlayerId) {
-        selectPiece(x, y);
     } else {
         deselect();
     }
 }
 
-function selectPiece(x, y) {
+// ========== SELECTION LOGIC ==========
 
-    selectedPiece = { x, y };
+export function selectPiece(x, y) {
+    state.selectedPiece = { x, y };
     updateVisualSelection();
 }
 
-function deselect() {
-    selectedPiece = null;
+export function deselect() {
+    state.selectedPiece = null;
     updateVisualSelection();
-
 }
 
-    //Cell click handling rotation/shift/swap end
+// ========== ROTATION BUTTON LISTENERS ==========
 
-    //Cell click display
-    
-export function updateVisualSelection() {
-    const allCases = document.querySelectorAll('.case');
-    allCases.forEach(c =>{
-        c.classList.remove('selected');
-        c.classList.remove('valid-move');
-        c.classList.remove('swap-target');
+export function initRotationButtons() {
+    const btnRotateLeft = document.getElementById('btn-rotate-left');
+    const btnRotateRight = document.getElementById('btn-rotate-right');
+
+    btnRotateLeft.addEventListener('click', () => {
+        if (state.selectedPiece) {
+            sendRotateAction(state.selectedPiece.x, state.selectedPiece.y, -1);
+            deselect();
+        }
     });
 
-    if (!selectedPiece) {
-        updateRotationButtons(null);
-        return;
-    }
-
-    if (selectedPiece) {
-        const cell = document.querySelector(`.case[data-row='${selectedPiece.y}'][data-col='${selectedPiece.x}']`);
-        if (cell) {
-            cell.classList.add('selected');
-        }
-    }
-
-    if (currentGameState && currentGameState.board) {
-        const piece = currentGameState.board[selectedPiece.y][selectedPiece.x];
-
-        updateRotationButtons(piece);
-        if (piece) {
-            if (piece.type === 'Scarab') {
-                showValidMoves(selectedPiece.x, selectedPiece.y);
-                highlightSwapTargets(piece.player); // <--- NOUVEAU : Appel de la fonction
-            } else if (piece.type === 'Anubis' || piece.type === 'Pyramid' || piece.type === 'Scarab') {
-                showValidMoves(selectedPiece.x, selectedPiece.y);
-            }
-        }
-    }
-}
-
-
-function showValidMoves(x, y) {
-    const directions = [
-        { dx: 0, dy: -1 }, // Haut
-        { dx: 0, dy: 1 },  // Bas
-        { dx: -1, dy: 0 }, // Gauche
-        { dx: 1, dy: 0 }   // Droite
-    ];
-
-    directions.forEach(dir => {
-        const targetX = x + dir.dx;
-        const targetY = y + dir.dy;
-
-        if (targetX >= 0 && targetX < 10 && targetY >= 0 && targetY < 10) {
-            const targetPiece = currentGameState.board[targetY][targetX];
-            if (!targetPiece) {
-                const targetCell = document.querySelector(`.case[data-row='${targetY}'][data-col='${targetX}']`);
-                if (targetCell) {
-                    targetCell.classList.add('valid-move');
-                }
-            }
+    btnRotateRight.addEventListener('click', () => {
+        if (state.selectedPiece) {
+            sendRotateAction(state.selectedPiece.x, state.selectedPiece.y, 1);
+            deselect();
         }
     });
 }
-
-    //Cell click display end
-
-//Cell Click end
