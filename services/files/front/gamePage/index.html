@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GamePage</title>
+    <link rel="stylesheet" href="gamePage.css">
+    <script src="../js/socket.io.js"></script>
+    <script type="module" src="index.js" defer></script>
+</head>
+
+<body>
+    <header>
+        <h1>Game Header</h1>
+    </header>
+    <main>
+        <div class="player-info-sec">
+            <div class="opposing-player">
+                <p>joueur 2</p>
+                <div class="player-preview-cell">
+                    <img id="p2-reserve-piece" src="assets/red_pyramid.png" alt="red_pyramid" class="piece-image">
+                </div>
+
+                <div class="reserve-controls" style="margin-top: 5px; display: flex; gap: 5px;">
+                    <button id="btn-p2-left">↺</button>
+                    <button id="btn-p2-right">↻</button>
+                </div>
+
+                <p class="pyramid-count" id="p2-pyramid-count">0</p>
+                <div class="cooldown-info" style="font-size: 0.8em; margin-top: 5px;">
+                    <p>Sphinx Swap Cooldown: <span id="p2-sphinx-cooldown">0</span></p>
+                    <p>Pharaoh Swap Cooldown: <span id="p2-pharaoh-cooldown">0</span></p>
+                </div>
+            </div>
+
+            <div class="current-player">
+                <p>joueur 1</p>
+                <div class="player-preview-cell">
+                    <img id="p1-reserve-piece" src="assets/green_pyramid.png" alt="green_pyramid" class="piece-image">
+                </div>
+
+                <div class="reserve-controls" style="margin-top: 5px; display: flex; gap: 5px;">
+                    <button id="btn-p1-left">↺</button>
+                    <button id="btn-p1-right">↻</button>
+                </div>
+
+                <p class="pyramid-count" id="p1-pyramid-count">0</p>
+                <div class="cooldown-info" style="font-size: 0.8em; margin-top: 5px;">
+                    <p>Sphinx Swap Cooldown: <span id="p1-sphinx-cooldown">0</span></p>
+                    <p>Pharaoh Swap Cooldown: <span id="p1-pharaoh-cooldown">0</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="game-sec">
+            <div class="board-wrapper">
+                <div id="board"></div>
+                <canvas id="laserCanvas"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;"></canvas>
+            </div>
+
+
+            <div class="rot-buttons">
+                <button id="btn-rotate-left" class="action-btn" disabled>↺</button>
+                <button id="btn-rotate-right" class="action-btn" disabled>↻</button>
+            </div>
+        </div>
+        <div class="chat-moves-sec">Right Section</div>
+    </main>
+</body>
+
+
+<div id="gameOverModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="victoryMessage"></h2>
+        <button id="restartBtn" class="btn-restart">Rejouer</button>
+    </div>
+</div>
+
+</html>

@@ -8,18 +8,19 @@ const proxy = httpProxy.createProxyServer();
 /* The http module contains a createServer function, which takes one argument, which is the function that
 ** will be called whenever a new request arrives to the server.
  */
-http.createServer(function (request, response) {
+const server = http.createServer(function (request, response) {
     // First, let's check the URL to see if it's a REST request or a file request.
     // We will remove all cases of "../" in the url for security purposes.
     let filePath = request.url.split("/").filter(function(elem) {
         return elem !== "..";
     });
+    
 
     try {
         // If the URL starts by /api, then it's a REST request (you can change that if you want).
-        if (filePath[1] === "api") {
-            //TODO: Add middlewares and call microservices depending on the request.
-
+        if (filePath[1] === "api" || filePath[1] === "socket.io"){
+            console.log("Routing API request to Engine Service");
+            proxy.web(request, response, { target: "http://127.0.0.1:8002" });
         // If it doesn't start by /api, then it's a request for a file.
         } else {
             console.log("Request for a file received, transferring to the file service")
@@ -30,5 +31,17 @@ http.createServer(function (request, response) {
         response.statusCode = 400;
         response.end(`Something in your request (${request.url}) is strange...`);
     }
+
+
 // For the server to be listening to request, it needs a port, which is set thanks to the listen function.
-}).listen(8000);
+})
+
+server.on('upgrade', function (req, socket, head) {
+    console.log("Proxying WebSocket upgrade");
+    proxy.ws(req, socket, head, { target: 'http://127.0.0.1:8002' });
+});
+
+
+server.listen(8000, () => {
+    console.log("Gateway listening on port 8000");
+});

@@ -1,0 +1,245 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    display: grid;
+    grid-template-rows: 60px 1fr;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr 2.7fr 1fr;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.player-info-sec,
+.chat-moves-sec {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+}
+
+
+.player-info-sec {
+    display: flex;
+    flex-direction: column;
+    /* Les empiler verticalement */
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    /* Espace entre les deux blocs */
+    padding: 10px;
+    height: 100%;
+    /* Prend toute la hauteur disponible du parent (main) */
+    overflow: hidden;
+    /* Empêche le contenu de dépasser */
+}
+
+.opposing-player,
+.current-player {
+    flex: 1;
+    /* Force les deux divs à prendre chacun 50% de l'espace disponible */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    /* CRUCIAL : permet au flex item de rétrécir si l'écran est petit */
+    border: 1px dashed #ccc;
+    /* Juste pour visualiser la zone, à retirer */
+}
+
+.player-preview-cell {
+    width: 27%;
+    /* 2.7fr / 10 / 1fr approx */
+    aspect-ratio: 1/1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+
+.game-sec {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.board-wrapper {
+    width: auto;
+    height: 90%;
+    aspect-ratio: 1 / 1;
+    position: relative;
+}
+
+#board {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    border-top: 1px solid black;
+    border-left: 1px solid black;
+    box-sizing: border-box;
+}
+
+.rot-buttons {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 10px;
+}
+
+.rot-buttons button {
+    padding: 5px 15px;
+    cursor: pointer;
+    /* Style de base */
+    background-color: #f0f0f0;
+    border: 1px solid #999;
+    border-radius: 4px;
+}
+
+/* Style quand le bouton est désactivé (Pharaon ou pas de sélection) */
+.rot-buttons button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background-color: #ccc;
+}
+
+.case {
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.piece-image {
+    position: relative;
+    width: 250%;
+    object-fit: fill;
+    pointer-events: none;
+}
+
+.player-preview-cell .piece-image {
+    pointer-events: auto;
+}
+
+.pyramid-count {
+    margin-top: 5px;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.case.drag-hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    border: 2px dashed gold;
+}
+
+.case.selected {
+    border: 3px solid yellow;
+    background-color: rgba(255, 255, 0, 0.2);
+    box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.turn-active {
+    border: 3px solid #007bff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.valid-move {
+    background-color: rgb(140, 1, 253);
+    box-shadow: inset 0 0 10px #0004ff;
+    cursor: pointer;
+    border: 2px #030105;
+}
+
+.valid-move:hover {
+    background-color: rgba(255, 255, 0, 0.8);
+}
+
+/* Cible possible pour un SWAP (Bleu) */
+.swap-target {
+    background-color: rgba(0, 191, 255, 0.5); /* Deep Sky Blue semi-transparent */
+    box-shadow: inset 0 0 10px #00BFFF;
+    cursor: pointer;
+    border: 2px dashed #e600ff; /* Un petit bord pointillé pour le style "magique" */
+}
+
+/* Effet au survol */
+.swap-target:hover {
+    background-color: rgba(255, 255, 0, 0.8);
+}
+
+
+.modal-overlay {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fond noir semi-transparent */
+    z-index: 1000;
+    justify-content: center; /* Centre horizontalement */
+    align-items: center; /* Centre verticalement */
+}
+
+/* La boîte blanche de la popup */
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    min-width: 300px;
+}
+
+#victoryMessage {
+    margin-bottom: 20px;
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+.btn-restart {
+    padding: 10px 20px;
+    background-color: #28a745; /* Vert */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-restart:hover {
+    background-color: #218838;
+}
