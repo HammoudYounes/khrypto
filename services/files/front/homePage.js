@@ -13,6 +13,8 @@ const socket = io("http://localhost:8000", {
 
 
 function emitGame(gameMode) {
+    // Clear any existing gameId to avoid conflicts
+    sessionStorage.removeItem("gameId");
     socket.emit("game:create", gameMode)
 }
 
