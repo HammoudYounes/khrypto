@@ -23,31 +23,42 @@ const gameManager = new GameManager(io);
 
 
 io.on('connection', (socket) => {
-    
+
     // 1. Player wants to start a game
-    socket.on('game:create', (data) => {
+    socket.on('game:create', (mode) => {
         // mode could be 'local' or 'ai'
-        const mode = data.mode || 'local';
-        
+
         const game = gameManager.createGame(mode);
-        
+
+        console.log(`[Engine] Game created: ${game.id}, Mode: ${mode}`);
+
         // Send Game ID back to client
         socket.emit('game:created', { gameId: game.id });
     });
 
     socket.on('game:join', (data) => {
+        console.log(`[Engine] Attempting to join game: ${data.gameId}`);
+        console.log(`[Engine] Available games:`, Array.from(gameManager.games.keys()));
+
         const game = gameManager.getGame(data.gameId);
         if (game) {
+            console.log(`[Engine] Game found! Joining: ${data.gameId}`);
             socket.join(data.gameId);
-            socket.emit('game:state', game.state); 
+            socket.emit('game:init', game.state);
         } else {
+            console.log(`[Engine] Game NOT found: ${data.gameId}`);
             socket.emit('game:error', { message: "Game not found" });
         }
     });
 
-    socket.on('game:restart', (gameId) => {
-        const game = gameManager.getGame(gameId);
-        game.resetGameState();
+    socket.on('game:restart', (data) => {
+        const game = gameManager.getGame(data.gameId);
+        if (game) {
+            game.resetGameState();
+            console.log(`[Engine] Game restarted: ${data.gameId}`);
+            // Send fresh state to all clients in this game room
+            io.to(data.gameId).emit('game:init', game.state);
+        }
     })
 
     // 2. Player makes a move
@@ -58,9 +69,9 @@ io.on('connection', (socket) => {
         if (game) {
             try {
                 game.handleMove(action, playerId);
-                
+
                 // If AI mode and player just finished, trigger AI here
-                
+
             } catch (err) {
                 socket.emit('game:error', { message: err.message });
             }

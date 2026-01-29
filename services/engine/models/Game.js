@@ -6,7 +6,7 @@ class Game {
         this.id = id;
         this.mode = mode; // local ai online
         this.io = io;     // Reference to socket.io server
-        
+
         // Initial State
         this.state = {
             board: initializeBoard(),
@@ -25,7 +25,7 @@ class Game {
             const laserShouldFire = applyAction(this.state, action, playerId);
             const boardSnapshot = JSON.parse(JSON.stringify(this.state.board));
             const laserResult = computeLaserPath(this.state, playerId, laserShouldFire);
-            
+
             if (laserResult)
                 applyDestructions(this.state, laserResult.hitCoords);
 
@@ -58,19 +58,19 @@ class Game {
             });
 
             if (this.state.winner[0] === true || this.state.winner[1] === true) {
-                this.io.to(this.id).emit('game:over', gameState.winner);
+                this.io.to(this.id).emit('game:over', this.state.winner);
             }
 
             return true; // Success
 
         } catch (error) {
-            throw error; 
+            throw error;
         }
     }
 
     resetGameState() {
         this.state.board = initializeBoard(),
-        this.state.turn = 0,
+            this.state.turn = 0,
             this.state.reserves = { 0: 7, 1: 7 };
         this.state.winner = { 0: false, 1: false };
         this.state.turnCount = 0;

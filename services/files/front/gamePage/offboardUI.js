@@ -5,6 +5,7 @@
 
 import { state } from './gameState.js';
 import { socket } from './networkManager.js';
+import { gameId } from './index.js';
 
 // ========== PYRAMID RESERVE ==========
 
@@ -107,7 +108,7 @@ export function gameOverManager(winners) {
     restartBtn.onclick = function () {
         console.log("Restarting game...");
 
-        socket.emit("game:restart");
+        socket.emit("game:restart", { gameId: gameId });
 
         modal.style.display = "none";
     };
