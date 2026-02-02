@@ -1,49 +1,15 @@
 const http = require('http');
+const { Server } = require('socket.io');
 const corsHelper = require('../helpers/cors.js');
-const { initializeBoard } = require('./initBoard');
-const { Server } = require("socket.io");
+const GameManager = require('./managers/GameManager');
 
-const { applyAction } = require('./gameLogic');
-const { computeLaserPath } = require('./gameLogic');
-const { applyDestructions } = require('./gameLogic');
-
-const gameState = {
-    board: initializeBoard(),
-    turn: 0,
-    reserves: { 0: 7, 1: 7 },
-    winner: {0: false, 1: false},
-    turnCount: 0,
-    swapHistory: {
-        0: { Sphinx: -10, Pharaoh: -10 },
-        1: { Sphinx: -10, Pharaoh: -10 }
-    },
-    pendingReserves: { 0: [], 1: [] },
-    canPassTurn:false,
-};
-
-function resetGameState(){
-    gameState.board = initializeBoard(),
-    gameState.turn = 0,
-    gameState.reserves =  { 0: 7, 1: 7 };
-    gameState.winner = {0: false, 1: false};
-    gameState.turnCount = 0;
-    gameState.swapHistory =  {
-        0: { Sphinx: -10, Pharaoh: -10 },
-        1: { Sphinx: -10, Pharaoh: -10 }
-    };
-    gameState.pendingReserves = { 0: [], 1: [] };
-    gameState.canPassTurn = false; 
-}
-
-
- 
 const server = http.createServer((req, res) => {
     corsHelper.addCors(res);
 });
 
 
 
-const io = new Server(server,{
+const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
@@ -51,69 +17,68 @@ const io = new Server(server,{
     path: '/socket.io'
 });
 
+const gameManager = new GameManager(io);
+
+
+
 
 io.on('connection', (socket) => {
-    console.log('Un joueur est connecté !');
 
-    socket.emit('game:init', gameState);
+    // 1. Player wants to start a game
+    socket.on('game:create', (mode) => {
+        // mode could be 'local' or 'ai'
 
-    socket.on('game:restart', () =>{
-        resetGameState();
-        socket.emit('game:init', gameState)
-    })
+        const game = gameManager.createGame(mode);
 
-    socket.on('player:action', (payload) => {
-        try {
-            console.log(`Processing action from P${payload.playerId}:`, payload.action);
-            
-            const laserShouldFire = applyAction(gameState, payload.action, payload.playerId);
+        console.log(`[Engine] Game created: ${game.id}, Mode: ${mode}`);
 
-            const boardAfterMove = JSON.parse(JSON.stringify(gameState.board));
+        // Send Game ID back to client
+        socket.emit('game:created', { gameId: game.id });
+    });
 
+    socket.on('game:join', (data) => {
+        console.log(`[Engine] Attempting to join game: ${data.gameId}`);
+        console.log(`[Engine] Available games:`, Array.from(gameManager.games.keys()));
 
-            const laserResult = computeLaserPath(gameState,payload.playerId,laserShouldFire); // Retourne { path: [...], hitCoords: [...] }  
-
-            if (laserResult)
-                applyDestructions(gameState, laserResult.hitCoords);
-
-
-            if (gameState.winner[0] === false && gameState.winner[1] === false && gameState.canPassTurn) {
-                gameState.turn = (gameState.turn + 1) % 2;
-                gameState.turnCount = (gameState.turnCount || 0) + 1;
-
-                console.log(`Turn ended. Now Player ${gameState.turn}'s turn. (Total: ${gameState.turnCount})`);
-
-                // 2. CHECK PENDING RESERVES
-                const currentPlayer = gameState.turn;
-                const pendingList = gameState.pendingReserves[currentPlayer];
-
-                for (let i = pendingList.length - 1; i >= 0; i--) {
-                    const unlockTime = pendingList[i];
-
-                    if (gameState.turnCount >= unlockTime) {
-                        gameState.reserves[currentPlayer] += 1; 
-                        pendingList.splice(i, 1); 
-                        console.log(`P${currentPlayer} received a Pyramid from reserve queue!`);
-                    }
-                }
-                gameState.canPassTurn = false;
-            }
-
-            io.emit('game:action_response', {
-                boardAfterMove: boardAfterMove, 
-                laserResult: laserResult,
-                finalState: gameState 
-            });
-
-            if (gameState.winner[0] === true || gameState.winner[1] === true) {
-                io.emit('game:over', gameState.winner);
-            }
-        } catch (e) {
-            console.error("Action Error:", e.message);
-            socket.emit('game:error', { message: e.message });
+        const game = gameManager.getGame(data.gameId);
+        if (game) {
+            console.log(`[Engine] Game found! Joining: ${data.gameId}`);
+            socket.join(data.gameId);
+            socket.emit('game:init', game.state);
+        } else {
+            console.log(`[Engine] Game NOT found: ${data.gameId}`);
+            socket.emit('game:error', { message: "Game not found" });
         }
     });
 
+    socket.on('game:restart', (data) => {
+        const game = gameManager.getGame(data.gameId);
+        if (game) {
+            game.resetGameState();
+            console.log(`[Engine] Game restarted: ${data.gameId}`);
+            // Send fresh state to all clients in this game room
+            io.to(data.gameId).emit('game:init', game.state);
+        }
+    })
+
+    // 2. Player makes a move
+    socket.on('player:action', (payload) => {
+        const { gameId, action, playerId } = payload;
+        const game = gameManager.getGame(gameId);
+
+        if (game) {
+            try {
+                game.handleMove(action, playerId);
+
+                // If AI mode and player just finished, trigger AI here
+
+            } catch (err) {
+                socket.emit('game:error', { message: err.message });
+            }
+        } else {
+            socket.emit('game:error', { message: "Game session not found" });
+        }
+    });
 });
 
 

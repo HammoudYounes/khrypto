@@ -30,6 +30,18 @@ import {
 
 const boardElement = document.getElementById('board');
 
+export const gameId = sessionStorage.getItem("gameId");
+
+if (gameId) {
+    console.log("Found Game ID in storage:", gameId);
+    socket.emit('game:join', { gameId: gameId });
+    // Don't remove gameId here - keep it so users can refresh/navigate back 
+} else {
+    console.error("No Game ID found. Redirecting to home...");
+    window.location.href = "../index.html";
+}
+
+
 // Initialize UI
 initBoard();
 initDraggableReserve();

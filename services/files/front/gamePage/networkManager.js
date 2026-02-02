@@ -4,6 +4,7 @@
  */
 
 import { state } from './gameState.js';
+import { gameId } from './index.js';
 
 // Initialize socket connection
 export const socket = io("http://localhost:8000", {
@@ -16,6 +17,7 @@ export function sendPlaceAction(x, y, orientation, playerId) {
     console.log(`Sending PLACE action at (${x}, ${y}) for Player ${playerId}`);
 
     socket.emit('player:action', {
+        gameId : gameId, 
         playerId: playerId,
         action: {
             type: 'PLACE',
@@ -33,6 +35,7 @@ export function sendRotateAction(x, y, direction) {
     console.log(`Envoi Rotation -> X:${x}, Y:${y}, Sens:${direction}`);
 
     socket.emit('player:action', {
+        gameId : gameId, 
         playerId: playerId,
         action: {
             type: 'ROTATE',
@@ -50,6 +53,7 @@ export function sendMoveAction(originX, originY, destX, destY) {
     console.log(`Envoi Move : (${originX},${originY}) vers (${destX},${destY})`);
 
     socket.emit('player:action', {
+        gameId : gameId, 
         playerId: playerId,
         action: {
             type: 'MOVE',
@@ -65,6 +69,7 @@ export function sendMoveAction(originX, originY, destX, destY) {
 export function sendSwapAction(x, y, targetX, targetY, playerId) {
     console.log(`Sending SWAP action: (${x},${y}) <-> (${targetX},${targetY}) for Player ${playerId}`);
     socket.emit('player:action', {
+        gameId : gameId, 
         playerId: playerId,
         action: {
             type: 'SWAP',

@@ -1,5 +1,5 @@
-const { DIRECTIONS } = require('./pieces/Piece'); 
-const {Pyramid} = require('./pieces/Pyramid');
+const { DIRECTIONS } = require('./pieces/Piece');
+const { Pyramid } = require('./pieces/Pyramid');
 const BOARD_SIZE = 10;
 
 
@@ -241,10 +241,10 @@ function applyDestructions(gameState, hitCoords) {
             if (piece) {
                 console.log(`[Laser] Destroying ${piece.type} at (${x}, ${y})`);
 
-                if (gameState.turnCount === 100){
+                if (gameState.turnCount === 100) {
                     gameState.winner[0] = gameState.winner[1] = true;
                 }
-                else if(piece.type === 'Pharaoh') {
+                else if (piece.type === 'Pharaoh') {
                     // Win Condition
                     let winningPlayer = (piece.player + 1) % 2;
                     gameState.winner[winningPlayer] = true;
