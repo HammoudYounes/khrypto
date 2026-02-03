@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000/api";
+const AUTH_API_URL = "http://localhost:8000/api/auth";
 
 // DOM elements - game buttons
 const localButton = document.getElementById("localBtn");
@@ -143,7 +143,7 @@ registerForm.addEventListener('submit', async (e) => {
 // Auth API call
 async function auth(endpoint, data) {
     try {
-        const response = await fetch(API_URL + endpoint, {
+        const response = await fetch(AUTH_API_URL + endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
