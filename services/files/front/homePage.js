@@ -8,11 +8,14 @@ const onlineButton = document.getElementById("onlineBtn");
 // DOM elements - auth
 const authBtn = document.getElementById("authBtn");
 const authPanel = document.getElementById("authPanel");
+const authFormsSection = document.getElementById("authFormsSection");
+const profileSection = document.getElementById("profileSection");
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
 const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
 // Socket.io connection
 const socket = io("http://localhost:8000", {
@@ -26,23 +29,30 @@ let isAuthenticated = false;
 // Initialize UI based on auth state
 function updateUIForAuthState() {
     if (isAuthenticated) {
-        authBtn.textContent = "Logout";
+        authBtn.textContent = "Profile";
+        // Show profile section, hide auth forms
+        authFormsSection.style.display = "none";
+        profileSection.style.display = "block";
     } else {
         authBtn.textContent = "Login / Register";
+        // Show auth forms, hide profile section
+        authFormsSection.style.display = "block";
+        profileSection.style.display = "none";
     }
 }
 
 // Toggle auth panel
 authBtn.addEventListener('click', () => {
-    if (isAuthenticated) {
-        // Logout
-        isAuthenticated = false;
-        updateUIForAuthState();
-        authPanel.classList.remove('active');
-    } else {
-        // Toggle panel
-        authPanel.classList.toggle('active');
-    }
+    // Always toggle panel regardless of auth state
+    authPanel.classList.toggle('active');
+});
+
+// Logout button click
+logoutBtn.addEventListener('click', () => {
+    // Logout
+    isAuthenticated = false;
+    updateUIForAuthState();
+    authPanel.classList.remove('active');
 });
 
 // Close auth panel when clicking outside
