@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Khrypto</title>
+    <link rel="stylesheet" href="homePage.css">
+    <script src="../js/socket.io.js"></script>
+    <script type="module" src="homePage.js" defer></script>
+</head>
+
+<body>
+    <!-- Profile button in top right corner -->
+    <div class="profile-button-container">
+        <button id="profileBtn" class="profile-btn">Profile</button>
+    </div>
+
+    <!-- Profile dropdown panel -->
+    <div id="profilePanel" class="profile-panel">
+        <div class="profile-panel-content">
+            <h2>Profile</h2>
+            <div class="profile-info">
+                <p id="usernameDisplay">Username: <span>Guest</span></p>
+            </div>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="container">
+        <h1>KHRYPTO</h1>
+        <div class="buttons">
+            <button id="localBtn">Local</button>
+            <button id="aiBtn">AI</button>
+            <button id="onlineBtn">Online</button>
+        </div>
+    </div>
+</body>
+
+</html>

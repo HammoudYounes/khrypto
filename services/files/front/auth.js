@@ -1,66 +1,11 @@
 const AUTH_API_URL = "http://localhost:8000/api/auth";
 
-// DOM elements - game buttons
-const localButton = document.getElementById("localBtn");
-const aiButton = document.getElementById("aiBtn");
-const onlineButton = document.getElementById("onlineBtn");
-
-// DOM elements - auth
-const authBtn = document.getElementById("authBtn");
-const authPanel = document.getElementById("authPanel");
-const authFormsSection = document.getElementById("authFormsSection");
-const profileSection = document.getElementById("profileSection");
+// DOM elements
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
 const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-
-// Socket.io connection
-const socket = io("http://localhost:8000", {
-    path: '/socket.io',
-    transports: ['websocket', 'polling']
-});
-
-// Auth state
-let isAuthenticated = false;
-
-// Initialize UI based on auth state
-function updateUIForAuthState() {
-    if (isAuthenticated) {
-        authBtn.textContent = "Profile";
-        // Show profile section, hide auth forms
-        authFormsSection.style.display = "none";
-        profileSection.style.display = "block";
-    } else {
-        authBtn.textContent = "Login / Register";
-        // Show auth forms, hide profile section
-        authFormsSection.style.display = "block";
-        profileSection.style.display = "none";
-    }
-}
-
-// Toggle auth panel
-authBtn.addEventListener('click', () => {
-    // Always toggle panel regardless of auth state
-    authPanel.classList.toggle('active');
-});
-
-// Logout button click
-logoutBtn.addEventListener('click', () => {
-    // Logout
-    isAuthenticated = false;
-    updateUIForAuthState();
-    authPanel.classList.remove('active');
-});
-
-// Close auth panel when clicking outside
-document.addEventListener('click', (e) => {
-    if (!authPanel.contains(e.target) && !authBtn.contains(e.target)) {
-        authPanel.classList.remove('active');
-    }
-});
 
 // Switch to login form
 loginBtn.addEventListener('click', () => {
@@ -82,11 +27,12 @@ registerBtn.addEventListener('click', () => {
 forgotPasswordBtn.addEventListener('click', () => {
     // TODO: Implement forgot password functionality
     console.log('Forgot password clicked');
+    alert('Forgot password functionality coming soon!');
 });
 
 // Login form submission
 loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     const identifier = document.getElementById('loginIdentifier').value;
     const password = document.getElementById('loginPassword').value;
@@ -95,19 +41,17 @@ loginForm.addEventListener('submit', async (e) => {
 
     const success = await auth("/login", { identifier, password });
     if (success) {
-        isAuthenticated = true;
-        updateUIForAuthState();
-        authPanel.classList.remove('active');
-        loginForm.reset();
-    }
-    else {
-        alert('Login failed');
+        // Redirect to home page on success
+        window.location.href = './homePage/index.html';
+    } else {
+        alert('Login failed. Please check your credentials.');
     }
 });
 
 // Register form submission with validation
 registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+
     const username = document.getElementById('registerUsername').value;
     const email = document.getElementById('registerEmail').value;
     const password = document.getElementById('registerPassword').value;
@@ -130,13 +74,10 @@ registerForm.addEventListener('submit', async (e) => {
 
     const success = await auth("/register", { username, email, password });
     if (success) {
-        isAuthenticated = true;
-        updateUIForAuthState();
-        authPanel.classList.remove('active');
-        registerForm.reset();
-    }
-    else {
-        alert('Registration failed');
+        // Redirect to home page on success
+        window.location.href = './homePage/index.html';
+    } else {
+        alert('Registration failed. Please try again.');
     }
 });
 
@@ -164,34 +105,3 @@ async function auth(endpoint, data) {
         return false;
     }
 }
-
-// Game mode functions
-function emitGame(gameMode) {
-    // Clear any existing gameId to avoid conflicts
-    sessionStorage.removeItem("gameId");
-    socket.emit("game:create", gameMode)
-}
-
-localButton.addEventListener('click', () => {
-    emitGame("local")
-})
-
-aiButton.addEventListener('click', () => {
-    emitGame("ai")
-})
-
-onlineButton.addEventListener('click', () => {
-    emitGame("online")
-})
-
-
-socket.on("game:created", (data) => {
-    console.log("Game created with ID:", data.gameId);
-
-    sessionStorage.setItem("gameId", data.gameId);
-
-    window.location.href = '../gamePage/index.html';
-});
-
-// Initialize
-updateUIForAuthState();

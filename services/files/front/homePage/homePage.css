@@ -11,15 +11,15 @@ body {
     background-color: #f5f5f5;
 }
 
-/* Auth button in top right corner */
-.auth-button-container {
+/* Profile button in top right corner */
+.profile-button-container {
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 1000;
 }
 
-.auth-btn {
+.profile-btn {
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
@@ -29,17 +29,17 @@ body {
     border-radius: 5px;
 }
 
-.auth-btn:hover {
+.profile-btn:hover {
     background-color: #0056b3;
     border-color: #0056b3;
 }
 
-/* Auth dropdown panel */
-.auth-panel {
+/* Profile dropdown panel */
+.profile-panel {
     position: fixed;
     top: 75px;
     right: 20px;
-    width: 350px;
+    width: 300px;
     background: white;
     border-radius: 8px;
     padding: 20px;
@@ -48,105 +48,49 @@ body {
     z-index: 999;
 }
 
-.auth-panel.active {
+.profile-panel.active {
     display: block;
 }
 
-.auth-panel-content {
+.profile-panel-content {
     width: 100%;
 }
 
-/* Mode toggle */
-.mode-toggle {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.toggle-btn {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    background: white;
-    cursor: pointer;
-    font-size: 14px;
-    border-radius: 4px;
-}
-
-.toggle-btn.active {
-    background: #007bff;
-    color: white;
-    border-color: #007bff;
-}
-
-/* Auth forms */
-.auth-form {
-    display: none;
-}
-
-.auth-form.active {
-    display: block;
-}
-
-.auth-form h2 {
+.profile-panel-content h2 {
     margin-bottom: 15px;
     color: #333;
     font-size: 20px;
 }
 
-.form-group {
-    margin-bottom: 12px;
+.profile-info {
+    margin-bottom: 15px;
     text-align: left;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
+.profile-info p {
     color: #555;
     font-size: 14px;
+    margin-bottom: 8px;
 }
 
-.form-group input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+.profile-info span {
+    font-weight: bold;
+    color: #333;
 }
 
-.submit-btn {
+.logout-btn {
     width: 100%;
     padding: 10px;
-    background: #007bff;
+    background: #dc3545;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-top: 10px;
     font-size: 14px;
 }
 
-.submit-btn:hover {
-    background: #0056b3;
-}
-
-/* Forgot password button */
-.forgot-password-btn {
-    width: 100%;
-    padding: 8px;
-    background: transparent;
-    color: #007bff;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    text-align: right;
-    margin-top: 5px;
-    margin-bottom: 5px;
-}
-
-.forgot-password-btn:hover {
-    text-decoration: underline;
-    background: transparent;
+.logout-btn:hover {
+    background: #c82333;
 }
 
 /* Main content */
