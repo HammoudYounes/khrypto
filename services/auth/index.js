@@ -9,7 +9,7 @@ const MONGO_URL = 'mongodb://127.0.0.1:27017/khrypto';
 
 const SALT_ROUNDS = 10;
 
-const EXTERNAL_TOKEN_SERVICE_URL = 'http://127.0.0.1:8004/sign';
+const TOKEN_SERVICE_URL = 'http://127.0.0.1:8004/sign';
 
 const client = new MongoClient(MONGO_URL);
 
@@ -109,6 +109,25 @@ async function authenticateUser(identifier, password) {
   }
 }
 
+
+
+async function getTokens() {
+const tokens_request = await fetch(TOKEN_SERVICE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  });
+
+  if (!tokens_request.ok) {
+    throw new Error("TOKEN_SERVICE_FAILED");
+  }
+
+  const tokens = await tokens_request.json();
+  return tokens;
+}
+
+
 http.createServer(function (request, response) {
   console.log(`Received query for a auth: ${request.url}`);
 
@@ -121,9 +140,11 @@ http.createServer(function (request, response) {
 
         await authenticateUser(identifier, password)
 
+        const tokens = await getTokens();
+
         console.log(`Login success for: ${identifier}`);
         response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ message: "Login successful", identifier: identifier }));
+        response.end(JSON.stringify({accessToken : tokens.accessToken, refreshToken : tokens.refreshToken}));
 
       } catch (error) {
         switch (error.message) {
@@ -155,8 +176,12 @@ http.createServer(function (request, response) {
         // Display updated database info
         await displayDatabaseInfo();
 
+        const tokens = getTokens();
+
         response.writeHead(201, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ message: "User created locally", user: newUser }));
+        console.log("")
+        console.log(tokens)
+        response.end(JSON.stringify({accessToken : tokens.accessToken, refreshToken : tokens.refreshToken}));
 
       } catch (error) {
         const validationErrors = ["INVALID_MAIL_FORMAT", "USERNAME_ALREADY_EXIST", "MAIL_ALREADY_EXIST"];

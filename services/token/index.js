@@ -18,7 +18,6 @@ const getBody = (req) => new Promise(resolve => {
 http.createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     const { url, method } = req;
-
     try {
         // 1. SIGN (Appelé par le service Login)
         if (url === '/sign' && method === 'POST') {

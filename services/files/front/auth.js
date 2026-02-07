@@ -41,7 +41,8 @@ loginForm.addEventListener('submit', async (e) => {
 
     const result = await auth("/login", { identifier, password });
     if (result && !result.error) {
-        // Redirect to home page on success
+        localStorage.setItem('accessToken',result.accessToken)
+        localStorage.setItem('refreshToken',result.refreshToken)
         window.location.href = './homePage/index.html';
     } else {
         alert('Login failed. Please check your credentials.');
@@ -75,6 +76,8 @@ registerForm.addEventListener('submit', async (e) => {
     const result = await auth("/register", { username, email, password });
     if (result && !result.error) {
         // Redirect to home page on success
+        localStorage.setItem('accessToken',result.accessToken)
+        localStorage.setItem('refreshToken',result.refreshToken)
         window.location.href = './homePage/index.html';
     } else {
         alert('Registration failed. Please try again.');
