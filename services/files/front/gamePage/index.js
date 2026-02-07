@@ -35,6 +35,7 @@ const boardElement = document.getElementById('board');
 export const gameId = sessionStorage.getItem("gameId");
 
 document.addEventListener('DOMContentLoaded', async () => {
+    await initializeConnection();
 
     // A. Initialiser l'UI (Graphismes)
     initBoard();
@@ -47,7 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // B. Lancer la connexion sécurisée (Token check + Socket connect)
     // C'est ici que la magie opère : ça attend d'avoir un token valide avant de continuer
-    await initializeConnection();
 
     // C. Rejoindre la partie (Une fois connecté)
     const gameId = sessionStorage.getItem("gameId");

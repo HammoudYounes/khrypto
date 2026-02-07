@@ -10,8 +10,9 @@ import { TokenManager } from "../js/tokenManager.js";
 // 1. Socket Configuration (Manual Connect)
 export const socket = io({
     autoConnect: false,
+    transports: ['websocket', 'polling'],
     auth: (cb) => {
-        // Called on every connection attempt
+        // Send token via Socket.IO auth (for WebSocket handshake)
         cb({ token: TokenManager.getAccessToken() });
     }
 });
@@ -39,6 +40,10 @@ export async function initializeConnection() {
     }
 
     console.log("Initiating Socket connection...");
+    // Update extraHeaders with fresh token before connecting
+    socket.io.opts.extraHeaders = {
+        Authorization: `Bearer ${accessToken}`
+    };
     socket.connect();
 }
 
@@ -51,6 +56,10 @@ socket.on("connect_error", async (err) => {
 
     if (refreshed) {
         console.log("Token refreshed! Retrying socket connection...");
+        // Update extraHeaders with fresh token
+        socket.io.opts.extraHeaders = {
+            Authorization: `Bearer ${TokenManager.getAccessToken()}`
+        };
         // Short delay to ensure storage sync
         setTimeout(() => {
             socket.connect();
@@ -71,7 +80,7 @@ export function sendPlaceAction(x, y, orientation, playerId) {
     console.log(`Sending PLACE action at (${x}, ${y}) for Player ${playerId}`);
 
     socket.emit('player:action', {
-        gameId : gameId, 
+        gameId: gameId,
         playerId: playerId,
         action: {
             type: 'PLACE',
@@ -89,7 +98,7 @@ export function sendRotateAction(x, y, direction) {
     console.log(`Envoi Rotation -> X:${x}, Y:${y}, Sens:${direction}`);
 
     socket.emit('player:action', {
-        gameId : gameId, 
+        gameId: gameId,
         playerId: playerId,
         action: {
             type: 'ROTATE',
@@ -107,13 +116,13 @@ export function sendMoveAction(originX, originY, destX, destY) {
     console.log(`Envoi Move : (${originX},${originY}) vers (${destX},${destY})`);
 
     socket.emit('player:action', {
-        gameId : gameId, 
+        gameId: gameId,
         playerId: playerId,
         action: {
             type: 'MOVE',
-            x: originX,     
+            x: originX,
             y: originY,
-            destX: destX,   
+            destX: destX,
             destY: destY
         }
     });
@@ -123,7 +132,7 @@ export function sendMoveAction(originX, originY, destX, destY) {
 export function sendSwapAction(x, y, targetX, targetY, playerId) {
     console.log(`Sending SWAP action: (${x},${y}) <-> (${targetX},${targetY}) for Player ${playerId}`);
     socket.emit('player:action', {
-        gameId : gameId, 
+        gameId: gameId,
         playerId: playerId,
         action: {
             type: 'SWAP',

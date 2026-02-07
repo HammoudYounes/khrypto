@@ -4,10 +4,10 @@ const httpProxy = require('http-proxy');
 
 
 const PORTS = {
-    FILES:  'http://127.0.0.1:8001',
+    FILES: 'http://127.0.0.1:8001',
     ENGINE: 'http://127.0.0.1:8002',
-    AUTH:  'http://127.0.0.1:8003',
-    TOKEN:  'http://127.0.0.1:8004'
+    AUTH: 'http://127.0.0.1:8003',
+    TOKEN: 'http://127.0.0.1:8004'
 };
 
 // We will need a proxy to send requests to the other services.
@@ -30,6 +30,10 @@ const server = http.createServer(function (request, response) {
             if (filePath[2] === "auth") {
                 console.log("Routing API request to Auth Service");
                 proxy.web(request, response, { target: PORTS.AUTH });
+            }
+            if (filePath[2] === "refresh" || filePath[2] === "verify" || filePath[2] === "sign"){
+                console.log("Routing API request to Token Service");
+                proxy.web(request, response, { target: PORTS.TOKEN });
             }
         }
         else if (filePath[1] === "socket.io") {

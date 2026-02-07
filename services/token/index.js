@@ -42,7 +42,8 @@ http.createServer(async (req, res) => {
         }
 
         // 3. REFRESH (Renouvellement intelligent)
-        if (url === '/refresh' && method === 'POST') {
+        if ((url === '/refresh' || url === '/api/refresh') && method === 'POST') {
+            console.log("HALLOOOO")
             const { refreshToken } = await getBody(req);
             try {
                 const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
