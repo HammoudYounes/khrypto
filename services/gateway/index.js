@@ -2,6 +2,14 @@
 const http = require('http');
 const httpProxy = require('http-proxy');
 
+
+const PORTS = {
+    FILES:  'http://127.0.0.1:8001',
+    ENGINE: 'http://127.0.0.1:8002',
+    AUTH:  'http://127.0.0.1:8003',
+    TOKEN:  'http://127.0.0.1:8004'
+};
+
 // We will need a proxy to send requests to the other services.
 const proxy = httpProxy.createProxyServer();
 
@@ -18,18 +26,18 @@ const server = http.createServer(function (request, response) {
 
     try {
         // If the URL starts by /api, then it's a REST request (you can change that if you want).
-        if (filePath[1] === "api" || filePath[1] === "socket.io") {
+        if (filePath[1] === "api") {
             if (filePath[2] === "auth") {
                 console.log("Routing API request to Auth Service");
-                proxy.web(request, response, { target: "http://127.0.0.1:8003" });
-            } else {
-                console.log("Routing API request to Engine Service");
-                proxy.web(request, response, { target: "http://127.0.0.1:8002" });
+                proxy.web(request, response, { target: PORTS.AUTH });
             }
-            // If it doesn't start by /api, then it's a request for a file.
-        } else {
+        }
+        else if (filePath[1] === "socket.io") {
+            return proxyWithTokenCheck(request, response, PORTS.ENGINE);
+        }
+        else {
             console.log("Request for a file received, transferring to the file service")
-            proxy.web(request, response, { target: "http://127.0.0.1:8001" });
+            proxy.web(request, response, { target: PORTS.FILES });
         }
     } catch (error) {
         console.log(`error while processing ${request.url}: ${error}`)
@@ -50,3 +58,87 @@ server.on('upgrade', function (req, socket, head) {
 server.listen(8000, () => {
     console.log("Gateway listening on port 8000");
 });
+
+
+
+// --- FONCTION D'APPEL AU SERVICE TOKEN ---
+function callTokenService(path, body) {
+    return new Promise((resolve, reject) => {
+        const tokenUrl = new URL(PORTS.TOKEN);
+
+        const options = {
+            hostname: tokenUrl.hostname,
+            port: tokenUrl.port,
+            path: path,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(JSON.stringify(body))
+            }
+        };
+
+        const req = http.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try { resolve(JSON.parse(data)); }
+                catch (e) { resolve({}); }
+            });
+        });
+
+        req.on('error', (e) => reject(e));
+        req.write(JSON.stringify(body));
+        req.end();
+    });
+}
+
+// --- LE "SMART PROXY" (Middleware Token) ---
+async function proxyWithTokenCheck(req, res, targetUrl) {
+    const authHeader = req.headers['authorization'];
+    const refreshToken = req.headers['x-refresh-token'];
+    const accessToken = authHeader && authHeader.split(' ')[1];
+
+    if (!accessToken) {
+        res.writeHead(401);
+        return res.end(JSON.stringify({ error: "Token missing" }));
+    }
+
+    try {
+        // 1. On vérifie l'Access Token
+        const check = await callTokenService('/verify', { token: accessToken });
+
+        if (check.valid) {
+            // Token valide -> On laisse passer
+            return proxy.web(req, res, { target: targetUrl });
+        }
+
+        // 2. Si invalide, on tente le Refresh
+        if (refreshToken) {
+            console.log("Gateway: Access expired, call the Token Service to refresh...");
+            const refreshRes = await callTokenService('/refresh', { refreshToken });
+
+            if (refreshRes.success) {
+                console.log("Gateway: Refresh done ! Retry call.");
+
+                // A. On met à jour la requête vers le backend (Engine)
+                req.headers['authorization'] = `Bearer ${refreshRes.accessToken}`;
+
+                // B. On renvoie les nouveaux tokens au Front
+                res.setHeader('x-new-access-token', refreshRes.accessToken);
+                res.setHeader('x-new-refresh-token', refreshRes.refreshToken);
+                res.setHeader('Access-Control-Expose-Headers', 'x-new-access-token, x-new-refresh-token');
+
+                // C. On forward la requête
+                return proxy.web(req, res, { target: targetUrl });
+            }
+        }
+
+        // 3. Tout a échoué
+        res.writeHead(403);
+        res.end(JSON.stringify({ error: "Session expired" }));
+
+    } catch (err) {
+        console.error("Token Check Error", err);
+        res.writeHead(500); res.end();
+    }
+}
