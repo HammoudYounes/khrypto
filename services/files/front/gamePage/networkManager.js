@@ -5,11 +5,65 @@
 
 import { state } from './gameState.js';
 import { gameId } from './index.js';
+import { TokenManager } from "../js/tokenManager.js";
 
-// Initialize socket connection
-export const socket = io("http://localhost:8000", {
-    path: '/socket.io',
-    transports: ['websocket', 'polling']
+// 1. Socket Configuration (Manual Connect)
+export const socket = io({
+    autoConnect: false,
+    auth: (cb) => {
+        // Called on every connection attempt
+        cb({ token: TokenManager.getAccessToken() });
+    }
+});
+
+// 2. Initialization Routine (Called on page load)
+export async function initializeConnection() {
+    let accessToken = TokenManager.getAccessToken();
+    const refreshToken = TokenManager.getRefreshToken();
+
+    // Scenario: Access Token missing/expired, but Refresh Token exists
+    if (!accessToken && refreshToken) {
+        console.log("Stale session detected. Attempting to restore...");
+        const refreshed = await TokenManager.refreshAccessToken();
+        if (refreshed) {
+            accessToken = TokenManager.getAccessToken(); // Update local var
+        }
+    }
+
+    // Final check
+    if (!accessToken) {
+        console.log("No valid session found. Redirecting to Login.");
+        TokenManager.clear();
+        window.location.href = '../index.html';
+        return;
+    }
+
+    console.log("Initiating Socket connection...");
+    socket.connect();
+}
+
+// 3. Error Handling (Safety net during gameplay)
+socket.on("connect_error", async (err) => {
+    console.log(" Connection rejected by server:", err.message);
+
+    // Assuming rejection is due to expired token -> Try Refresh
+    const refreshed = await TokenManager.refreshAccessToken();
+
+    if (refreshed) {
+        console.log("Token refreshed! Retrying socket connection...");
+        // Short delay to ensure storage sync
+        setTimeout(() => {
+            socket.connect();
+        }, 100);
+    } else {
+        console.log("Fatal session error. Logging out.");
+        TokenManager.clear();
+        window.location.href = '../index.html';
+    }
+});
+
+socket.on("connect", () => {
+    console.log(" Connected to Game Server! Socket ID:", socket.id);
 });
 
 // PLACE action
