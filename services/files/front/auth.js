@@ -39,8 +39,8 @@ loginForm.addEventListener('submit', async (e) => {
 
     console.log('Login attempt:', { identifier, password });
 
-    const success = await auth("/login", { identifier, password });
-    if (success) {
+    const result = await auth("/login", { identifier, password });
+    if (result && !result.error) {
         // Redirect to home page on success
         window.location.href = './homePage/index.html';
     } else {
@@ -72,8 +72,8 @@ registerForm.addEventListener('submit', async (e) => {
 
     console.log('Register attempt:', { username, email, password });
 
-    const success = await auth("/register", { username, email, password });
-    if (success) {
+    const result = await auth("/register", { username, email, password });
+    if (result && !result.error) {
         // Redirect to home page on success
         window.location.href = './homePage/index.html';
     } else {
@@ -92,16 +92,17 @@ async function auth(endpoint, data) {
             body: JSON.stringify(data)
         });
 
+        const result = await response.json();
+
         if (!response.ok) {
             console.log(`HTTP error! status: ${response.status}`);
-            return false;
+            return { error: true, message: result.message || "Request failed", status: response.status };
         }
 
-        const result = await response.json();
         console.log('Success:', result);
-        return true;
+        return result;
     } catch (error) {
-        console.log('Error:', error);
-        return false;
+        console.error('Auth Error:', error);
+        return { error: true, message: "Connection failed" };
     }
 }
