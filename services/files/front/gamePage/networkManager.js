@@ -10,10 +10,14 @@ import { TokenManager } from "../js/tokenManager.js";
 // 1. Socket Configuration (Manual Connect)
 export const socket = io({
     autoConnect: false,
-    transports: ['websocket', 'polling'],
+
     auth: (cb) => {
         // Send token via Socket.IO auth (for WebSocket handshake)
         cb({ token: TokenManager.getAccessToken() });
+    },
+
+    query: {
+        token: TokenManager.getAccessToken()
     }
 });
 
@@ -40,10 +44,8 @@ export async function initializeConnection() {
     }
 
     console.log("Initiating Socket connection...");
-    // Update extraHeaders with fresh token before connecting
-    socket.io.opts.extraHeaders = {
-        Authorization: `Bearer ${accessToken}`
-    };
+
+    socket.io.opts.query = { token: TokenManager.getAccessToken() };
     socket.connect();
 }
 
@@ -56,10 +58,10 @@ socket.on("connect_error", async (err) => {
 
     if (refreshed) {
         console.log("Token refreshed! Retrying socket connection...");
-        // Update extraHeaders with fresh token
-        socket.io.opts.extraHeaders = {
-            Authorization: `Bearer ${TokenManager.getAccessToken()}`
-        };
+
+        socket.io.opts.query = { token: TokenManager.getAccessToken() }
+
+
         // Short delay to ensure storage sync
         setTimeout(() => {
             socket.connect();

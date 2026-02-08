@@ -10,22 +10,16 @@ const PORTS = {
     TOKEN: 'http://127.0.0.1:8004'
 };
 
-// We will need a proxy to send requests to the other services.
 const proxy = httpProxy.createProxyServer();
 
-/* The http module contains a createServer function, which takes one argument, which is the function that
-** will be called whenever a new request arrives to the server.
- */
 const server = http.createServer(function (request, response) {
-    // First, let's check the URL to see if it's a REST request or a file request.
-    // We will remove all cases of "../" in the url for security purposes.
+
     let filePath = request.url.split("/").filter(function (elem) {
         return elem !== "..";
     });
 
 
     try {
-        // If the URL starts by /api, then it's a REST request (you can change that if you want).
         if (filePath[1] === "api") {
             if (filePath[2] === "auth") {
                 console.log("Routing API request to Auth Service");
@@ -50,7 +44,6 @@ const server = http.createServer(function (request, response) {
     }
 
 
-    // For the server to be listening to request, it needs a port, which is set thanks to the listen function.
 })
 
 server.on('upgrade', function (req, socket, head) {
@@ -98,51 +91,42 @@ function callTokenService(path, body) {
 
 // --- LE "SMART PROXY" (Middleware Token) ---
 async function proxyWithTokenCheck(req, res, targetUrl) {
-    const authHeader = req.headers['authorization'];
-    const refreshToken = req.headers['x-refresh-token'];
-    const accessToken = authHeader && authHeader.split(' ')[1];
+    let accessToken = null;
 
+    // 1. Recherche du Token (Header ou Query)
+    const authHeader = req.headers['authorization'];
+    if (authHeader) {
+        accessToken = authHeader.split(' ')[1];
+    } else {
+        try {
+            // Support pour Socket.IO via Query Param
+            const urlObj = new URL(req.url, `http://${req.headers.host}`);
+            accessToken = urlObj.searchParams.get('token');
+        } catch(e) {}
+    }
+
+    // 2. Si pas de token, on jette
     if (!accessToken) {
         res.writeHead(401);
         return res.end(JSON.stringify({ error: "Token missing" }));
     }
 
     try {
-        // 1. On vérifie l'Access Token
+        // 3. Vérification simple (Est-ce qu'il est valide ?)
         const check = await callTokenService('/verify', { token: accessToken });
 
         if (check.valid) {
-            // Token valide -> On laisse passer
+            // OUI -> On laisse passer vers l'Engine
             return proxy.web(req, res, { target: targetUrl });
+        } else {
+            // NON -> Erreur 401. Le Front devra faire le refresh lui-même via /api/refresh
+            console.log("Gateway: Token expired. Rejected (401).");
+            res.writeHead(401);
+            return res.end(JSON.stringify({ error: "Token expired" }));
         }
-
-        // 2. Si invalide, on tente le Refresh
-        if (refreshToken) {
-            console.log("Gateway: Access expired, call the Token Service to refresh...");
-            const refreshRes = await callTokenService('/refresh', { refreshToken });
-
-            if (refreshRes.success) {
-                console.log("Gateway: Refresh done ! Retry call.");
-
-                // A. On met à jour la requête vers le backend (Engine)
-                req.headers['authorization'] = `Bearer ${refreshRes.accessToken}`;
-
-                // B. On renvoie les nouveaux tokens au Front
-                res.setHeader('x-new-access-token', refreshRes.accessToken);
-                res.setHeader('x-new-refresh-token', refreshRes.refreshToken);
-                res.setHeader('Access-Control-Expose-Headers', 'x-new-access-token, x-new-refresh-token');
-
-                // C. On forward la requête
-                return proxy.web(req, res, { target: targetUrl });
-            }
-        }
-
-        // 3. Tout a échoué
-        res.writeHead(403);
-        res.end(JSON.stringify({ error: "Session expired" }));
 
     } catch (err) {
-        console.error("Token Check Error", err);
+        console.error("Gateway Check Error", err);
         res.writeHead(500); res.end();
     }
 }

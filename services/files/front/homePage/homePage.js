@@ -12,11 +12,14 @@ const profilePanel = document.getElementById("profilePanel");
 const logoutBtn = document.getElementById("logoutBtn");
 const socket = io({
     path: '/socket.io',
-    transports: ['websocket', 'polling'],
+
     autoConnect: false, // IMPORTANT : On attend d'avoir vérifié le token
     auth: (cb) => {
         // Envoie le token stocké à chaque tentative
         cb({ token: TokenManager.getAccessToken() });
+    },
+    query: {
+        token: TokenManager.getAccessToken()
     }
 });
 
@@ -41,6 +44,7 @@ async function initializeHome() {
 
     // Si tout est bon, on connecte le socket
     console.log("Session valide, connexion au serveur...");
+    socket.io.opts.query = { token: TokenManager.getAccessToken() };
     socket.connect();
 }
 
@@ -53,6 +57,7 @@ socket.on("connect_error", async (err) => {
 
     if (success) {
         console.log("Token rafraîchi, reconnexion...");
+        socket.io.opts.query = { token: TokenManager.getAccessToken() };
         socket.connect();
     } else {
         // Si le refresh échoue, on déconnecte tout

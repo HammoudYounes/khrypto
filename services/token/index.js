@@ -4,9 +4,9 @@ const jwt = require('jsonwebtoken');
 const PORT = 8004;
 const ACCESS_SECRET = '0638586715';
 const REFRESH_SECRET = '0745565215';
-const ACCESS_LIFE = '75m';
-const REFRESH_LIFE = '30d';
-const RENEW_WINDOW = 7 * 24 * 60 * 60; // 7 jours
+const ACCESS_LIFE = '10s';
+const REFRESH_LIFE = '60s';
+const RENEW_WINDOW = 50; // 7 jours
 
 // Helper body parser
 const getBody = (req) => new Promise(resolve => {
