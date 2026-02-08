@@ -4,13 +4,22 @@ const httpProxy = require('http-proxy');
 
 
 const PORTS = {
-    FILES: 'http://127.0.0.1:8001',
-    ENGINE: 'http://127.0.0.1:8002',
-    AUTH: 'http://127.0.0.1:8003',
-    TOKEN: 'http://127.0.0.1:8004'
+    FILES: process.env.FILES_URL || 'http://127.0.0.1:8001',
+    ENGINE: process.env.ENGINE_URL || 'http://127.0.0.1:8002',
+    AUTH: process.env.AUTH_URL || 'http://127.0.0.1:8003',
+    TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004'
 };
 
 const proxy = httpProxy.createProxyServer();
+
+// Handle proxy errors gracefully to prevent crashes
+proxy.on('error', (err, req, res) => {
+    console.error('Proxy Error:', err.message);
+    if (res && res.writeHead) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
+    }
+});
 
 const server = http.createServer(function (request, response) {
 
@@ -25,7 +34,7 @@ const server = http.createServer(function (request, response) {
                 console.log("Routing API request to Auth Service");
                 proxy.web(request, response, { target: PORTS.AUTH });
             }
-            if (filePath[2] === "refresh" || filePath[2] === "verify" || filePath[2] === "sign"){
+            if (filePath[2] === "refresh" || filePath[2] === "verify" || filePath[2] === "sign") {
                 console.log("Routing API request to Token Service");
                 proxy.web(request, response, { target: PORTS.TOKEN });
             }
@@ -48,12 +57,14 @@ const server = http.createServer(function (request, response) {
 
 server.on('upgrade', function (req, socket, head) {
     console.log("Proxying WebSocket upgrade");
-    proxy.ws(req, socket, head, { target: 'http://127.0.0.1:8002' });
+    proxy.ws(req, socket, head, { target: PORTS.ENGINE });
 });
 
 
-server.listen(8000, () => {
-    console.log("Gateway listening on port 8000");
+const PORT = process.env.PORT || 8000;
+
+server.listen(PORT, () => {
+    console.log(`Gateway listening on port ${PORT}`);
 });
 
 
@@ -102,7 +113,7 @@ async function proxyWithTokenCheck(req, res, targetUrl) {
             // Support pour Socket.IO via Query Param
             const urlObj = new URL(req.url, `http://${req.headers.host}`);
             accessToken = urlObj.searchParams.get('token');
-        } catch(e) {}
+        } catch (e) { }
     }
 
     // 2. Si pas de token, on jette
