@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: khrypto_mongo
+    restart: always
+    expose:
+      - "27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app_network
+
+  gateway:
+    build: ./services/gateway
+    container_name: khrypto_gateway
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - ENGINE_URL=http://engine:8002
+      - FILES_URL=http://files:8001
+      - AUTH_URL=http://auth:8003
+      - TOKEN_URL=http://token:8004
+    depends_on:
+      - engine
+      - files
+      - auth
+      - token
+    networks:
+      - app_network
+
+  engine:
+    build: ./services/engine
+    container_name: khrypto_engine
+    restart: always
+    expose:
+      - "8002"
+    environment:
+      - PORT=8002
+    networks:
+      - app_network
+
+  files:
+    build: ./services/files
+    container_name: khrypto_files
+    restart: always
+    expose:
+      - "8001"
+    environment:
+      - PORT=8001
+    networks:
+      - app_network
+
+  auth:
+    build: ./services/auth
+    container_name: khrypto_auth
+    restart: always
+    expose:
+      - "8003"
+    environment:
+      - PORT=8003
+      - MONGO_URL=mongodb://mongo:27017/khrypto
+      - TOKEN_URL=http://token:8004
+    depends_on:
+      - mongo
+      - token
+    networks:
+      - app_network
+
+  token:
+    build: ./services/token
+    container_name: khrypto_token
+    restart: always
+    expose:
+      - "8004"
+    environment:
+      - PORT=8004
+      - MONGO_URL=mongodb://mongo:27017/khrypto
+    depends_on:
+      - mongo
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mongo_data:

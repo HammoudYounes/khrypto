@@ -1,7 +1,7 @@
 const http = require('http');
 const jwt = require('jsonwebtoken');
 
-const PORT = 8004;
+const PORT = process.env.PORT || 8004;
 const ACCESS_SECRET = '0638586715';
 const REFRESH_SECRET = '0745565215';
 const ACCESS_LIFE = '10s';

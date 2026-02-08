@@ -1,5 +1,5 @@
 import { TokenManager } from "../js/tokenManager.js";
-const API_URL = "http://localhost:8000/api";
+const API_URL = "/api";
 
 // DOM elements - game buttons
 const localButton = document.getElementById("localBtn");

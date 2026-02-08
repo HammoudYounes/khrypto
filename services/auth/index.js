@@ -5,11 +5,14 @@ const { error } = require('console');
 
 const DB_NAME = 'khrypto';
 const COLLECTION_NAME = 'users';
-const MONGO_URL = 'mongodb://127.0.0.1:27017/khrypto';
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
+const PORT = process.env.PORT || 8003;
 
 const SALT_ROUNDS = 10;
 
-const TOKEN_SERVICE_URL = 'http://127.0.0.1:8004/sign';
+const TOKEN_SERVICE_URL = process.env.TOKEN_URL
+  ? `${process.env.TOKEN_URL}/sign`
+  : 'http://127.0.0.1:8004/sign';
 
 const client = new MongoClient(MONGO_URL);
 
@@ -112,7 +115,7 @@ async function authenticateUser(identifier, password) {
 
 
 async function getTokens() {
-const tokens_request = await fetch(TOKEN_SERVICE_URL, {
+  const tokens_request = await fetch(TOKEN_SERVICE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -144,7 +147,7 @@ http.createServer(function (request, response) {
 
         console.log(`Login success for: ${identifier}`);
         response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({accessToken : tokens.accessToken, refreshToken : tokens.refreshToken}));
+        response.end(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
 
       } catch (error) {
         switch (error.message) {
@@ -181,7 +184,7 @@ http.createServer(function (request, response) {
         response.writeHead(201, { "Content-Type": "application/json" });
         console.log("")
         console.log(tokens)
-        response.end(JSON.stringify({accessToken : tokens.accessToken, refreshToken : tokens.refreshToken}));
+        response.end(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
 
       } catch (error) {
         const validationErrors = ["INVALID_MAIL_FORMAT", "USERNAME_ALREADY_EXIST", "MAIL_ALREADY_EXIST"];
@@ -196,4 +199,4 @@ http.createServer(function (request, response) {
     });
   }
 
-}).listen(8003);
+}).listen(PORT, () => console.log(`Auth service listening on port ${PORT}`));
