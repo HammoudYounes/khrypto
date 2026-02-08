@@ -2,34 +2,40 @@
 const http = require('http');
 const httpProxy = require('http-proxy');
 
-// We will need a proxy to send requests to the other services.
+
+const PORTS = {
+    FILES: 'http://127.0.0.1:8001',
+    ENGINE: 'http://127.0.0.1:8002',
+    AUTH: 'http://127.0.0.1:8003',
+    TOKEN: 'http://127.0.0.1:8004'
+};
+
 const proxy = httpProxy.createProxyServer();
 
-/* The http module contains a createServer function, which takes one argument, which is the function that
-** will be called whenever a new request arrives to the server.
- */
 const server = http.createServer(function (request, response) {
-    // First, let's check the URL to see if it's a REST request or a file request.
-    // We will remove all cases of "../" in the url for security purposes.
+
     let filePath = request.url.split("/").filter(function (elem) {
         return elem !== "..";
     });
 
 
     try {
-        // If the URL starts by /api, then it's a REST request (you can change that if you want).
-        if (filePath[1] === "api" || filePath[1] === "socket.io") {
+        if (filePath[1] === "api") {
             if (filePath[2] === "auth") {
                 console.log("Routing API request to Auth Service");
-                proxy.web(request, response, { target: "http://127.0.0.1:8003" });
-            } else {
-                console.log("Routing API request to Engine Service");
-                proxy.web(request, response, { target: "http://127.0.0.1:8002" });
+                proxy.web(request, response, { target: PORTS.AUTH });
             }
-            // If it doesn't start by /api, then it's a request for a file.
-        } else {
+            if (filePath[2] === "refresh" || filePath[2] === "verify" || filePath[2] === "sign"){
+                console.log("Routing API request to Token Service");
+                proxy.web(request, response, { target: PORTS.TOKEN });
+            }
+        }
+        else if (filePath[1] === "socket.io") {
+            return proxyWithTokenCheck(request, response, PORTS.ENGINE);
+        }
+        else {
             console.log("Request for a file received, transferring to the file service")
-            proxy.web(request, response, { target: "http://127.0.0.1:8001" });
+            proxy.web(request, response, { target: PORTS.FILES });
         }
     } catch (error) {
         console.log(`error while processing ${request.url}: ${error}`)
@@ -38,7 +44,6 @@ const server = http.createServer(function (request, response) {
     }
 
 
-    // For the server to be listening to request, it needs a port, which is set thanks to the listen function.
 })
 
 server.on('upgrade', function (req, socket, head) {
@@ -50,3 +55,78 @@ server.on('upgrade', function (req, socket, head) {
 server.listen(8000, () => {
     console.log("Gateway listening on port 8000");
 });
+
+
+
+// --- FONCTION D'APPEL AU SERVICE TOKEN ---
+function callTokenService(path, body) {
+    return new Promise((resolve, reject) => {
+        const tokenUrl = new URL(PORTS.TOKEN);
+
+        const options = {
+            hostname: tokenUrl.hostname,
+            port: tokenUrl.port,
+            path: path,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(JSON.stringify(body))
+            }
+        };
+
+        const req = http.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try { resolve(JSON.parse(data)); }
+                catch (e) { resolve({}); }
+            });
+        });
+
+        req.on('error', (e) => reject(e));
+        req.write(JSON.stringify(body));
+        req.end();
+    });
+}
+
+// --- LE "SMART PROXY" (Middleware Token) ---
+async function proxyWithTokenCheck(req, res, targetUrl) {
+    let accessToken = null;
+
+    // 1. Recherche du Token (Header ou Query)
+    const authHeader = req.headers['authorization'];
+    if (authHeader) {
+        accessToken = authHeader.split(' ')[1];
+    } else {
+        try {
+            // Support pour Socket.IO via Query Param
+            const urlObj = new URL(req.url, `http://${req.headers.host}`);
+            accessToken = urlObj.searchParams.get('token');
+        } catch(e) {}
+    }
+
+    // 2. Si pas de token, on jette
+    if (!accessToken) {
+        res.writeHead(401);
+        return res.end(JSON.stringify({ error: "Token missing" }));
+    }
+
+    try {
+        // 3. Vérification simple (Est-ce qu'il est valide ?)
+        const check = await callTokenService('/verify', { token: accessToken });
+
+        if (check.valid) {
+            // OUI -> On laisse passer vers l'Engine
+            return proxy.web(req, res, { target: targetUrl });
+        } else {
+            // NON -> Erreur 401. Le Front devra faire le refresh lui-même via /api/refresh
+            console.log("Gateway: Token expired. Rejected (401).");
+            res.writeHead(401);
+            return res.end(JSON.stringify({ error: "Token expired" }));
+        }
+
+    } catch (err) {
+        console.error("Gateway Check Error", err);
+        res.writeHead(500); res.end();
+    }
+}
