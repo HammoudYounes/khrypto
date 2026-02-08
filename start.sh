@@ -23,5 +23,13 @@ echo "[Files] Launching..."
 echo "[Engine] Launching..."
 (cd services/engine && node index.js) &
 
+# 4. Start Auth Service (Authentication -> Port 8003)
+echo "[Auth] Launching..."
+(cd services/auth && node index.js) &
+
+# 5. Start Token Service (Token Management -> Port 8004)
+echo "[Token] Launching..."
+(cd services/token && node index.js) &
+
 # Wait ensures the script stays running so the background services don't close
 wait

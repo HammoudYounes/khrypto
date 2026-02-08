@@ -1,6 +1,6 @@
 const http = require('http');
 const { Server } = require('socket.io');
-const corsHelper = require('../helpers/cors.js');
+const corsHelper = require('./helpers/cors.js');
 const GameManager = require('./managers/GameManager');
 
 const server = http.createServer((req, res) => {
@@ -80,8 +80,8 @@ io.on('connection', (socket) => {
         }
     });
 });
+const PORT = process.env.PORT || 8002;
 
-
-server.listen(8002, () => {
-    console.log("Engine service (v2) listening on port 8002");
+server.listen(PORT, () => {
+    console.log(`Engine service (v2) listening on port ${PORT}`);
 });

@@ -5,6 +5,8 @@
 
 import { state } from './gameState.js';
 import { socket } from './networkManager.js';
+import { initializeConnection } from "./networkManager.js";
+
 import {
     initBoard,
     updatePieces,
@@ -32,24 +34,33 @@ const boardElement = document.getElementById('board');
 
 export const gameId = sessionStorage.getItem("gameId");
 
-if (gameId) {
-    console.log("Found Game ID in storage:", gameId);
-    socket.emit('game:join', { gameId: gameId });
-    // Don't remove gameId here - keep it so users can refresh/navigate back 
-} else {
-    console.error("No Game ID found. Redirecting to home...");
-    window.location.href = "../index.html";
-}
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeConnection();
 
+    // A. Initialiser l'UI (Graphismes)
+    initBoard();
+    initDraggableReserve();
+    initReserveListeners();
+    initRotationButtons();
 
-// Initialize UI
-initBoard();
-initDraggableReserve();
-initReserveListeners();
-initRotationButtons();
+    // Setup listeners
+    cellClickListner(boardElement);
 
-// Setup interaction listeners
-cellClickListner(boardElement);
+    // B. Lancer la connexion sécurisée (Token check + Socket connect)
+    // C'est ici que la magie opère : ça attend d'avoir un token valide avant de continuer
+
+    // C. Rejoindre la partie (Une fois connecté)
+    const gameId = sessionStorage.getItem("gameId");
+
+    if (gameId) {
+        console.log("Found Game ID in storage:", gameId);
+        // Le socket est maintenant connecté (grâce à initializeConnection), on peut emit
+        socket.emit('game:join', { gameId: gameId });
+    } else {
+        console.error("No Game ID found. Redirecting to home...");
+        window.location.href = "../index.html";
+    }
+});
 
 // ========== RESERVE LISTENERS ==========
 
