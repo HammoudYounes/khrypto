@@ -1,5 +1,69 @@
 const AUTH_API_URL = "/api/auth";
 
+// Auto-login on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const authContainer = document.getElementById('authContainer');
+
+    const accessToken = localStorage.getItem('accessToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    // Si aucun token, montrer la page d'auth
+    if (!accessToken && !refreshToken) {
+        loadingScreen.style.display = 'none';
+        authContainer.style.display = 'block';
+        return;
+    }
+
+    // Si tokens présents, vérifier avec le backend
+    try {
+        const response = await fetch('/api/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: accessToken })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.valid) {
+                // Token valide, rediriger vers home
+                window.location.href = './homePage/index.html';
+                return;
+            }
+        }
+
+        // Token invalide, essayer de refresh
+        const refreshResponse = await fetch('/api/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken })
+        });
+
+        if (refreshResponse.ok) {
+            const refreshResult = await refreshResponse.json();
+            if (refreshResult.success && refreshResult.accessToken) {
+                localStorage.setItem('accessToken', refreshResult.accessToken);
+                localStorage.setItem('refreshToken', refreshResult.refreshToken);
+                window.location.href = './homePage/index.html';
+                return;
+            }
+        }
+
+        // Échec de vérification et refresh, montrer auth page
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        loadingScreen.style.display = 'none';
+        authContainer.style.display = 'block';
+
+    } catch (error) {
+        console.error('Auto-login error:', error);
+        loadingScreen.style.display = 'none';
+        authContainer.style.display = 'block';
+    }
+});
+
 // DOM elements
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");

@@ -10,9 +10,9 @@ const PORT = process.env.PORT || 8003;
 
 const SALT_ROUNDS = 10;
 
-const TOKEN_SERVICE_URL = process.env.TOKEN_URL
-  ? `${process.env.TOKEN_URL}/sign`
-  : 'http://127.0.0.1:8004/sign';
+const TOKEN_SERVICE_URL = process.env.GATEWAY_URL
+  ? `${process.env.GATEWAY_URL}/api/sign`
+  : 'http://127.0.0.1:8000/api/sign';
 
 const client = new MongoClient(MONGO_URL);
 
@@ -110,16 +110,19 @@ async function authenticateUser(identifier, password) {
   if (!isMatch) {
     throw new Error("INVALID_PASSWORD");
   }
+
+  return user;
 }
 
 
 
-async function getTokens() {
+async function getTokens(userId) {
   const tokens_request = await fetch(TOKEN_SERVICE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
+    body: JSON.stringify({ userId })
   });
 
   if (!tokens_request.ok) {
@@ -141,11 +144,11 @@ http.createServer(function (request, response) {
       try {
         const { identifier, password } = JSON.parse(data);
 
-        await authenticateUser(identifier, password)
+        const user = await authenticateUser(identifier, password);
 
-        const tokens = await getTokens();
+        const tokens = await getTokens(user._id.toString());
 
-        console.log(`Login success for: ${identifier}`);
+        console.log(`Login success for: ${identifier} (ID: ${user._id})`);
         response.writeHead(200, { "Content-Type": "application/json" });
         response.end(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
 
@@ -174,16 +177,16 @@ http.createServer(function (request, response) {
 
         const newUser = await createValidUser(username, email, password);
 
-        await user_collection.insertOne(newUser);
+        const result = await user_collection.insertOne(newUser);
+        const userId = result.insertedId.toString();
+
+        const tokens = await getTokens(userId);
 
         // Display updated database info
         await displayDatabaseInfo();
 
-        const tokens = getTokens();
-
         response.writeHead(201, { "Content-Type": "application/json" });
-        console.log("")
-        console.log(tokens)
+        console.log(`Register success for: ${username} (ID: ${userId})`);
         response.end(JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
 
       } catch (error) {
