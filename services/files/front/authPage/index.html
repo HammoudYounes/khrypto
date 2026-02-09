@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Khrypto - Auth</title>
+    <link rel="stylesheet" href="auth.css">
+    <script type="module" src="auth.js" defer></script>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">KHRYPTO</h1>
+
+            <!-- Mode Toggle Buttons -->
+            <div class="mode-toggle">
+                <button id="loginBtn" class="toggle-btn active">Login</button>
+                <button id="registerBtn" class="toggle-btn">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <h2>Login</h2>
+
+                <div class="form-group">
+                    <label for="loginIdentifier">Username or Email</label>
+                    <input type="text" id="loginIdentifier" name="identifier" placeholder="Enter username or email"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="Enter password" required>
+                </div>
+
+                <button type="button" id="forgotPasswordBtn" class="forgot-password-btn">Forgot Password?</button>
+
+                <button type="submit" class="submit-btn">Login</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <h2>Register</h2>
+
+                <div class="form-group">
+                    <label for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" name="username" placeholder="Enter username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" placeholder="Enter email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" placeholder="Enter password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Confirm Password</label>
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm"
+                        placeholder="Re-enter password" required>
+                </div>
+
+                <button type="submit" class="submit-btn">Register</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

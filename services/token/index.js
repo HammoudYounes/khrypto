@@ -4,8 +4,8 @@ const jwt = require('jsonwebtoken');
 const PORT = process.env.PORT || 8004;
 const ACCESS_SECRET = '0638586715';
 const REFRESH_SECRET = '0745565215';
-const ACCESS_LIFE = '10s';
-const REFRESH_LIFE = '60s';
+const ACCESS_LIFE = '75m';
+const REFRESH_LIFE = '30d';
 const RENEW_WINDOW = 50; // 7 jours
 
 // Helper body parser
@@ -20,10 +20,12 @@ http.createServer(async (req, res) => {
     const { url, method } = req;
     try {
         // 1. SIGN (Appelé par le service Login)
-        if (url === '/sign' && method === 'POST') {
-            const user = await getBody(req);
-            const accessToken = jwt.sign(user, ACCESS_SECRET, { expiresIn: ACCESS_LIFE });
-            const refreshToken = jwt.sign(user, REFRESH_SECRET, { expiresIn: REFRESH_LIFE });
+        if ((url === '/sign' || url === '/api/sign') && method === 'POST') {
+            const { userId } = await getBody(req);
+            const payload = { id: userId };
+            const accessToken = jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_LIFE });
+            const refreshToken = jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_LIFE });
+            console.log(`Token Service: Generated tokens for user (ID: ${userId})`);
             res.writeHead(200);
             return res.end(JSON.stringify({ accessToken, refreshToken }));
         }
@@ -47,7 +49,7 @@ http.createServer(async (req, res) => {
             const { refreshToken } = await getBody(req);
             try {
                 const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-                const payload = { id: decoded.id, role: decoded.role, username: decoded.username };
+                const payload = { userId: decoded.id };
 
                 // Nouvel Access Token (Toujours)
                 const newAccess = jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_LIFE });

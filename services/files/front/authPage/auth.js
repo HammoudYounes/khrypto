@@ -43,7 +43,7 @@ loginForm.addEventListener('submit', async (e) => {
     if (result && !result.error) {
         localStorage.setItem('accessToken', result.accessToken)
         localStorage.setItem('refreshToken', result.refreshToken)
-        window.location.href = './homePage/index.html';
+        window.location.href = '../homePage/index.html';
     } else {
         alert('Login failed. Please check your credentials.');
     }
@@ -78,7 +78,7 @@ registerForm.addEventListener('submit', async (e) => {
         // Redirect to home page on success
         localStorage.setItem('accessToken', result.accessToken)
         localStorage.setItem('refreshToken', result.refreshToken)
-        window.location.href = './homePage/index.html';
+        window.location.href = '../homePage/index.html';
     } else {
         alert('Registration failed. Please try again.');
     }
