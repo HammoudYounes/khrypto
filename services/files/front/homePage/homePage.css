@@ -4,29 +4,42 @@
     box-sizing: border-box;
 }
 
+/* Global image reset for responsiveness */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    padding: 50px;
+    padding: 3.125rem;
+    /* 50px */
     background-color: #f5f5f5;
 }
 
 /* Profile button in top right corner */
 .profile-button-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 1.25rem;
+    /* 20px */
+    right: 1.25rem;
+    /* 20px */
     z-index: 1000;
 }
 
 .profile-btn {
-    padding: 10px 20px;
-    font-size: 16px;
+    padding: 0.625rem 1.25rem;
+    /* 10px 20px */
+    font-size: 1rem;
+    /* 16px */
     cursor: pointer;
     border: 1px solid #007bff;
     background-color: #007bff;
     color: white;
-    border-radius: 5px;
+    border-radius: 0.313rem;
+    /* 5px */
 }
 
 .profile-btn:hover {
@@ -37,13 +50,18 @@ body {
 /* Profile dropdown panel */
 .profile-panel {
     position: fixed;
-    top: 75px;
-    right: 20px;
-    width: 300px;
+    top: 4.688rem;
+    /* 75px */
+    right: 1.25rem;
+    /* 20px */
+    width: min(90%, 18.75rem);
+    /* Responsive, max 300px */
     background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 0.5rem;
+    /* 8px */
+    padding: 1.25rem;
+    /* 20px */
+    box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.2);
     display: none;
     z-index: 999;
 }
@@ -57,20 +75,25 @@ body {
 }
 
 .profile-panel-content h2 {
-    margin-bottom: 15px;
+    margin-bottom: 0.938rem;
+    /* 15px */
     color: #333;
-    font-size: 20px;
+    font-size: 1.25rem;
+    /* 20px */
 }
 
 .profile-info {
-    margin-bottom: 15px;
+    margin-bottom: 0.938rem;
+    /* 15px */
     text-align: left;
 }
 
 .profile-info p {
     color: #555;
-    font-size: 14px;
-    margin-bottom: 8px;
+    font-size: 0.875rem;
+    /* 14px */
+    margin-bottom: 0.5rem;
+    /* 8px */
 }
 
 .profile-info span {
@@ -80,13 +103,16 @@ body {
 
 .logout-btn {
     width: 100%;
-    padding: 10px;
+    padding: 0.625rem;
+    /* 10px */
     background: #dc3545;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.25rem;
+    /* 4px */
     cursor: pointer;
-    font-size: 14px;
+    font-size: 0.875rem;
+    /* 14px */
 }
 
 .logout-btn:hover {
@@ -95,32 +121,121 @@ body {
 
 /* Main content */
 .container {
-    max-width: 800px;
+    max-width: 50rem;
+    /* 800px */
     margin: 0 auto;
-    margin-top: 100px;
+    margin-top: 6.25rem;
+    /* 100px */
 }
 
 h1 {
-    font-size: 48px;
-    margin-bottom: 40px;
+    font-size: 3rem;
+    /* 48px */
+    margin-bottom: 2.5rem;
+    /* 40px */
     color: #333;
 }
 
 .buttons {
     display: flex;
-    gap: 20px;
+    gap: 1.25rem;
+    /* 20px */
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 button {
-    padding: 15px 30px;
-    font-size: 18px;
+    padding: 0.938rem 1.875rem;
+    /* 15px 30px */
+    font-size: 1.125rem;
+    /* 18px */
     cursor: pointer;
     border: 1px solid #333;
     background-color: #fff;
-    border-radius: 5px;
+    border-radius: 0.313rem;
+    /* 5px */
 }
 
 button:hover {
     background-color: #f0f0f0;
+}
+
+/* Responsive design for tablets */
+@media (max-width: 768px) {
+    body {
+        padding: 2rem;
+    }
+
+    .container {
+        margin-top: 5rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        /* 40px */
+        margin-bottom: 2rem;
+    }
+
+    .buttons {
+        gap: 1rem;
+    }
+
+    button {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .profile-panel {
+        width: min(95%, 18.75rem);
+    }
+}
+
+/* Responsive design for mobile */
+@media (max-width: 480px) {
+    body {
+        padding: 1.5rem;
+    }
+
+    .profile-button-container {
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .profile-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .profile-panel {
+        top: 3.5rem;
+        right: 1rem;
+        width: min(95%, 16rem);
+        padding: 1rem;
+    }
+
+    .profile-panel-content h2 {
+        font-size: 1.125rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .container {
+        margin-top: 3.5rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+        /* 32px */
+        margin-bottom: 1.5rem;
+    }
+
+    .buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    button {
+        width: 100%;
+        padding: 0.875rem;
+        font-size: 1rem;
+    }
 }
