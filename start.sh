@@ -31,5 +31,9 @@ echo "[Auth] Launching..."
 echo "[Token] Launching..."
 (cd services/token && node index.js) &
 
+# 6. Start Matchmaking Service (Online Matchmaking -> Port 8005)
+echo "[Matchmaking] Launching..."
+(cd services/matchmaking && node index.js) &
+
 # Wait ensures the script stays running so the background services don't close
 wait

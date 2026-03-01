@@ -100,19 +100,19 @@ function emitGame(gameMode) {
 
     // Clear any existing gameId to avoid conflicts
     sessionStorage.removeItem("gameId");
+    sessionStorage.removeItem("playerId");
+    sessionStorage.removeItem("gameMode");
     socket.emit("game:create", gameMode);
 }
 
 localButton.addEventListener('click', () => {
+    sessionStorage.setItem("gameMode", "local");
     emitGame("local")
 })
 
 aiButton.addEventListener('click', () => {
+    sessionStorage.setItem("gameMode", "ai");
     emitGame("ai")
-})
-
-onlineButton.addEventListener('click', () => {
-    emitGame("online")
 })
 
 socket.on("game:created", (data) => {
@@ -122,3 +122,93 @@ socket.on("game:created", (data) => {
 
     window.location.href = '../gamePage/index.html';
 });
+
+// ========== ONLINE MATCHMAKING ==========
+
+let matchmakingSocket = null;
+
+onlineButton.addEventListener('click', () => {
+    if (matchmakingSocket && matchmakingSocket.connected) {
+        // Already searching — treat as cancel
+        cancelMatchmaking();
+        return;
+    }
+
+    // Connect to the matchmaking service via its own Socket.IO path
+    matchmakingSocket = io({
+        path: '/matchmaking/socket.io',
+        autoConnect: false,
+        auth: (cb) => {
+            cb({ token: TokenManager.getAccessToken() });
+        },
+        query: {
+            token: TokenManager.getAccessToken()
+        }
+    });
+
+    // Wire up matchmaking events
+    matchmakingSocket.on('connect', () => {
+        console.log("[Matchmaking] Connected, joining queue...");
+        const username = sessionStorage.getItem('username') || 'Player';
+        matchmakingSocket.emit('matchmaking:join', { username });
+    });
+
+    matchmakingSocket.on('matchmaking:waiting', () => {
+        console.log("[Matchmaking] Waiting for an opponent...");
+        onlineButton.textContent = "Cancel Search";
+        localButton.disabled = true;
+        aiButton.disabled = true;
+    });
+
+    matchmakingSocket.on('matchmaking:found', (data) => {
+        console.log("[Matchmaking] Match found!", data);
+
+        sessionStorage.setItem("gameId", data.gameId);
+        sessionStorage.setItem("playerId", data.playerId.toString());
+        sessionStorage.setItem("gameMode", "online");
+        sessionStorage.setItem("myUsername", data.myUsername || 'Player');
+        sessionStorage.setItem("opponentUsername", data.opponentUsername || 'Opponent');
+
+        // Clean up matchmaking socket before navigating
+        matchmakingSocket.disconnect();
+        matchmakingSocket = null;
+
+        window.location.href = '../gamePage/index.html';
+    });
+
+    matchmakingSocket.on('matchmaking:error', (data) => {
+        console.error("[Matchmaking] Error:", data.message);
+        // Stay in queue — the server re-queued us
+    });
+
+    matchmakingSocket.on('connect_error', async (err) => {
+        console.error("[Matchmaking] Connection error:", err.message);
+
+        const success = await TokenManager.refreshAccessToken();
+        if (success) {
+            matchmakingSocket.io.opts.query = { token: TokenManager.getAccessToken() };
+            matchmakingSocket.connect();
+        } else {
+            cancelMatchmaking();
+        }
+    });
+
+    // Show searching state & connect
+    onlineButton.textContent = "Searching...";
+    localButton.disabled = true;
+    aiButton.disabled = true;
+
+    matchmakingSocket.io.opts.query = { token: TokenManager.getAccessToken() };
+    matchmakingSocket.connect();
+});
+
+function cancelMatchmaking() {
+    if (matchmakingSocket) {
+        matchmakingSocket.emit('matchmaking:cancel');
+        matchmakingSocket.disconnect();
+        matchmakingSocket = null;
+    }
+    onlineButton.textContent = "Online";
+    localButton.disabled = false;
+    aiButton.disabled = false;
+}

@@ -7,6 +7,15 @@ import { state } from './gameState.js';
 import { sendPlaceAction } from './networkManager.js';
 import { calculateCooldown } from './offboardUI.js';
 
+// Helper: map grid position based on player perspective
+// For Player 1 in online mode, flip the board so their pieces are at the bottom
+function mapGridPosition(row, col) {
+    if (state.gameMode === 'online' && state.myPlayerId === 1) {
+        return { gridRow: 10 - row, gridCol: 10 - col };
+    }
+    return { gridRow: row + 1, gridCol: col + 1 };
+}
+
 // Helper to get board element
 function getBoardElement() {
     return document.getElementById('board');
@@ -26,8 +35,10 @@ export function initBoard() {
             pieceDiv.dataset.row = row;
             pieceDiv.dataset.col = col;
 
-            pieceDiv.style.gridRowStart = row + 1;
-            pieceDiv.style.gridColumnStart = col + 1;
+            // Map to visual grid position (flipped for Player 1)
+            const { gridRow, gridCol } = mapGridPosition(row, col);
+            pieceDiv.style.gridRowStart = gridRow;
+            pieceDiv.style.gridColumnStart = gridCol;
 
             // Allows hovering by another element
             pieceDiv.addEventListener('dragover', (event) => {
@@ -106,6 +117,14 @@ export function createPieceImage(pieceData) {
     let scale = 1;
     let translateY = 0;
 
+    // For Player 1's flipped board, remap orientation by +2 (mod 4)
+    // This is equivalent to viewing from the opposite side of the board
+    // and correctly handles the sphinx's special scaleY rendering
+    let orientation = pieceData.orientation;
+    if (state.gameMode === 'online' && state.myPlayerId === 1) {
+        orientation = (orientation + 2) % 4;
+    }
+
     if (["anubis", "scarab"].includes(type)) {
         scale = 1.5;
     } else if (type === "pharaoh") {
@@ -117,25 +136,25 @@ export function createPieceImage(pieceData) {
         degree = 0;
     }
     else if (type === "sphinx") {
-        switch (pieceData.orientation) {
+        switch (orientation) {
             case 0: degree = -90; break;
             case 1: degree = 0; break;
             case 2: degree = 90; break;
             case 3: degree = 180; break;
         }
 
-        if (pieceData.orientation === 3) {
+        if (orientation === 3) {
             scaleY = scaleY * -1;
         }
     }
     else if (type === "scarab") {
-        degree = 90 * (pieceData.orientation) - 45;
+        degree = 90 * (orientation) - 45;
     }
     else if (type === "pyramid") {
-        degree = 90 * (pieceData.orientation) - 90;
+        degree = 90 * (orientation) - 90;
     }
     else {
-        degree = 90 * (pieceData.orientation) - 180;
+        degree = 90 * (orientation) - 180;
     }
 
     pieceIMG.style.transform = `rotate(${degree}deg) scaleY(${scaleY}) scale(${scale}) translateY(${translateY}%)`;
@@ -211,10 +230,10 @@ export function updateVisualSelection() {
 
 export function showValidMoves(x, y) {
     const directions = [
-        { dx: 0, dy: -1 }, 
-        { dx: 0, dy: 1 },  
-        { dx: -1, dy: 0 }, 
-        { dx: 1, dy: 0 }   
+        { dx: 0, dy: -1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 },
+        { dx: 1, dy: 0 }
     ];
 
     directions.forEach(dir => {
