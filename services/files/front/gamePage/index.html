@@ -12,6 +12,7 @@
 <body>
     <header>
         <h1>Game Header</h1>
+        <button id="leaveBtn" style="position: absolute; right: 1rem; padding: 0.4rem 1rem; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 4px;">Leave Game</button>
     </header>
     <main>
         <div class="player-info-sec">
@@ -72,7 +73,11 @@
 <div id="gameOverModal" class="modal-overlay">
     <div class="modal-content">
         <h2 id="victoryMessage"></h2>
-        <button id="restartBtn" class="btn-restart">Rejouer</button>
+        <p id="voteStatus" style="color: #666; font-size: 0.9em; margin-bottom: 1rem; display: none;"></p>
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button id="restartBtn" class="btn-restart">Rejouer</button>
+            <button id="leaveModalBtn" class="btn-restart" style="background-color: #dc3545;">Leave Game</button>
+        </div>
     </div>
 </div>
 

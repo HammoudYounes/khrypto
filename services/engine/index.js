@@ -3,11 +3,48 @@ const { Server } = require('socket.io');
 const corsHelper = require('./helpers/cors.js');
 const GameManager = require('./managers/GameManager');
 
-const server = http.createServer((req, res) => {
+// Helper: parse JSON body from an HTTP request
+function parseBody(req) {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try { resolve(body ? JSON.parse(body) : {}); }
+            catch (e) { reject(e); }
+        });
+    });
+}
+
+const server = http.createServer(async (req, res) => {
     corsHelper.addCors(res);
+    res.setHeader('Content-Type', 'application/json');
+
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        return res.end();
+    }
+
+    // HTTP API: Create a game (called by matchmaking service)
+    if (req.method === 'POST' && req.url === '/api/games') {
+        try {
+            const { mode } = await parseBody(req);
+            const game = gameManager.createGame(mode || 'online');
+            console.log(`[Engine HTTP] Game created: ${game.id}, Mode: ${mode || 'online'}`);
+            res.writeHead(200);
+            res.end(JSON.stringify({ gameId: game.id }));
+        } catch (err) {
+            console.error('[Engine HTTP] Error creating game:', err);
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: 'Failed to create game' }));
+        }
+        return;
+    }
+
+    // Fallback for unknown HTTP routes
+    res.writeHead(404);
+    res.end(JSON.stringify({ error: 'Not found' }));
 });
-
-
 
 const io = new Server(server, {
     cors: {
@@ -19,23 +56,16 @@ const io = new Server(server, {
 
 const gameManager = new GameManager(io);
 
-
-
-
 io.on('connection', (socket) => {
 
-    // 1. Player wants to start a game
+    // 1. Player wants to start a game (local/AI — from homepage)
     socket.on('game:create', (mode) => {
-        // mode could be 'local' or 'ai'
-
         const game = gameManager.createGame(mode);
-
         console.log(`[Engine] Game created: ${game.id}, Mode: ${mode}`);
-
-        // Send Game ID back to client
         socket.emit('game:created', { gameId: game.id });
     });
 
+    // 2. Player joins a game room
     socket.on('game:join', (data) => {
         console.log(`[Engine] Attempting to join game: ${data.gameId}`);
         console.log(`[Engine] Available games:`, Array.from(gameManager.games.keys()));
@@ -44,6 +74,13 @@ io.on('connection', (socket) => {
         if (game) {
             console.log(`[Engine] Game found! Joining: ${data.gameId}`);
             socket.join(data.gameId);
+
+            // For online games: register which player this socket controls
+            if (game.mode === 'online' && data.playerId !== undefined) {
+                game.players.set(socket.id, data.playerId);
+                console.log(`[Engine] Registered socket ${socket.id} as Player ${data.playerId}`);
+            }
+
             socket.emit('game:init', game.state);
         } else {
             console.log(`[Engine] Game NOT found: ${data.gameId}`);
@@ -54,14 +91,43 @@ io.on('connection', (socket) => {
     socket.on('game:restart', (data) => {
         const game = gameManager.getGame(data.gameId);
         if (game) {
-            game.resetGameState();
-            console.log(`[Engine] Game restarted: ${data.gameId}`);
-            // Send fresh state to all clients in this game room
-            io.to(data.gameId).emit('game:init', game.state);
-        }
-    })
+            // For online: voting system (need both players to agree)
+            if (game.mode === 'online') {
+                const playerId = game.players.get(socket.id);
+                const allVoted = game.voteRestart(playerId);
 
-    // 2. Player makes a move
+                // Notify room about the vote
+                io.to(data.gameId).emit('game:restart_vote', {
+                    playerId: playerId,
+                    votes: game.restartVotes.size,
+                    needed: 2
+                });
+
+                if (allVoted) {
+                    game.resetGameState();
+                    console.log(`[Engine] Online game restarted (both voted): ${data.gameId}`);
+                    io.to(data.gameId).emit('game:init', game.state);
+                }
+            } else {
+                // Local/AI: instant restart
+                game.resetGameState();
+                console.log(`[Engine] Game restarted: ${data.gameId}`);
+                io.to(data.gameId).emit('game:init', game.state);
+            }
+        }
+    });
+
+    // 3.5 Player leaves the game — both players get kicked
+    socket.on('game:leave', (data) => {
+        const game = gameManager.getGame(data.gameId);
+        if (game) {
+            console.log(`[Engine] Player left game: ${data.gameId}`);
+            io.to(data.gameId).emit('game:player_left');
+            gameManager.deleteGame(data.gameId);
+        }
+    });
+
+    // 3. Player makes a move
     socket.on('player:action', (payload) => {
         const { gameId, action, playerId } = payload;
         const game = gameManager.getGame(gameId);
@@ -69,9 +135,6 @@ io.on('connection', (socket) => {
         if (game) {
             try {
                 game.handleMove(action, playerId);
-
-                // If AI mode and player just finished, trigger AI here
-
             } catch (err) {
                 socket.emit('game:error', { message: err.message });
             }
@@ -80,6 +143,7 @@ io.on('connection', (socket) => {
         }
     });
 });
+
 const PORT = process.env.PORT || 8002;
 
 server.listen(PORT, () => {

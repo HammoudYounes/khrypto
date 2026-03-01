@@ -10,5 +10,7 @@ export const state = {
     reserveOrientations: {
         0: 1,
         1: 1
-    }
+    },
+    myPlayerId: null,    // null for local/AI, 0 or 1 for online
+    gameMode: 'local',   // 'local', 'ai', or 'online'
 };

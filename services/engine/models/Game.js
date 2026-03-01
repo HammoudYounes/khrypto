@@ -6,6 +6,8 @@ class Game {
         this.id = id;
         this.mode = mode; // local ai online
         this.io = io;     // Reference to socket.io server
+        this.players = new Map(); // socketId → playerId (0 or 1) — used for online games
+        this.restartVotes = new Set(); // Track which players voted to restart
 
         // Initial State
         this.state = {
@@ -20,6 +22,11 @@ class Game {
     }
 
     handleMove(action, playerId) {
+        // Server-side turn enforcement for online games
+        if (this.mode === 'online' && this.state.turn !== playerId) {
+            throw new Error("Not your turn");
+        }
+
         try {
             // 1. Logic
             const laserShouldFire = applyAction(this.state, action, playerId);
@@ -80,6 +87,15 @@ class Game {
         };
         this.state.pendingReserves = { 0: [], 1: [] };
         this.state.canPassTurn = false;
+        this.restartVotes.clear();
+    }
+
+    /**
+     * Vote to restart. Returns true when both players have voted.
+     */
+    voteRestart(playerId) {
+        this.restartVotes.add(playerId);
+        return this.restartVotes.size >= 2;
     }
 }
 

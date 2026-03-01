@@ -10,11 +10,19 @@ import { updateVisualSelection, updateRotationButtons } from './boardRenderer.js
 // ========== DRAG & DROP SETUP ==========
 
 export function initDraggableReserve() {
+    // Determine which player ID the bottom/top panels represent
+    let bottomPlayerId = 0;
+    let topPlayerId = 1;
+    if (state.gameMode === 'online' && state.myPlayerId === 1) {
+        bottomPlayerId = 1;
+        topPlayerId = 0;
+    }
+
     const p1Img = document.querySelector('.current-player .piece-image');
-    if (p1Img) setupDraggableItem(p1Img, 0);
+    if (p1Img) setupDraggableItem(p1Img, bottomPlayerId);
 
     const p2Img = document.querySelector('.opposing-player .piece-image');
-    if (p2Img) setupDraggableItem(p2Img, 1);
+    if (p2Img) setupDraggableItem(p2Img, topPlayerId);
 }
 
 export function setupDraggableItem(img, playerId) {
@@ -22,6 +30,12 @@ export function setupDraggableItem(img, playerId) {
     img.style.cursor = 'grab';
 
     img.addEventListener('dragstart', (event) => {
+        // In online mode, only allow dragging on your turn
+        if (state.gameMode === 'online' && state.currentGameState && state.currentGameState.turn !== state.myPlayerId) {
+            event.preventDefault();
+            return;
+        }
+
         event.dataTransfer.setData('actionType', 'PLACE');
         event.dataTransfer.setData('playerId', playerId.toString());
 
@@ -56,6 +70,9 @@ export function cellClickListner(boardElement) {
 
 function handleCellClick(x, y) {
     if (!state.currentGameState) return;
+
+    // In online mode, block all actions when it's not your turn
+    if (state.gameMode === 'online' && state.currentGameState.turn !== state.myPlayerId) return;
 
     const clickedPiece = state.currentGameState.board[y][x];
 
@@ -124,6 +141,7 @@ export function initRotationButtons() {
     const btnRotateRight = document.getElementById('btn-rotate-right');
 
     btnRotateLeft.addEventListener('click', () => {
+        if (state.gameMode === 'online' && state.currentGameState && state.currentGameState.turn !== state.myPlayerId) return;
         if (state.selectedPiece) {
             sendRotateAction(state.selectedPiece.x, state.selectedPiece.y, -1);
             deselect();
@@ -131,6 +149,7 @@ export function initRotationButtons() {
     });
 
     btnRotateRight.addEventListener('click', () => {
+        if (state.gameMode === 'online' && state.currentGameState && state.currentGameState.turn !== state.myPlayerId) return;
         if (state.selectedPiece) {
             sendRotateAction(state.selectedPiece.x, state.selectedPiece.y, 1);
             deselect();

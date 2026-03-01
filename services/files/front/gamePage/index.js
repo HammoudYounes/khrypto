@@ -17,6 +17,9 @@ import {
     updateCooldownDisplay,
     updateTurnIndicator,
     gameOverManager,
+    updateRestartVoteStatus,
+    leaveGame,
+    goHome,
     initPlayerControls
 } from './offboardUI.js';
 import {
@@ -37,8 +40,43 @@ export const gameId = sessionStorage.getItem("gameId");
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeConnection();
 
+    // Read online player assignment from sessionStorage (set by matchmaking)
+    state.gameMode = sessionStorage.getItem("gameMode") || 'local';
+    const storedPlayerId = sessionStorage.getItem("playerId");
+    state.myPlayerId = storedPlayerId !== null ? parseInt(storedPlayerId, 10) : null;
+
+    console.log(`[GamePage] Mode: ${state.gameMode}, My Player ID: ${state.myPlayerId}`);
+
+    // Display player usernames in online mode
+    if (state.gameMode === 'online') {
+        const myUsername = sessionStorage.getItem("myUsername") || 'You';
+        const opponentUsername = sessionStorage.getItem("opponentUsername") || 'Opponent';
+
+        // "current-player" panel is at the bottom, "opposing-player" at the top
+        const currentPlayerLabel = document.querySelector('.current-player p');
+        const opposingPlayerLabel = document.querySelector('.opposing-player p');
+
+        if (state.myPlayerId === 0) {
+            currentPlayerLabel.textContent = myUsername;
+            opposingPlayerLabel.textContent = opponentUsername;
+        } else {
+            // Player 1 (red) — swap reserve pyramid colors
+            currentPlayerLabel.textContent = myUsername;
+            opposingPlayerLabel.textContent = opponentUsername;
+
+            // Swap reserve pyramid images to match player colors
+            const p1Img = document.getElementById('p1-reserve-piece');
+            const p2Img = document.getElementById('p2-reserve-piece');
+            p1Img.src = 'assets/red_pyramid.png';
+            p1Img.alt = 'red_pyramid';
+            p2Img.src = 'assets/green_pyramid.png';
+            p2Img.alt = 'green_pyramid';
+        }
+    }
+
     // A. Initialiser l'UI (Graphismes)
     initBoard();
+
     initDraggableReserve();
     initReserveListeners();
     initRotationButtons();
@@ -46,16 +84,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup listeners
     cellClickListner(boardElement);
 
-    // B. Lancer la connexion sécurisée (Token check + Socket connect)
-    // C'est ici que la magie opère : ça attend d'avoir un token valide avant de continuer
-
-    // C. Rejoindre la partie (Une fois connecté)
+    // B. Rejoindre la partie (Une fois connecté)
     const gameId = sessionStorage.getItem("gameId");
 
     if (gameId) {
         console.log("Found Game ID in storage:", gameId);
-        // Le socket est maintenant connecté (grâce à initializeConnection), on peut emit
-        socket.emit('game:join', { gameId: gameId });
+        socket.emit('game:join', { gameId: gameId, playerId: state.myPlayerId });
     } else {
         console.error("No Game ID found. Redirecting to home...");
         window.location.href = "../index.html";
@@ -73,7 +107,9 @@ function initReserveListeners() {
 
 socket.on('game:init', (gameState) => {
     console.log("State received from server!", gameState);
-    finalizeTurn(gameState)
+    // Close game-over modal if it's open (e.g. after restart vote)
+    document.getElementById('gameOverModal').style.display = 'none';
+    finalizeTurn(gameState);
 });
 
 socket.on('game:action_response', (gameState) => {
@@ -100,6 +136,30 @@ socket.on('game:over', (winner) => {
 
 socket.on('game:error', (data) => {
     alert(data.message);
+});
+
+// Restart vote progress (online only)
+socket.on('game:restart_vote', (data) => {
+    console.log(`[Game] Restart vote: ${data.votes}/${data.needed}`);
+    updateRestartVoteStatus(data);
+});
+
+// A player left — both go home
+socket.on('game:player_left', () => {
+    console.log('[Game] A player left the game');
+    alert('A player has left the game.');
+    goHome();
+});
+
+// Header leave button
+document.getElementById('leaveBtn').addEventListener('click', () => {
+    if (state.gameMode === 'online') {
+        if (confirm('Leave the game? Both players will be returned to the homepage.')) {
+            leaveGame();
+        }
+    } else {
+        goHome();
+    }
 });
 
 // ========== TURN FINALIZATION ==========

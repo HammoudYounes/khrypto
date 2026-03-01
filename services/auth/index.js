@@ -3,7 +3,7 @@ const { MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');
 const { error } = require('console');
 
-const DB_NAME = 'khrypto';
+let DB_NAME = null;
 const COLLECTION_NAME = 'users';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
 const PORT = process.env.PORT || 8003;
@@ -23,8 +23,9 @@ async function runGetStarted() {
     await client.connect();
     console.log("Successfully connected to MongoDB server");
 
-    const khryto_db = client.db(DB_NAME);
+    const khryto_db = client.db();
     user_collection = khryto_db.collection(COLLECTION_NAME);
+    DB_NAME = khryto_db.databaseName;
 
     // Display initial database state
     await displayDatabaseInfo();
@@ -39,7 +40,7 @@ runGetStarted().catch(console.dir);
 // Display database information with clear user formatting
 async function displayDatabaseInfo() {
   try {
-    const khryto_db = client.db(DB_NAME);
+    const khryto_db = client.db();
 
     // 1. See all collections in the khrypto database
     const collections = await khryto_db.listCollections().toArray();
