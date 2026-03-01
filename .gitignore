@@ -107,4 +107,4 @@ dist
 .tern-port
 
 #.env
-.env
+*.env
