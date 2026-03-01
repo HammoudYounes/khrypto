@@ -7,7 +7,7 @@
 
 class MatchmakingQueue {
     constructor() {
-        this.waiting = []; // Array of { socket, userId }
+        this.waiting = []; // Array of { socket, userId, username }
     }
 
     /**
@@ -15,14 +15,14 @@ class MatchmakingQueue {
      * @param {object} socket - The Socket.IO socket
      * @param {string} userId - The authenticated user's ID
      */
-    add(socket, userId) {
+    add(socket, userId, username = 'Player') {
         // Prevent duplicate entries
         if (this.waiting.some(entry => entry.socket.id === socket.id)) {
             console.log(`[Queue] Socket ${socket.id} already in queue, skipping.`);
             return;
         }
-        this.waiting.push({ socket, userId });
-        console.log(`[Queue] Player added. Queue size: ${this.waiting.length}`);
+        this.waiting.push({ socket, userId, username });
+        console.log(`[Queue] Player added (${username}). Queue size: ${this.waiting.length}`);
     }
 
     /**

@@ -17,18 +17,20 @@ services:
     container_name: khrypto_gateway
     restart: always
     ports:
-      - "80:8000"
+      - "8000:8000"
     environment:
       - PORT=8000
       - ENGINE_URL=http://engine:8002
       - FILES_URL=http://files:8001
       - AUTH_URL=http://auth:8003
       - TOKEN_URL=http://token:8004
+      - MATCHMAKING_URL=http://matchmaking:8005
     depends_on:
       - engine
       - files
       - auth
       - token
+      - matchmaking
     networks:
       - app_network
 
@@ -40,6 +42,20 @@ services:
       - "8002"
     environment:
       - PORT=8002
+    networks:
+      - app_network
+
+  matchmaking:
+    build: ./services/matchmaking
+    container_name: khrypto_matchmaking
+    restart: always
+    expose:
+      - "8005"
+    environment:
+      - PORT=8005
+      - ENGINE_URL=http://engine:8002
+    depends_on:
+      - engine
     networks:
       - app_network
 

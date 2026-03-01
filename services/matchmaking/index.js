@@ -79,11 +79,12 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     console.log(`[Matchmaking] Socket connected: ${socket.id}`);
 
-    socket.on('matchmaking:join', async () => {
-        console.log(`[Matchmaking] Player ${socket.id} wants to play`);
+    socket.on('matchmaking:join', async (data) => {
+        const username = (data && data.username) || 'Player';
+        console.log(`[Matchmaking] Player ${socket.id} (${username}) wants to play`);
 
         // Add to queue
-        queue.add(socket, socket.id); // userId can be extracted from token later
+        queue.add(socket, socket.id, username); // userId can be extracted from token later
 
         // Try to find a match
         const match = queue.findMatch();
@@ -96,17 +97,27 @@ io.on('connection', (socket) => {
                 const { gameId } = await createGameOnEngine('online');
                 console.log(`[Matchmaking] Game created: ${gameId}`);
 
-                // Notify both players
-                player1.socket.emit('matchmaking:found', { gameId, playerId: 0 });
-                player2.socket.emit('matchmaking:found', { gameId, playerId: 1 });
+                // Notify both players with opponent's username
+                player1.socket.emit('matchmaking:found', {
+                    gameId,
+                    playerId: 0,
+                    myUsername: player1.username,
+                    opponentUsername: player2.username
+                });
+                player2.socket.emit('matchmaking:found', {
+                    gameId,
+                    playerId: 1,
+                    myUsername: player2.username,
+                    opponentUsername: player1.username
+                });
 
-                console.log(`[Matchmaking] Match sent! ${player1.socket.id} (P0) vs ${player2.socket.id} (P1)`);
+                console.log(`[Matchmaking] Match sent! ${player1.username} (P0) vs ${player2.username} (P1)`);
             } catch (err) {
                 console.error('[Matchmaking] Failed to create game on engine:', err.message);
 
                 // Put both players back in queue and notify of error
-                queue.add(player1.socket, player1.userId);
-                queue.add(player2.socket, player2.userId);
+                queue.add(player1.socket, player1.userId, player1.username);
+                queue.add(player2.socket, player2.userId, player2.username);
                 player1.socket.emit('matchmaking:error', { message: 'Failed to create game. Retrying...' });
                 player2.socket.emit('matchmaking:error', { message: 'Failed to create game. Retrying...' });
             }

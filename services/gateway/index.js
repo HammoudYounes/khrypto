@@ -7,7 +7,8 @@ const PORTS = {
     FILES: process.env.FILES_URL || 'http://127.0.0.1:8001',
     ENGINE: process.env.ENGINE_URL || 'http://127.0.0.1:8002',
     AUTH: process.env.AUTH_URL || 'http://127.0.0.1:8003',
-    TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004'
+    TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004',
+    MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005'
 };
 
 const proxy = httpProxy.createProxyServer();
@@ -39,6 +40,11 @@ const server = http.createServer(function (request, response) {
                 proxy.web(request, response, { target: PORTS.TOKEN });
             }
         }
+        else if (filePath[1] === "matchmaking") {
+            // Matchmaking Socket.IO or API requests
+            console.log("Routing to Matchmaking Service");
+            return proxyWithTokenCheck(request, response, PORTS.MATCHMAKING);
+        }
         else if (filePath[1] === "socket.io") {
             return proxyWithTokenCheck(request, response, PORTS.ENGINE);
         }
@@ -56,8 +62,14 @@ const server = http.createServer(function (request, response) {
 })
 
 server.on('upgrade', function (req, socket, head) {
-    console.log("Proxying WebSocket upgrade");
-    proxy.ws(req, socket, head, { target: PORTS.ENGINE });
+    // Route WebSocket upgrades to the correct service
+    if (req.url.startsWith('/matchmaking/')) {
+        console.log("Proxying WebSocket upgrade to Matchmaking");
+        proxy.ws(req, socket, head, { target: PORTS.MATCHMAKING });
+    } else {
+        console.log("Proxying WebSocket upgrade to Engine");
+        proxy.ws(req, socket, head, { target: PORTS.ENGINE });
+    }
 });
 
 

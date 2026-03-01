@@ -95,7 +95,7 @@ export function sendPlaceAction(x, y, orientation, playerId) {
 
 // ROTATE action
 export function sendRotateAction(x, y, direction) {
-    const playerId = state.currentGameState.turn;
+    const playerId = state.gameMode === 'online' ? state.myPlayerId : state.currentGameState.turn;
 
     console.log(`Envoi Rotation -> X:${x}, Y:${y}, Sens:${direction}`);
 
@@ -113,7 +113,7 @@ export function sendRotateAction(x, y, direction) {
 
 // MOVE action
 export function sendMoveAction(originX, originY, destX, destY) {
-    const playerId = state.currentGameState.turn;
+    const playerId = state.gameMode === 'online' ? state.myPlayerId : state.currentGameState.turn;
 
     console.log(`Envoi Move : (${originX},${originY}) vers (${destX},${destY})`);
 
