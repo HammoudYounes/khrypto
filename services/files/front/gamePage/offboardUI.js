@@ -10,10 +10,16 @@ import { gameId } from './index.js';
 // ========== PYRAMID RESERVE ==========
 
 export function updatePyramidReserve(reserves) {
-    const countP0 = document.getElementById("p1-pyramid-count")
-    const countP1 = document.getElementById("p2-pyramid-count")
-    countP0.innerHTML = reserves[0].toString()
-    countP1.innerHTML = reserves[1].toString()
+    const bottomCount = document.getElementById("p1-pyramid-count");
+    const topCount = document.getElementById("p2-pyramid-count");
+
+    if (state.gameMode === 'online' && state.myPlayerId === 1) {
+        bottomCount.innerHTML = reserves[1].toString();
+        topCount.innerHTML = reserves[0].toString();
+    } else {
+        bottomCount.innerHTML = reserves[0].toString();
+        topCount.innerHTML = reserves[1].toString();
+    }
 }
 
 export function initPlayerControls(playerId, imgId, btnLeftId, btnRightId) {
@@ -56,10 +62,18 @@ export function updateCooldownDisplay(gameState) {
     const p1Sphinx = calculateCooldown(gameState, 1, 'Sphinx');
     const p1Pharaoh = calculateCooldown(gameState, 1, 'Pharaoh');
 
-    document.getElementById('p1-sphinx-cooldown').textContent = p0Sphinx;
-    document.getElementById('p1-pharaoh-cooldown').textContent = p0Pharaoh;
-    document.getElementById('p2-sphinx-cooldown').textContent = p1Sphinx;
-    document.getElementById('p2-pharaoh-cooldown').textContent = p1Pharaoh;
+    if (state.gameMode === 'online' && state.myPlayerId === 1) {
+        // Bottom panel = my data (Player 1), Top = opponent (Player 0)
+        document.getElementById('p1-sphinx-cooldown').textContent = p1Sphinx;
+        document.getElementById('p1-pharaoh-cooldown').textContent = p1Pharaoh;
+        document.getElementById('p2-sphinx-cooldown').textContent = p0Sphinx;
+        document.getElementById('p2-pharaoh-cooldown').textContent = p0Pharaoh;
+    } else {
+        document.getElementById('p1-sphinx-cooldown').textContent = p0Sphinx;
+        document.getElementById('p1-pharaoh-cooldown').textContent = p0Pharaoh;
+        document.getElementById('p2-sphinx-cooldown').textContent = p1Sphinx;
+        document.getElementById('p2-pharaoh-cooldown').textContent = p1Pharaoh;
+    }
 }
 
 export function calculateCooldown(gameState, playerId, type) {

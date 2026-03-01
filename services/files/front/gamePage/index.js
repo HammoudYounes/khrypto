@@ -99,8 +99,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ========== RESERVE LISTENERS ==========
 
 function initReserveListeners() {
-    initPlayerControls(0, 'p1-reserve-piece', 'btn-p1-left', 'btn-p1-right');
-    initPlayerControls(1, 'p2-reserve-piece', 'btn-p2-left', 'btn-p2-right');
+    if (state.gameMode === 'online' && state.myPlayerId === 1) {
+        // Player 1: bottom panel = Player 1, top panel = Player 0
+        initPlayerControls(1, 'p1-reserve-piece', 'btn-p1-left', 'btn-p1-right');
+        initPlayerControls(0, 'p2-reserve-piece', 'btn-p2-left', 'btn-p2-right');
+    } else {
+        initPlayerControls(0, 'p1-reserve-piece', 'btn-p1-left', 'btn-p1-right');
+        initPlayerControls(1, 'p2-reserve-piece', 'btn-p2-left', 'btn-p2-right');
+    }
 }
 
 // ========== SOCKET EVENT HANDLERS ==========
