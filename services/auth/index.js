@@ -27,6 +27,16 @@ async function runGetStarted() {
     user_collection = khryto_db.collection(COLLECTION_NAME);
     DB_NAME = khryto_db.databaseName;
 
+    // Give 600 ELO to any existing user that doesn't have the field yet
+    const updateResult = await user_collection.updateMany(
+      { elo: { $exists: false } }, 
+      { $set: { elo: 600 } }       
+    );
+
+    if (updateResult.modifiedCount > 0) {
+      console.log(`Successfully retrofitted ${updateResult.modifiedCount} existing users with default ELO.`);
+    }
+
     // Display initial database state
     await displayDatabaseInfo();
 
@@ -56,6 +66,7 @@ async function displayDatabaseInfo() {
         console.log(`  Username: ${user.username}`);
         console.log(`  Mail:     ${user.mail}`);
         console.log(`  Password: ${user.password}`);
+        console.log(`  ELO:      ${user.elo}`);
       });
     } else {
       console.log("  No users found.");
@@ -89,7 +100,8 @@ async function createValidUser(username, mail, password) {
   const newUser = {
     username: username,
     mail: mail,
-    password: hashed_password
+    password: hashed_password,
+    elo : 600
   };
   return newUser;
 }
