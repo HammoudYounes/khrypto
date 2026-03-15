@@ -1,7 +1,25 @@
 const http = require('http');
 const { Server } = require('socket.io');
+const { MongoClient } = require('mongodb');
 const corsHelper = require('./helpers/cors.js');
 const GameManager = require('./managers/GameManager');
+
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
+const client = new MongoClient(MONGO_URL);
+
+let usersCollection = null;
+
+async function connectToMongo() {
+    try {
+        await client.connect();
+        usersCollection = client.db().collection('users');
+        console.log("Successfully connected to MongoDB server");
+        gameManager.setUsersCollection(usersCollection);
+    } catch (e) {
+        console.error("Engine failed to connect to DB:", e);
+    }
+}
+connectToMongo();
 
 // Helper: parse JSON body from an HTTP request
 function parseBody(req) {
@@ -28,8 +46,8 @@ const server = http.createServer(async (req, res) => {
     // HTTP API: Create a game (called by matchmaking service)
     if (req.method === 'POST' && req.url === '/api/games') {
         try {
-            const { mode } = await parseBody(req);
-            const game = gameManager.createGame(mode || 'online');
+            const { mode, player1UserId, player2UserId, player1Elo, player2Elo } = await parseBody(req);
+            const game = gameManager.createGame(mode || 'online', player1UserId, player2UserId, player1Elo, player2Elo);
             console.log(`[Engine HTTP] Game created: ${game.id}, Mode: ${mode || 'online'}`);
             res.writeHead(200);
             res.end(JSON.stringify({ gameId: game.id }));

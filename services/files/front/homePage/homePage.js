@@ -153,9 +153,10 @@ onlineButton.addEventListener('click', () => {
         matchmakingSocket.emit('matchmaking:join', { username });
     });
 
-    matchmakingSocket.on('matchmaking:waiting', () => {
+    matchmakingSocket.on('matchmaking:waiting', (data) => {
         console.log("[Matchmaking] Waiting for an opponent...");
-        onlineButton.textContent = "Cancel Search";
+        const rangeStr = data && data.eloRange ? ` (+/- ${data.eloRange})` : '';
+        onlineButton.textContent = `Searching...${rangeStr}`;
         localButton.disabled = true;
         aiButton.disabled = true;
     });
@@ -168,6 +169,8 @@ onlineButton.addEventListener('click', () => {
         sessionStorage.setItem("gameMode", "online");
         sessionStorage.setItem("myUsername", data.myUsername || 'Player');
         sessionStorage.setItem("opponentUsername", data.opponentUsername || 'Opponent');
+        if (data.myElo) sessionStorage.setItem("myElo", data.myElo.toString());
+        if (data.opponentElo) sessionStorage.setItem("opponentElo", data.opponentElo.toString());
 
         // Clean up matchmaking socket before navigating
         matchmakingSocket.disconnect();

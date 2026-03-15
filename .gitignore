@@ -108,3 +108,6 @@ dist
 
 #.env
 *.env
+
+# Auth Test User Script
+addTestUser.js

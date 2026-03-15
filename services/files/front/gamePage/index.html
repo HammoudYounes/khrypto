@@ -12,41 +12,43 @@
 <body>
     <header>
         <h1>Game Header</h1>
-        <button id="leaveBtn" style="position: absolute; right: 1rem; padding: 0.4rem 1rem; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 4px;">Leave Game</button>
+        <button id="leaveBtn">Leave Game</button>
     </header>
     <main>
         <div class="player-info-sec">
             <div class="opposing-player">
-                <p>joueur 2</p>
+                <p>joueur 2 <span id="p2-elo" class="player-elo"></span></p>
+                <div id="p2-elo-potential" class="player-elo-potential"></div>
                 <div class="player-preview-cell">
                     <img id="p2-reserve-piece" src="assets/red_pyramid.png" alt="red_pyramid" class="piece-image">
                 </div>
 
-                <div class="reserve-controls" style="margin-top: 5px; display: flex; gap: 5px;">
+                <div class="reserve-controls">
                     <button id="btn-p2-left">↺</button>
                     <button id="btn-p2-right">↻</button>
                 </div>
 
                 <p class="pyramid-count" id="p2-pyramid-count">0</p>
-                <div class="cooldown-info" style="font-size: 0.8em; margin-top: 5px;">
+                <div class="cooldown-info">
                     <p>Sphinx Swap Cooldown: <span id="p2-sphinx-cooldown">0</span></p>
                     <p>Pharaoh Swap Cooldown: <span id="p2-pharaoh-cooldown">0</span></p>
                 </div>
             </div>
 
             <div class="current-player">
-                <p>joueur 1</p>
+                <p>joueur 1 <span id="p1-elo" class="player-elo"></span></p>
+                <div id="p1-elo-potential" class="player-elo-potential"></div>
                 <div class="player-preview-cell">
                     <img id="p1-reserve-piece" src="assets/green_pyramid.png" alt="green_pyramid" class="piece-image">
                 </div>
 
-                <div class="reserve-controls" style="margin-top: 5px; display: flex; gap: 5px;">
+                <div class="reserve-controls">
                     <button id="btn-p1-left">↺</button>
                     <button id="btn-p1-right">↻</button>
                 </div>
 
                 <p class="pyramid-count" id="p1-pyramid-count">0</p>
-                <div class="cooldown-info" style="font-size: 0.8em; margin-top: 5px;">
+                <div class="cooldown-info">
                     <p>Sphinx Swap Cooldown: <span id="p1-sphinx-cooldown">0</span></p>
                     <p>Pharaoh Swap Cooldown: <span id="p1-pharaoh-cooldown">0</span></p>
                 </div>
@@ -55,8 +57,7 @@
         <div class="game-sec">
             <div class="board-wrapper">
                 <div id="board"></div>
-                <canvas id="laserCanvas"
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;"></canvas>
+                <canvas id="laserCanvas"></canvas>
             </div>
 
 
@@ -73,10 +74,10 @@
 <div id="gameOverModal" class="modal-overlay">
     <div class="modal-content">
         <h2 id="victoryMessage"></h2>
-        <p id="voteStatus" style="color: #666; font-size: 0.9em; margin-bottom: 1rem; display: none;"></p>
-        <div style="display: flex; gap: 1rem; justify-content: center;">
+        <p id="voteStatus"></p>
+        <div class="modal-actions">
             <button id="restartBtn" class="btn-restart">Rejouer</button>
-            <button id="leaveModalBtn" class="btn-restart" style="background-color: #dc3545;">Leave Game</button>
+            <button id="leaveModalBtn" class="btn-restart btn-leave-modal">Leave Game</button>
         </div>
     </div>
 </div>
