@@ -153,9 +153,10 @@ onlineButton.addEventListener('click', () => {
         matchmakingSocket.emit('matchmaking:join', { username });
     });
 
-    matchmakingSocket.on('matchmaking:waiting', () => {
+    matchmakingSocket.on('matchmaking:waiting', (data) => {
         console.log("[Matchmaking] Waiting for an opponent...");
-        onlineButton.textContent = "Cancel Search";
+        const rangeStr = data && data.eloRange ? ` (+/- ${data.eloRange})` : '';
+        onlineButton.textContent = `Searching...${rangeStr}`;
         localButton.disabled = true;
         aiButton.disabled = true;
     });

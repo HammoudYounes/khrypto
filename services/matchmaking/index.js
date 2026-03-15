@@ -121,50 +121,10 @@ io.on('connection', (socket) => {
         // Add to queue
         queue.add(socket, userId, username, userElo);
 
-        // Try to find a match
-        const match = queue.findMatch();
-
-        if (match) {
-            const [player1, player2] = match;
-
-            try {
-                // Ask the Engine to create a game, passing userIds and Elos
-                const { gameId } = await createGameOnEngine('online', player1.userId, player2.userId, player1.elo, player2.elo);
-                console.log(`[Matchmaking] Game created: ${gameId}`);
-
-                // Notify both players with opponent's username and Elos
-                player1.socket.emit('matchmaking:found', {
-                    gameId,
-                    playerId: 0,
-                    myUsername: player1.username,
-                    opponentUsername: player2.username,
-                    myElo: player1.elo,
-                    opponentElo: player2.elo
-                });
-                player2.socket.emit('matchmaking:found', {
-                    gameId,
-                    playerId: 1,
-                    myUsername: player2.username,
-                    opponentUsername: player1.username,
-                    myElo: player2.elo,
-                    opponentElo: player1.elo
-                });
-
-                console.log(`[Matchmaking] Match sent! ${player1.username} (${player1.elo}) vs ${player2.username} (${player2.elo})`);
-            } catch (err) {
-                console.error('[Matchmaking] Failed to create game on engine:', err.message);
-
-                // Put both players back in queue and notify of error
-                queue.add(player1.socket, player1.userId, player1.username, player1.elo);
-                queue.add(player2.socket, player2.userId, player2.username, player2.elo);
-                player1.socket.emit('matchmaking:error', { message: 'Failed to create game. Retrying...' });
-                player2.socket.emit('matchmaking:error', { message: 'Failed to create game. Retrying...' });
-            }
-        } else {
-            // No match yet — player is now waiting
-            socket.emit('matchmaking:waiting');
-            console.log(`[Matchmaking] Player ${userId} is now waiting. Queue size: ${queue.size}`);
-        }
+        // We don't findMatch instantly here anymore. The sweeper will pick it up on its next tick, 
+        // which could be a few milliseconds away. For immediate feedback, we just send standard wait:
+        socket.emit('matchmaking:waiting', { eloRange: 50 });
+        console.log(`[Matchmaking] Player ${userId} is now waiting. Queue size: ${queue.size}`);
     }
 
     socket.on('matchmaking:cancel', () => {
@@ -182,3 +142,59 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Matchmaking service listening on port ${PORT}`);
 });
+
+// --- Sweeper Loop ---
+// Runs every 5 seconds to match players with widening ranges and broadcast ranges
+setInterval(async () => {
+    if (queue.size === 0) return;
+
+    // 1. Process all available matches for this tick
+    let match = queue.findMatch();
+    while (match) {
+        const [player1, player2] = match;
+
+        try {
+            // Ask the Engine to create a game, passing userIds and Elos
+            const { gameId } = await createGameOnEngine('online', player1.userId, player2.userId, player1.elo, player2.elo);
+            console.log(`[Matchmaking] Game created: ${gameId}`);
+
+            // Notify both players with opponent's username and Elos
+            player1.socket.emit('matchmaking:found', {
+                gameId,
+                playerId: 0,
+                myUsername: player1.username,
+                opponentUsername: player2.username,
+                myElo: player1.elo,
+                opponentElo: player2.elo
+            });
+            player2.socket.emit('matchmaking:found', {
+                gameId,
+                playerId: 1,
+                myUsername: player2.username,
+                opponentUsername: player1.username,
+                myElo: player2.elo,
+                opponentElo: player1.elo
+            });
+
+            console.log(`[Matchmaking] Match sent! ${player1.username} (${player1.elo}) vs ${player2.username} (${player2.elo})`);
+        } catch (err) {
+            console.error('[Matchmaking] Failed to create game on engine:', err.message);
+
+            // Put both players back in queue and notify of error
+            queue.add(player1.socket, player1.userId, player1.username, player1.elo);
+            queue.add(player2.socket, player2.userId, player2.username, player2.elo);
+            player1.socket.emit('matchmaking:error', { message: 'Failed to create game. Retrying...' });
+            player2.socket.emit('matchmaking:error', { message: 'Failed to create game. Retrying...' });
+        }
+
+        // Check if there are more matches this tick
+        match = queue.findMatch();
+    }
+
+    // 2. Broadcast waiting ranges to players still left in the queue
+    const waitingRanges = queue.getWaitingPlayersRanges();
+    for (const playerRange of waitingRanges) {
+        playerRange.socket.emit('matchmaking:waiting', { eloRange: playerRange.eloRange });
+    }
+
+}, 5000);
