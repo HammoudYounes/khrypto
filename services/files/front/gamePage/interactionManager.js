@@ -16,6 +16,9 @@ export function initDraggableReserve() {
     if (state.gameMode === 'online' && state.myPlayerId === 1) {
         bottomPlayerId = 1;
         topPlayerId = 0;
+    } else if (state.gameMode === 'online' && state.myPlayerId === 0) {
+        bottomPlayerId = 0;
+        topPlayerId = 1;
     }
 
     const p1Img = document.querySelector('.current-player .piece-image');

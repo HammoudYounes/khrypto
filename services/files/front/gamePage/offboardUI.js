@@ -10,10 +10,14 @@ import { gameId } from './index.js';
 // ========== PYRAMID RESERVE ==========
 
 export function updatePyramidReserve(reserves) {
-    const countP0 = document.getElementById("p1-pyramid-count")
-    const countP1 = document.getElementById("p2-pyramid-count")
-    countP0.innerHTML = reserves[0].toString()
-    countP1.innerHTML = reserves[1].toString()
+    const bottomPlayerId = (state.gameMode === 'online' && state.myPlayerId === 1) ? 1 : 0;
+    const topPlayerId = (state.gameMode === 'online' && state.myPlayerId === 1) ? 0 : 1;
+
+    const countBottom = document.getElementById("p1-pyramid-count");
+    const countTop = document.getElementById("p2-pyramid-count");
+
+    if (countBottom) countBottom.innerHTML = reserves[bottomPlayerId].toString();
+    if (countTop) countTop.innerHTML = reserves[topPlayerId].toString();
 }
 
 export function initPlayerControls(playerId, imgId, btnLeftId, btnRightId) {
@@ -51,15 +55,18 @@ export function initPlayerControls(playerId, imgId, btnLeftId, btnRightId) {
 export function updateCooldownDisplay(gameState) {
     if (!gameState.swapHistory) return;
 
-    const p0Sphinx = calculateCooldown(gameState, 0, 'Sphinx');
-    const p0Pharaoh = calculateCooldown(gameState, 0, 'Pharaoh');
-    const p1Sphinx = calculateCooldown(gameState, 1, 'Sphinx');
-    const p1Pharaoh = calculateCooldown(gameState, 1, 'Pharaoh');
+    const bottomPlayerId = (state.gameMode === 'online' && state.myPlayerId === 1) ? 1 : 0;
+    const topPlayerId = (state.gameMode === 'online' && state.myPlayerId === 1) ? 0 : 1;
 
-    document.getElementById('p1-sphinx-cooldown').textContent = p0Sphinx;
-    document.getElementById('p1-pharaoh-cooldown').textContent = p0Pharaoh;
-    document.getElementById('p2-sphinx-cooldown').textContent = p1Sphinx;
-    document.getElementById('p2-pharaoh-cooldown').textContent = p1Pharaoh;
+    const bottomSphinx = calculateCooldown(gameState, bottomPlayerId, 'Sphinx');
+    const bottomPharaoh = calculateCooldown(gameState, bottomPlayerId, 'Pharaoh');
+    const topSphinx = calculateCooldown(gameState, topPlayerId, 'Sphinx');
+    const topPharaoh = calculateCooldown(gameState, topPlayerId, 'Pharaoh');
+
+    document.getElementById('p1-sphinx-cooldown').textContent = bottomSphinx;
+    document.getElementById('p1-pharaoh-cooldown').textContent = bottomPharaoh;
+    document.getElementById('p2-sphinx-cooldown').textContent = topSphinx;
+    document.getElementById('p2-pharaoh-cooldown').textContent = topPharaoh;
 }
 
 export function calculateCooldown(gameState, playerId, type) {
