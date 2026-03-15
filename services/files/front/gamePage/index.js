@@ -57,20 +57,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // "current-player" panel is at the bottom, "opposing-player" at the top
         const currentPlayerLabel = document.querySelector('.current-player p');
         const opposingPlayerLabel = document.querySelector('.opposing-player p');
-        const p1EloSpan = document.getElementById('p1-elo');
-        const p2EloSpan = document.getElementById('p2-elo');
 
         if (state.myPlayerId === 0) {
             currentPlayerLabel.firstChild.textContent = myUsername + " ";
             opposingPlayerLabel.firstChild.textContent = opponentUsername + " ";
-            if (myElo) p1EloSpan.textContent = `(${myElo})`;
-            if (opponentElo) p2EloSpan.textContent = `(${opponentElo})`;
+            updateEloDisplays(myElo, opponentElo);
         } else {
             // Player 1 (red) — swap reserve pyramid colors
             currentPlayerLabel.firstChild.textContent = myUsername + " ";
             opposingPlayerLabel.firstChild.textContent = opponentUsername + " ";
-            if (myElo) p1EloSpan.textContent = `(${myElo})`;
-            if (opponentElo) p2EloSpan.textContent = `(${opponentElo})`;
+            updateEloDisplays(myElo, opponentElo);
 
             // Swap reserve pyramid images to match player colors
             const p1Img = document.getElementById('p1-reserve-piece');
@@ -117,6 +113,14 @@ socket.on('game:init', (gameState) => {
     console.log("State received from server!", gameState);
     // Close game-over modal if it's open (e.g. after restart vote)
     document.getElementById('gameOverModal').style.display = 'none';
+
+    // Synchronize the DOM with the stored Elo ratings upon game start or rematch
+    if (state.gameMode === 'online') {
+        const latestMyElo = sessionStorage.getItem("myElo");
+        const latestOppElo = sessionStorage.getItem("opponentElo");
+        updateEloDisplays(latestMyElo, latestOppElo);
+    }
+
     finalizeTurn(gameState);
 });
 
@@ -141,6 +145,18 @@ socket.on('game:over', (winner) => {
         gameOverManager(winner);
     }, 3000);
 })
+
+socket.on('game:elo_update', (elos) => {
+    console.log("[GamePage] Elo updated quietly in storage:", elos);
+
+    if (state.myPlayerId === 0) {
+        sessionStorage.setItem("myElo", elos[0]);
+        sessionStorage.setItem("opponentElo", elos[1]);
+    } else if (state.myPlayerId === 1) {
+        sessionStorage.setItem("myElo", elos[1]);
+        sessionStorage.setItem("opponentElo", elos[0]);
+    }
+});
 
 socket.on('game:error', (data) => {
     alert(data.message);
@@ -179,4 +195,51 @@ function finalizeTurn(gameState) {
     updateCooldownDisplay(gameState);
     updateTurnIndicator(gameState);
     updateVisualSelection();
+}
+
+// ========== ELO DISPLAY LOGIC ==========
+
+function computeEloChange(playerElo, opponentElo, result, K = 20) {
+    const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
+    return Math.round(K * (result - expected));
+}
+
+function updateEloDisplays(myElo, opponentElo) {
+    const p1EloSpan = document.getElementById('p1-elo');
+    const p2EloSpan = document.getElementById('p2-elo');
+    const p1PotentialDiv = document.getElementById('p1-elo-potential');
+    const p2PotentialDiv = document.getElementById('p2-elo-potential');
+
+    if (myElo && p1EloSpan) p1EloSpan.textContent = `(${myElo})`;
+    if (opponentElo && p2EloSpan) p2EloSpan.textContent = `(${opponentElo})`;
+
+    if (myElo && opponentElo && p1PotentialDiv && p2PotentialDiv) {
+        const mE = parseInt(myElo);
+        const oE = parseInt(opponentElo);
+
+        const myWin = computeEloChange(mE, oE, 1);
+        const myDraw = computeEloChange(mE, oE, 0.5);
+        const myLoss = computeEloChange(mE, oE, 0);
+
+        const oppWin = computeEloChange(oE, mE, 1);
+        const oppDraw = computeEloChange(oE, mE, 0.5);
+        const oppLoss = computeEloChange(oE, mE, 0);
+
+        const formatPotential = (win, draw, loss) => `Potential: <span class="elo-win">W:${win > 0 ? '+' + win : win}</span> | <span class="elo-draw">D:${draw > 0 ? '+' + draw : draw}</span> | <span class="elo-loss">L:${loss > 0 ? '+' + loss : loss}</span>`;
+
+        if (state.myPlayerId === 0) {
+            p1PotentialDiv.style.display = 'block';
+            p2PotentialDiv.style.display = 'block';
+            p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
+            p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
+        } else {
+            p1PotentialDiv.style.display = 'block';
+            p2PotentialDiv.style.display = 'block';
+            p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
+            p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
+        }
+    } else {
+        if (p1PotentialDiv) p1PotentialDiv.style.display = 'none';
+        if (p2PotentialDiv) p2PotentialDiv.style.display = 'none';
+    }
 }

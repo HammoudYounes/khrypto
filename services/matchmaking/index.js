@@ -105,7 +105,7 @@ io.on('connection', (socket) => {
         let userElo = 600;
         try {
             if (userId && usersCollection && ObjectId.isValid(userId)) {
-                const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+                const user = await usersCollection.findOne({ _id: ObjectId.createFromHexString(userId) });
                 if (user && user.elo !== undefined) {
                     userElo = user.elo;
                 }
@@ -163,12 +163,12 @@ io.on('connection', (socket) => {
         } else {
             // No match yet — player is now waiting
             socket.emit('matchmaking:waiting');
-            console.log(`[Matchmaking] Player ${socket.id} is now waiting. Queue size: ${queue.size}`);
+            console.log(`[Matchmaking] Player ${userId} is now waiting. Queue size: ${queue.size}`);
         }
     }
 
     socket.on('matchmaking:cancel', () => {
-        console.log(`[Matchmaking] Player ${socket.id} cancelled matchmaking`);
+        console.log(`[Matchmaking] Player on socket : ${socket.id} cancelled matchmaking`);
         queue.remove(socket.id);
         socket.emit('matchmaking:cancelled');
     });

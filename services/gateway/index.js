@@ -66,16 +66,16 @@ server.on('upgrade', async function (req, socket, head) {
     if (req.url.startsWith('/matchmaking/')) {
         const urlObj = new URL(req.url, `http://${req.headers.host}`);
         const token = urlObj.searchParams.get('token');
-        
+
         // Verify via Gateway's helper
         const check = await callTokenService('/verify', { token });
-        
+
         if (check.valid && check.userId) {
             // Inject userId into a custom header for the Matchmaking service
             req.headers['x-user-id'] = check.userId;
             console.log("Proxying WebSocket upgrade to Matchmaking");
             proxy.ws(req, socket, head, { target: PORTS.MATCHMAKING });
-        }else{
+        } else {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
             socket.destroy();
         }
@@ -152,7 +152,10 @@ async function proxyWithTokenCheck(req, res, targetUrl) {
         const check = await callTokenService('/verify', { token: accessToken });
 
         if (check.valid) {
-            // OUI -> On laisse passer vers l'Engine
+            if (check.userId) {
+                req.headers['x-user-id'] = check.userId;
+            }
+            // OUI -> On laisse passer vers l'Engine ou Matchmaking
             return proxy.web(req, res, { target: targetUrl });
         } else {
             // NON -> Erreur 401. Le Front devra faire le refresh lui-même via /api/refresh

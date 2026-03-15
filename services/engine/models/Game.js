@@ -123,9 +123,19 @@ class Game {
 
         console.log(`[Game] Online game ended. P0 Elo: ${this.elos[0]} -> ${newElo0}. P1 Elo: ${this.elos[1]} -> ${newElo1}`);
 
-        // Update DB via Auth Service
+        // Update DB
         this.updateEloInDb(this.userIds[0], newElo0);
         this.updateEloInDb(this.userIds[1], newElo1);
+
+        // Update internal cache
+        this.elos[0] = newElo0;
+        this.elos[1] = newElo1;
+
+        // Emit new elos to players for UI update
+        this.io.to(this.id).emit('game:elo_update', {
+            0: newElo0,
+            1: newElo1
+        });
     }
 
     computeNewElo(playerElo, opponentElo, result, K = 20) {
@@ -137,15 +147,11 @@ class Game {
         if (!userId || !this.usersCollection || !ObjectId.isValid(userId)) return;
 
         try {
-            await this.usersCollection.updateOne(
-                { _id: new ObjectId(userId) },
+            const result = await this.usersCollection.updateOne(
+                { _id: ObjectId.createFromHexString(userId) },
                 { $set: { elo: newElo } }
             );
-            console.log(`[Game] Successfully updated Elo for ${userId} to ${newElo}`);
-
-            // Verification Log
-            const updatedUser = await this.usersCollection.findOne({ _id: new ObjectId(userId) });
-            console.log(`[Game DB Verification] User ${updatedUser.username} (${updatedUser._id}) DB record is now:`, updatedUser);
+            console.log(`[Game] Elo Update Result matched: ${result.matchedCount}, modified: ${result.modifiedCount}`);
         } catch (e) {
             console.error(`[Game] Error strictly committing Elo to MongoDB: ${e.message}`);
         }

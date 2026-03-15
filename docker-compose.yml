@@ -46,6 +46,9 @@ services:
       - "8002"
     environment:
       - PORT=8002
+      - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+    depends_on:
+      - mongo
     networks:
       - app_network
 
@@ -58,8 +61,10 @@ services:
     environment:
       - PORT=8005
       - ENGINE_URL=http://engine:8002
+      - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
     depends_on:
       - engine
+      - mongo
     networks:
       - app_network
 
