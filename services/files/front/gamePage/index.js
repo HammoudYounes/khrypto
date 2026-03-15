@@ -51,18 +51,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (state.gameMode === 'online') {
         const myUsername = sessionStorage.getItem("myUsername") || 'You';
         const opponentUsername = sessionStorage.getItem("opponentUsername") || 'Opponent';
+        const myElo = sessionStorage.getItem("myElo");
+        const opponentElo = sessionStorage.getItem("opponentElo");
 
         // "current-player" panel is at the bottom, "opposing-player" at the top
         const currentPlayerLabel = document.querySelector('.current-player p');
         const opposingPlayerLabel = document.querySelector('.opposing-player p');
+        const p1EloSpan = document.getElementById('p1-elo');
+        const p2EloSpan = document.getElementById('p2-elo');
 
         if (state.myPlayerId === 0) {
-            currentPlayerLabel.textContent = myUsername;
-            opposingPlayerLabel.textContent = opponentUsername;
+            currentPlayerLabel.firstChild.textContent = myUsername + " ";
+            opposingPlayerLabel.firstChild.textContent = opponentUsername + " ";
+            if (myElo) p1EloSpan.textContent = `(${myElo})`;
+            if (opponentElo) p2EloSpan.textContent = `(${opponentElo})`;
         } else {
             // Player 1 (red) — swap reserve pyramid colors
-            currentPlayerLabel.textContent = myUsername;
-            opposingPlayerLabel.textContent = opponentUsername;
+            currentPlayerLabel.firstChild.textContent = myUsername + " ";
+            opposingPlayerLabel.firstChild.textContent = opponentUsername + " ";
+            if (myElo) p1EloSpan.textContent = `(${myElo})`;
+            if (opponentElo) p2EloSpan.textContent = `(${opponentElo})`;
 
             // Swap reserve pyramid images to match player colors
             const p1Img = document.getElementById('p1-reserve-piece');

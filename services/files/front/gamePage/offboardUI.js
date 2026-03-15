@@ -180,5 +180,7 @@ export function goHome() {
     sessionStorage.removeItem("gameMode");
     sessionStorage.removeItem("myUsername");
     sessionStorage.removeItem("opponentUsername");
+    sessionStorage.removeItem("myElo");
+    sessionStorage.removeItem("opponentElo");
     window.location.href = '../homePage/index.html';
 }

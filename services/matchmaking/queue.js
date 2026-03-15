@@ -14,15 +14,17 @@ class MatchmakingQueue {
      * Add a player to the queue.
      * @param {object} socket - The Socket.IO socket
      * @param {string} userId - The authenticated user's ID
+     * @param {string} username - The user's username
+     * @param {number} elo - The user's Elo rating
      */
-    add(socket, userId, username = 'Player') {
+    add(socket, userId, username = 'Player', elo = 600) {
         // Prevent duplicate entries
         if (this.waiting.some(entry => entry.socket.id === socket.id)) {
             console.log(`[Queue] Socket ${socket.id} already in queue, skipping.`);
             return;
         }
-        this.waiting.push({ socket, userId, username });
-        console.log(`[Queue] Player added (${username}). Queue size: ${this.waiting.length}`);
+        this.waiting.push({ socket, userId, username, elo });
+        console.log(`[Queue] Player added (${username}, Elo: ${elo}). Queue size: ${this.waiting.length}`);
     }
 
     /**

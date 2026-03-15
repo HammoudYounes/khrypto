@@ -1,13 +1,17 @@
+const { ObjectId } = require('mongodb');
 const { initializeBoard } = require('../rules/initBoard');
 const { applyAction, computeLaserPath, applyDestructions } = require('../rules/actions');
 
 class Game {
-    constructor(id, mode, io) {
+    constructor(id, mode, io, player1UserId = null, player2UserId = null, player1Elo = 600, player2Elo = 600, usersCollection = null) {
         this.id = id;
         this.mode = mode; // local ai online
         this.io = io;     // Reference to socket.io server
         this.players = new Map(); // socketId → playerId (0 or 1) — used for online games
+        this.userIds = { 0: player1UserId, 1: player2UserId };
+        this.elos = { 0: player1Elo, 1: player2Elo };
         this.restartVotes = new Set(); // Track which players voted to restart
+        this.usersCollection = usersCollection;
 
         // Initial State
         this.state = {
@@ -66,6 +70,7 @@ class Game {
 
             if (this.state.winner[0] === true || this.state.winner[1] === true) {
                 this.io.to(this.id).emit('game:over', this.state.winner);
+                this.handleGameOver();
             }
 
             return true; // Success
@@ -96,6 +101,54 @@ class Game {
     voteRestart(playerId) {
         this.restartVotes.add(playerId);
         return this.restartVotes.size >= 2;
+    }
+
+    handleGameOver() {
+        if (this.mode !== 'online') return;
+
+        let p0Result = 0.5;
+        let p1Result = 0.5;
+
+        // Both true = equality
+        if (this.state.winner[0] === true && this.state.winner[1] === false) {
+            p0Result = 1;
+            p1Result = 0;
+        } else if (this.state.winner[1] === true && this.state.winner[0] === false) {
+            p0Result = 0;
+            p1Result = 1;
+        }
+
+        const newElo0 = this.computeNewElo(this.elos[0], this.elos[1], p0Result);
+        const newElo1 = this.computeNewElo(this.elos[1], this.elos[0], p1Result);
+
+        console.log(`[Game] Online game ended. P0 Elo: ${this.elos[0]} -> ${newElo0}. P1 Elo: ${this.elos[1]} -> ${newElo1}`);
+
+        // Update DB via Auth Service
+        this.updateEloInDb(this.userIds[0], newElo0);
+        this.updateEloInDb(this.userIds[1], newElo1);
+    }
+
+    computeNewElo(playerElo, opponentElo, result, K = 20) {
+        const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
+        return Math.round(playerElo + K * (result - expected));
+    }
+
+    async updateEloInDb(userId, newElo) {
+        if (!userId || !this.usersCollection || !ObjectId.isValid(userId)) return;
+
+        try {
+            await this.usersCollection.updateOne(
+                { _id: new ObjectId(userId) },
+                { $set: { elo: newElo } }
+            );
+            console.log(`[Game] Successfully updated Elo for ${userId} to ${newElo}`);
+
+            // Verification Log
+            const updatedUser = await this.usersCollection.findOne({ _id: new ObjectId(userId) });
+            console.log(`[Game DB Verification] User ${updatedUser.username} (${updatedUser._id}) DB record is now:`, updatedUser);
+        } catch (e) {
+            console.error(`[Game] Error strictly committing Elo to MongoDB: ${e.message}`);
+        }
     }
 }
 

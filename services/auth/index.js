@@ -29,8 +29,8 @@ async function runGetStarted() {
 
     // Give 600 ELO to any existing user that doesn't have the field yet
     const updateResult = await user_collection.updateMany(
-      { elo: { $exists: false } }, 
-      { $set: { elo: 600 } }       
+      { elo: { $exists: false } },
+      { $set: { elo: 600 } }
     );
 
     if (updateResult.modifiedCount > 0) {
@@ -101,7 +101,7 @@ async function createValidUser(username, mail, password) {
     username: username,
     mail: mail,
     password: hashed_password,
-    elo : 600
+    elo: 600
   };
   return newUser;
 }
@@ -146,6 +146,8 @@ async function getTokens(userId) {
   return tokens;
 }
 
+// --- INTERNAL API HELPERS ---
+// Used by other services via Gateway.
 
 http.createServer(function (request, response) {
   console.log(`Received query for a auth: ${request.url}`);
