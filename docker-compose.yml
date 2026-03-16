@@ -29,12 +29,14 @@ services:
       - AUTH_URL=http://auth:8003
       - TOKEN_URL=http://token:8004
       - MATCHMAKING_URL=http://matchmaking:8005
+      - FRIEND_URL=http://friend:8006
     depends_on:
       - engine
       - files
       - auth
       - token
       - matchmaking
+      - friend
     networks:
       - app_network
 
@@ -106,6 +108,21 @@ services:
     environment:
       - PORT=8004
       #- MONGO_URL=mongodb://mongo:27017/khrypto
+      - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+    depends_on:
+      - mongo
+    networks:
+      - app_network
+
+  friend:
+    build: ./services/friend
+    container_name: khrypto_friend
+    restart: always
+    expose:
+      - "8006"
+    environment:
+      - PORT=8006
+      - GATEWAY_URL=http://gateway:8000
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
     depends_on:
       - mongo
