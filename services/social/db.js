@@ -3,12 +3,14 @@ const { MongoClient } = require('mongodb');
 let DB_NAME = null;
 const FRIENDSHIPS_COLLECTION_NAME = 'friendships';
 const MESSAGE_QUEUE_COLLECTION_NAME = 'message_queue';
+const USERS_COLLECTION_NAME = 'users';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
 
 const client = new MongoClient(MONGO_URL);
 
 let friendships_collection;
 let message_queue_collection;
+let users_collection;
 
 async function runGetStarted() {
     try {
@@ -18,6 +20,7 @@ async function runGetStarted() {
         const khryto_db = client.db();
         friendships_collection = khryto_db.collection(FRIENDSHIPS_COLLECTION_NAME);
         message_queue_collection = khryto_db.collection(MESSAGE_QUEUE_COLLECTION_NAME);
+        users_collection = khryto_db.collection(USERS_COLLECTION_NAME);
         DB_NAME = khryto_db.databaseName;
 
         // --- Friendships Collection Indexes ---
@@ -64,5 +67,6 @@ runGetStarted().catch(console.dir);
 module.exports = {
     client,
     getFriendshipsCollection: () => friendships_collection,
-    getMessageQueueCollection: () => message_queue_collection
+    getMessageQueueCollection: () => message_queue_collection,
+    getUsersCollection: () => users_collection
 };
