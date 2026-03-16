@@ -8,7 +8,8 @@ const PORTS = {
     ENGINE: process.env.ENGINE_URL || 'http://127.0.0.1:8002',
     AUTH: process.env.AUTH_URL || 'http://127.0.0.1:8003',
     TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004',
-    MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005'
+    MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005',
+    FRIEND: process.env.FRIEND_URL || 'http://127.0.0.1:8006'
 };
 
 const proxy = httpProxy.createProxyServer();
@@ -38,6 +39,10 @@ const server = http.createServer(function (request, response) {
             if (filePath[2] === "refresh" || filePath[2] === "verify" || filePath[2] === "sign") {
                 console.log("Routing API request to Token Service");
                 proxy.web(request, response, { target: PORTS.TOKEN });
+            }
+            if (filePath[2] === "friend" || filePath[2] === "social") {
+                console.log("Routing API request to Friend Service");
+                return proxyWithTokenCheck(request, response, PORTS.FRIEND);
             }
         }
         else if (filePath[1] === "matchmaking") {
@@ -79,7 +84,11 @@ server.on('upgrade', async function (req, socket, head) {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
             socket.destroy();
         }
-    } else {
+    }else if (req.url.startsWith('/friend/') || req.url.startsWith('/social/')) {
+        console.log("Proxying WebSocket upgrade to Friend Service");
+        proxy.ws(req, socket, head, { target: PORTS.FRIEND });
+    }
+     else {
         console.log("Proxying WebSocket upgrade to Engine");
         proxy.ws(req, socket, head, { target: PORTS.ENGINE });
     }
