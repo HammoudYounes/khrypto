@@ -1,9 +1,10 @@
 const http = require('http');
+const url = require('url');
+const { ObjectId } = require('mongodb');
 const db = require('./db');
+const broker = require('./broker');
 
 const PORT = process.env.PORT || 8006;
-
-
 
 // Helper function to parse JSON body from raw HTTP requests
 const parseJSONBody = (req) => {
@@ -28,16 +29,14 @@ const sendResponse = (res, statusCode, data) => {
     res.end(JSON.stringify(data));
 };
 
-
-
 // Start the server
-const server = http.createServer(async (request, response) => {
-    console.log(`Received query for social service: ${request.url}`);
+const server = http.createServer(async (req, res) => {
+    console.log(`Received query for social service: ${req.url}`);
 
-    // Set CORS headers if needed for frontend direct access, though typically
-    // Gateway handles this. We add basic JSON response headers for APIs.
-    response.setHeader('Content-Type', 'application/json');
+    // Assuming the API Gateway verifies Auth and passes the userId in the headers
+    const currentUserId = req.headers['x-user-id']; 
 
+    res.setHeader('Content-Type', 'application/json');
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
@@ -51,16 +50,12 @@ const server = http.createServer(async (request, response) => {
 
     console.log(`[${method}] ${pathname}`);
 
-
-    if (request.url === "/api/social/health") {
-        response.writeHead(200);
-        response.end(JSON.stringify({ status: "ok", service: "social" }));
-        return;
+    if (req.url === "/api/social/health") {
+        return sendResponse(res, 200, { status: "ok", service: "social" });
     }
 
     try {
         const friendships = db.getFriendshipsCollection();
-        const message_queue = db.getMessageQueueCollection();
         const users = db.getUsersCollection();
 
         // ---------------------------------------------------------
@@ -70,10 +65,9 @@ const server = http.createServer(async (request, response) => {
             const searchQuery = parsedUrl.query.username;
             if (!searchQuery) return sendResponse(res, 400, { error: "Username query parameter required" });
 
-            // Find users matching the partial username, excluding the current user
             const results = await users.find({
                 username: { $regex: searchQuery, $options: 'i' },
-                _id: { $ne: new ObjectId(currentUserId) } // Assuming users._id is ObjectId
+                _id: { $ne: new ObjectId(currentUserId) } 
             }).project({ username: 1 }).limit(20).toArray();
 
             return sendResponse(res, 200, { users: results });
@@ -88,7 +82,6 @@ const server = http.createServer(async (request, response) => {
 
             if (!receiverUsername) return sendResponse(res, 400, { error: "receiverUsername is required" });
 
-            // Find the user they are trying to invite
             const receiver = await users.findOne({ username: receiverUsername });
             if (!receiver) return sendResponse(res, 404, { error: "User not found" });
 
@@ -96,7 +89,6 @@ const server = http.createServer(async (request, response) => {
             if (currentUserId === receiverId) return sendResponse(res, 400, { error: "You cannot invite yourself" });
 
             try {
-                // Insert pending friendship
                 const friendshipDoc = {
                     requesterId: currentUserId,
                     receiverId: receiverId,
@@ -105,18 +97,14 @@ const server = http.createServer(async (request, response) => {
                 };
                 const insertResult = await friendships.insertOne(friendshipDoc);
 
-                // Queue notification for offline broker
-                await message_queue.insertOne({
-                    recipientId: receiverId,
-                    type: "friend:invitation",
+                // USE BROKER INSTEAD OF DIRECT DB INSERT
+                await broker.dispatch(receiverId, "friend:invitation", {
                     referenceId: insertResult.insertedId,
-                    delivered: false,
-                    createdAt: new Date()
+                    requesterId: currentUserId
                 });
 
                 return sendResponse(res, 201, { message: "Invitation sent", friendshipId: insertResult.insertedId });
             } catch (err) {
-                // Catch duplicate key error (Index 1)
                 if (err.code === 11000) {
                     return sendResponse(res, 409, { error: "Invitation already exists" });
                 }
@@ -129,7 +117,7 @@ const server = http.createServer(async (request, response) => {
         // ---------------------------------------------------------
         if (pathname === "/api/friend/respond" && method === 'POST') {
             const body = await parseJSONBody(req);
-            const { friendshipId, action } = body; // action: "accept" | "decline"
+            const { friendshipId, action } = body; 
 
             if (!friendshipId || !['accept', 'decline'].includes(action)) {
                 return sendResponse(res, 400, { error: "Valid friendshipId and action ('accept' or 'decline') required" });
@@ -144,14 +132,12 @@ const server = http.createServer(async (request, response) => {
             if (action === 'accept') {
                 await friendships.updateOne({ _id: new ObjectId(friendshipId) }, { $set: { status: 'accepted', updatedAt: new Date() } });
                 
-                // Notify the original requester that their invite was accepted
-                await message_queue.insertOne({
-                    recipientId: friendship.requesterId,
-                    type: "friend:accepted",
+                // USE BROKER INSTEAD OF DIRECT DB INSERT
+                await broker.dispatch(friendship.requesterId, "friend:accepted", {
                     referenceId: new ObjectId(friendshipId),
-                    delivered: false,
-                    createdAt: new Date()
+                    accepterId: currentUserId
                 });
+
                 return sendResponse(res, 200, { message: "Friendship accepted" });
             } else if (action === 'decline') {
                 await friendships.deleteOne({ _id: new ObjectId(friendshipId) });
@@ -163,18 +149,15 @@ const server = http.createServer(async (request, response) => {
         // GET /api/friend/list
         // ---------------------------------------------------------
         if (pathname === "/api/friend/list" && method === 'GET') {
-            // Find all accepted friendships where current user is either requester or receiver
             const friends = await friendships.find({
                 status: 'accepted',
                 $or: [{ requesterId: currentUserId }, { receiverId: currentUserId }]
             }).toArray();
 
-            // Extract the IDs of the *other* person in the friendship
             const friendIds = friends.map(f => 
                 f.requesterId === currentUserId ? new ObjectId(f.receiverId) : new ObjectId(f.requesterId)
             );
 
-            // Fetch their usernames
             const friendUsers = await users.find({ _id: { $in: friendIds } }).project({ username: 1 }).toArray();
 
             return sendResponse(res, 200, { friends: friendUsers });
@@ -184,7 +167,6 @@ const server = http.createServer(async (request, response) => {
         // GET /api/friend/pending
         // ---------------------------------------------------------
         if (pathname === "/api/friend/pending" && method === 'GET') {
-            // Find all pending invites where current user is the RECEIVER
             const pendingRequests = await friendships.find({
                 status: 'pending',
                 receiverId: currentUserId
@@ -193,7 +175,6 @@ const server = http.createServer(async (request, response) => {
             const requesterIds = pendingRequests.map(f => new ObjectId(f.requesterId));
             const requesterUsers = await users.find({ _id: { $in: requesterIds } }).project({ username: 1 }).toArray();
 
-            // Map the usernames back to the friendship ID so the frontend can easily hit the 'respond' endpoint
             const responseData = pendingRequests.map(req => {
                 const user = requesterUsers.find(u => u._id.toString() === req.requesterId);
                 return {
@@ -217,27 +198,22 @@ const server = http.createServer(async (request, response) => {
             const friendship = await friendships.findOne({ _id: new ObjectId(friendshipId) });
             if (!friendship) return sendResponse(res, 404, { error: "Friendship not found" });
 
-            // Ensure the user deleting the friendship is actually part of it
             if (friendship.requesterId !== currentUserId && friendship.receiverId !== currentUserId) {
                 return sendResponse(res, 403, { error: "Not authorized to delete this friendship" });
             }
 
             await friendships.deleteOne({ _id: new ObjectId(friendshipId) });
 
-            // Optional: notify the other person that they were removed
             const otherUserId = friendship.requesterId === currentUserId ? friendship.receiverId : friendship.requesterId;
-            await message_queue.insertOne({
-                recipientId: otherUserId,
-                type: "friend:removed",
-                referenceId: new ObjectId(friendshipId), // Even though deleted, helps frontend identify which one
-                delivered: false,
-                createdAt: new Date()
+            
+            // USE BROKER INSTEAD OF DIRECT DB INSERT
+            await broker.dispatch(otherUserId, "friend:removed", {
+                referenceId: new ObjectId(friendshipId)
             });
 
             return sendResponse(res, 200, { message: "Friendship removed" });
         }
 
-        // Default 404 for unknown routes
         return sendResponse(res, 404, { error: "Route Not Found" });
 
     } catch (error) {
@@ -246,6 +222,9 @@ const server = http.createServer(async (request, response) => {
     }
 
 });
+
+// Initialize Socket.io Broker alongside the HTTP server
+broker.initBroker(server);
 
 server.listen(PORT, () => {
     console.log(`Friend service listening on port ${PORT}`);
