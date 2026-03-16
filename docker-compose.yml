@@ -29,14 +29,14 @@ services:
       - AUTH_URL=http://auth:8003
       - TOKEN_URL=http://token:8004
       - MATCHMAKING_URL=http://matchmaking:8005
-      - FRIEND_URL=http://friend:8006
+      - SOCIAL_URL=http://social:8006
     depends_on:
       - engine
       - files
       - auth
       - token
       - matchmaking
-      - friend
+      - social
     networks:
       - app_network
 
@@ -114,9 +114,9 @@ services:
     networks:
       - app_network
 
-  friend:
-    build: ./services/friend
-    container_name: khrypto_friend
+  social:
+    build: ./services/social
+    container_name: khrypto_social
     restart: always
     expose:
       - "8006"

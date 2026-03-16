@@ -5,19 +5,19 @@ const PORT = process.env.PORT || 8006;
 
 // Start the server
 const server = http.createServer(async (request, response) => {
-    console.log(`Received query for friend service: ${request.url}`);
+    console.log(`Received query for social service: ${request.url}`);
 
     // Set CORS headers if needed for frontend direct access, though typically
     // Gateway handles this. We add basic JSON response headers for APIs.
     response.setHeader('Content-Type', 'application/json');
 
-    if (request.url === "/api/friend/health") {
+    if (request.url === "/api/social/health") {
         response.writeHead(200);
-        response.end(JSON.stringify({ status: "ok", service: "friend" }));
+        response.end(JSON.stringify({ status: "ok", service: "social" }));
         return;
     }
 
-    // Handle other routes here (e.g. /api/friend/request, /api/friend/accept)
+    // Handle other routes here (e.g. /api/social/request, /api/social/accept)
     // ...
 
     // Default 404 for unknown routes
