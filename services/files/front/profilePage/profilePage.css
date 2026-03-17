@@ -92,32 +92,3 @@ button:hover { opacity: 0.8; }
 .btn-invite { background: var(--primary); color: white; }
 .btn-accept { background: var(--success); color: white; margin-right: 5px; }
 .btn-decline { background: var(--danger); color: white; }
-
-/* Toast Notifications */
-.toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 9999;
-}
-
-.toast {
-    min-width: 250px;
-    padding: 15px 20px;
-    border-radius: 4px;
-    color: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    animation: slideIn 0.3s ease-out forwards;
-}
-
-.toast.success { background-color: var(--success); }
-.toast.error { background-color: var(--danger); }
-.toast.info { background-color: var(--primary); }
-
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}

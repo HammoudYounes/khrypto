@@ -1,4 +1,5 @@
 import { TokenManager } from "../js/tokenManager.js";
+import { notificationManager } from "../js/notificationManager.js";
 const API_URL = "/api";
 
 // DOM elements - game buttons
@@ -72,6 +73,7 @@ socket.on("connect_error", async (err) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeHome();
+    notificationManager.init();
 });
 
 // Toggle profile panel

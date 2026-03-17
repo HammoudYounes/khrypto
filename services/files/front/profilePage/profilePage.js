@@ -1,4 +1,5 @@
 import { TokenManager } from "../js/tokenManager.js";
+import { notificationManager } from "../js/notificationManager.js";
 
 // DOM Elements
 const backBtn = document.getElementById('backBtn');
@@ -6,7 +7,6 @@ const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 const pendingList = document.getElementById('pendingList');
 const friendsList = document.getElementById('friendsList');
-const toastContainer = document.getElementById('toastContainer');
 
 let friendSocket = null;
 
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         token = TokenManager.getAccessToken();
     }
 
-    initWebSocket(token);
+    notificationManager.init();
     loadPendingInvitations(token);
     loadFriendsList(token);
 });
@@ -30,38 +30,19 @@ backBtn.addEventListener('click', () => {
 });
 
 // ==========================================
-// WEBSOCKET INTEGRATION
+// BROKER EVENT LISTENING
 // ==========================================
-function initWebSocket(token) {
-    friendSocket = io({
-        path: '/social/socket.io',
-        auth: { token },
-        query: { token }
-    });
 
-    friendSocket.on('connect', () => console.log("[Friends] Connected to broker"));
-
-    // Real-time Event: Received a new friend invitation
-    friendSocket.on('friend:invitation', (payload) => {
-        showToast(`New friend request from ${payload.senderUsername || 'someone'}!`, 'info');
-        loadPendingInvitations(TokenManager.getAccessToken());
-    });
-
-    // Real-time Event: Someone accepted your invitation
-    friendSocket.on('friend:accepted', (payload) => {
-        showToast(`${payload.senderUsername || 'A user'} accepted your friend request!`, 'success');
-        loadFriendsList(TokenManager.getAccessToken());
-    });
-
-    friendSocket.on('friend:declined', (payload) => {
-        showToast(`${payload.senderUsername || 'A user'} declined your friend request!`, 'error');
-        loadFriendsList(TokenManager.getAccessToken());
-    });
-
-    friendSocket.on('connect_error', (err) => {
-        console.error("[Friends] WebSocket Error:", err.message);
-    });
-}
+// 2. Listen to custom DOM events to update local UI dynamically
+document.addEventListener('notification:friend_invitation', () => {
+    loadPendingInvitations(TokenManager.getAccessToken());
+});
+document.addEventListener('notification:friend_accepted', () => {
+    loadFriendsList(TokenManager.getAccessToken());
+});
+document.addEventListener('notification:friend_declined', () => {
+    loadFriendsList(TokenManager.getAccessToken());
+});
 
 // ==========================================
 // REST API INTEGRATION

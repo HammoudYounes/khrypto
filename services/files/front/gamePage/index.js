@@ -31,6 +31,8 @@ import {
     initRotationButtons
 } from './interactionManager.js';
 
+import { notificationManager } from "../js/notificationManager.js";
+
 // ========== INITIALIZATION ==========
 
 const boardElement = document.getElementById('board');
@@ -98,6 +100,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("No Game ID found. Redirecting to home...");
         window.location.href = "../index.html";
     }
+
+    notificationManager.init();
+
 });
 
 // ========== RESERVE LISTENERS ==========
