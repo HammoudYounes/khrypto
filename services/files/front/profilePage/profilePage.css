@@ -1,0 +1,123 @@
+:root {
+    --bg-color: #1a1a2e;
+    --card-bg: #16213e;
+    --primary: #0f3460;
+    --accent: #e94560;
+    --text-light: #e0e0e0;
+    --success: #4caf50;
+    --danger: #f44336;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-light);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--card-bg);
+    border-bottom: 2px solid var(--primary);
+}
+
+.profile-header h1 {
+    margin: 0 0 0 20px;
+    font-size: 1.5rem;
+}
+
+.container {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.card {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--primary);
+    background: var(--bg-color);
+    color: white;
+    box-sizing: border-box;
+}
+
+.user-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0 0 0;
+}
+
+.user-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.empty-msg {
+    color: #888;
+    font-style: italic;
+    justify-content: center !important;
+    background: transparent !important;
+}
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: opacity 0.2s;
+}
+button:hover { opacity: 0.8; }
+
+.btn-secondary { background: #555; color: white; }
+.btn-invite { background: var(--primary); color: white; }
+.btn-accept { background: var(--success); color: white; margin-right: 5px; }
+.btn-decline { background: var(--danger); color: white; }
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+}
+
+.toast {
+    min-width: 250px;
+    padding: 15px 20px;
+    border-radius: 4px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+.toast.success { background-color: var(--success); }
+.toast.error { background-color: var(--danger); }
+.toast.info { background-color: var(--primary); }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

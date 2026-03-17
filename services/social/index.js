@@ -50,7 +50,7 @@ const server = http.createServer(async (req, res) => {
 
     console.log(`[${method}] ${pathname}`);
 
-    if (req.url === "/api/social/health") {
+    if (req.url === "/social/health") {
         return sendResponse(res, 200, { status: "ok", service: "social" });
     }
 
@@ -65,9 +65,26 @@ const server = http.createServer(async (req, res) => {
             const searchQuery = parsedUrl.query.username;
             if (!searchQuery) return sendResponse(res, 400, { error: "Username query parameter required" });
 
+            // 1. Find all existing relationships (pending or accepted) involving the current user
+            const existingLinks = await friendships.find({
+                $or: [{ requesterId: currentUserId }, { receiverId: currentUserId }]
+            }).toArray();
+
+            // 2. Extract the IDs of the other users in those relationships
+            const excludedUserIds = existingLinks.map(link => 
+                link.requesterId === currentUserId ? link.receiverId : link.requesterId
+            );
+
+            // 3. Convert those string IDs to ObjectIds
+            const excludedObjectIds = excludedUserIds.map(id => ObjectId.createFromHexString(id));
+            
+            // 4. Also exclude the current user from the search
+            excludedObjectIds.push(ObjectId.createFromHexString(currentUserId));
+
+            // 5. Search users, explicitly excluding the ObjectIds we just gathered using $nin
             const results = await users.find({
                 username: { $regex: searchQuery, $options: 'i' },
-                _id: { $ne: new ObjectId(currentUserId) } 
+                _id: { $nin: excludedObjectIds } 
             }).project({ username: 1 }).limit(20).toArray();
 
             return sendResponse(res, 200, { users: results });
@@ -78,8 +95,7 @@ const server = http.createServer(async (req, res) => {
         // ---------------------------------------------------------
         if (pathname === "/api/friend/invite" && method === 'POST') {
             const body = await parseJSONBody(req);
-            const { receiverUsername } = body;
-
+            const receiverUsername = body.username
             if (!receiverUsername) return sendResponse(res, 400, { error: "receiverUsername is required" });
 
             const receiver = await users.findOne({ username: receiverUsername });
@@ -97,10 +113,13 @@ const server = http.createServer(async (req, res) => {
                 };
                 const insertResult = await friendships.insertOne(friendshipDoc);
 
+                const requester = await users.findOne({_id: ObjectId.createFromHexString(currentUserId)})
+
                 // USE BROKER INSTEAD OF DIRECT DB INSERT
                 await broker.dispatch(receiverId, "friend:invitation", {
                     referenceId: insertResult.insertedId,
-                    requesterId: currentUserId
+                    senderId: currentUserId,
+                    senderUsername: requester.username
                 });
 
                 return sendResponse(res, 201, { message: "Invitation sent", friendshipId: insertResult.insertedId });
@@ -117,30 +136,40 @@ const server = http.createServer(async (req, res) => {
         // ---------------------------------------------------------
         if (pathname === "/api/friend/respond" && method === 'POST') {
             const body = await parseJSONBody(req);
-            const { friendshipId, action } = body; 
+            const friendshipId = body.friendshipId;
+            const action = body.action
 
             if (!friendshipId || !['accept', 'decline'].includes(action)) {
                 return sendResponse(res, 400, { error: "Valid friendshipId and action ('accept' or 'decline') required" });
             }
 
-            const friendship = await friendships.findOne({ _id: new ObjectId(friendshipId) });
+            const friendship = await friendships.findOne({ _id: ObjectId.createFromHexString(friendshipId) });
             
             if (!friendship) return sendResponse(res, 404, { error: "Friendship request not found" });
             if (friendship.receiverId !== currentUserId) return sendResponse(res, 403, { error: "Not authorized to respond to this request" });
             if (friendship.status !== 'pending') return sendResponse(res, 400, { error: "Request is no longer pending" });
 
+            const accepter = await users.findOne({_id: ObjectId.createFromHexString(friendship.receiverId)})
+
             if (action === 'accept') {
-                await friendships.updateOne({ _id: new ObjectId(friendshipId) }, { $set: { status: 'accepted', updatedAt: new Date() } });
-                
+                await friendships.updateOne({ _id: ObjectId.createFromHexString(friendshipId) }, { $set: { status: 'accepted', updatedAt: new Date() } });
+                console.log(accepter.username)
                 // USE BROKER INSTEAD OF DIRECT DB INSERT
                 await broker.dispatch(friendship.requesterId, "friend:accepted", {
-                    referenceId: new ObjectId(friendshipId),
-                    accepterId: currentUserId
+                    referenceId: ObjectId.createFromHexString(friendshipId),
+                    senderId: friendship.receiverId,
+                    senderUsername: accepter.username
                 });
 
                 return sendResponse(res, 200, { message: "Friendship accepted" });
             } else if (action === 'decline') {
-                await friendships.deleteOne({ _id: new ObjectId(friendshipId) });
+                await friendships.deleteOne({ _id: ObjectId.createFromHexString(friendshipId) });
+
+                await broker.dispatch(friendship.requesterId, "friend:declined", {
+                    referenceId: ObjectId.createFromHexString(friendshipId),
+                    senderId: friendship.receiverId,
+                    senderUsername: accepter.username
+                });
                 return sendResponse(res, 200, { message: "Friendship declined and removed" });
             }
         }
@@ -155,7 +184,7 @@ const server = http.createServer(async (req, res) => {
             }).toArray();
 
             const friendIds = friends.map(f => 
-                f.requesterId === currentUserId ? new ObjectId(f.receiverId) : new ObjectId(f.requesterId)
+                f.requesterId === currentUserId ? ObjectId.createFromHexString(f.receiverId) : ObjectId.createFromHexString(f.requesterId)
             );
 
             const friendUsers = await users.find({ _id: { $in: friendIds } }).project({ username: 1 }).toArray();
@@ -172,7 +201,7 @@ const server = http.createServer(async (req, res) => {
                 receiverId: currentUserId
             }).toArray();
 
-            const requesterIds = pendingRequests.map(f => new ObjectId(f.requesterId));
+            const requesterIds = pendingRequests.map(f => ObjectId.createFromHexString(f.requesterId));
             const requesterUsers = await users.find({ _id: { $in: requesterIds } }).project({ username: 1 }).toArray();
 
             const responseData = pendingRequests.map(req => {
@@ -195,20 +224,20 @@ const server = http.createServer(async (req, res) => {
         if (deleteMatch && method === 'DELETE') {
             const friendshipId = deleteMatch[1];
 
-            const friendship = await friendships.findOne({ _id: new ObjectId(friendshipId) });
+            const friendship = await friendships.findOne({ _id: new ObjectId.createFromHexString(friendshipId) });
             if (!friendship) return sendResponse(res, 404, { error: "Friendship not found" });
 
             if (friendship.requesterId !== currentUserId && friendship.receiverId !== currentUserId) {
                 return sendResponse(res, 403, { error: "Not authorized to delete this friendship" });
             }
 
-            await friendships.deleteOne({ _id: new ObjectId(friendshipId) });
+            await friendships.deleteOne({ _id: new ObjectId.createFromHexString(friendshipId) });
 
             const otherUserId = friendship.requesterId === currentUserId ? friendship.receiverId : friendship.requesterId;
             
             // USE BROKER INSTEAD OF DIRECT DB INSERT
             await broker.dispatch(otherUserId, "friend:removed", {
-                referenceId: new ObjectId(friendshipId)
+                referenceId: new ObjectId.createFromHexString(friendshipId)
             });
 
             return sendResponse(res, 200, { message: "Friendship removed" });
@@ -218,7 +247,7 @@ const server = http.createServer(async (req, res) => {
 
     } catch (error) {
         console.error("Server Error:", error);
-        return sendResponse(res, 500, { error: "Internal Server Error" });
+        return sendResponse(res, 500, { error: "Social Internal Server Error" });
     }
 
 });

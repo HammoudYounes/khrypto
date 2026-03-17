@@ -10,6 +10,9 @@ const onlineButton = document.getElementById("onlineBtn");
 const profileBtn = document.getElementById("profileBtn");
 const profilePanel = document.getElementById("profilePanel");
 const logoutBtn = document.getElementById("logoutBtn");
+const goToProfileBtn = document.getElementById("goToProfileBtn");
+
+
 const socket = io({
     path: '/socket.io',
 
@@ -83,6 +86,13 @@ logoutBtn.addEventListener('click', () => {
     // Redirect to auth page
     window.location.href = '../index.html';
 });
+
+// Navigate to Profile Page
+if (goToProfileBtn) {
+    goToProfileBtn.addEventListener('click', () => {
+        window.location.href = '../profilePage/index.html';
+    });
+}
 
 // Close profile panel when clicking outside
 document.addEventListener('click', (e) => {

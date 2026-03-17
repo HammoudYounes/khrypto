@@ -44,7 +44,10 @@ function initBroker(server) {
         const token = socket.handshake.query.token;
         if (!token) return next(new Error("Authentication error: Token required"));
         
-        socket.userId = token;
+        const userId = socket.handshake.headers['x-user-id'];
+
+
+        socket.userId = userId;
         next();
     });
 
@@ -70,10 +73,8 @@ function initBroker(server) {
                 const messageIds = [];
                 for (const msg of queuedMessages) {
                     // Reconstruct a payload for the frontend using the referenceId pointer
-                    socket.emit(msg.type, { 
-                        referenceId: msg.referenceId,
-                        queuedAt: msg.createdAt 
-                    });
+                    
+                    socket.emit(msg.type, msg.payload);
                     messageIds.push(msg._id);
                 }
 
@@ -100,22 +101,22 @@ function initBroker(server) {
 // ---------------------------------------------------------
 async function dispatch(recipientId, event, payload) {
     const socket = onlineUsers.get(recipientId);
-    
+    console.log(payload)
     if (socket) {
         // IF online -> emit full payload directly
+        console.log(`${recipientId} is online`)
         socket.emit(event, payload);
     } else {
         // IF offline -> strictly insert the referenceId into the message_queue
+        console.log(`${recipientId} is offline`)
         try {
             const message_queue = db.getMessageQueueCollection();
             
             // Ensure we safely cast the referenceId to an ObjectId if it exists
-            const refId = payload.referenceId ? new ObjectId(payload.referenceId) : null;
-
             await message_queue.insertOne({
                 recipientId: recipientId,
                 type: event,
-                referenceId: refId, 
+                payload: payload, 
                 delivered: false,
                 createdAt: new Date()
             });

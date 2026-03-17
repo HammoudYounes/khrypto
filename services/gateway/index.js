@@ -9,7 +9,7 @@ const PORTS = {
     AUTH: process.env.AUTH_URL || 'http://127.0.0.1:8003',
     TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004',
     MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005',
-    FRIEND: process.env.FRIEND_URL || 'http://127.0.0.1:8006'
+    SOCIAL: process.env.SOCIAL_URL || 'http://127.0.0.1:8006'
 };
 
 const proxy = httpProxy.createProxyServer();
@@ -42,13 +42,17 @@ const server = http.createServer(function (request, response) {
             }
             if (filePath[2] === "friend" || filePath[2] === "social") {
                 console.log("Routing API request to Friend Service");
-                return proxyWithTokenCheck(request, response, PORTS.FRIEND);
+                return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
             }
         }
         else if (filePath[1] === "matchmaking") {
             // Matchmaking Socket.IO or API requests
             console.log("Routing to Matchmaking Service");
             return proxyWithTokenCheck(request, response, PORTS.MATCHMAKING);
+        }
+        else if (filePath[1] === "friend" || filePath[1] === "social") {
+            console.log("Routing HTTP Polling to Friend Service");
+            return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
         }
         else if (filePath[1] === "socket.io") {
             return proxyWithTokenCheck(request, response, PORTS.ENGINE);
@@ -67,11 +71,12 @@ const server = http.createServer(function (request, response) {
 })
 
 server.on('upgrade', async function (req, socket, head) {
+    // 1. Extract the token from the WebSocket URL query
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const token = urlObj.searchParams.get('token');
+
     // Route WebSocket upgrades to the correct service
     if (req.url.startsWith('/matchmaking/')) {
-        const urlObj = new URL(req.url, `http://${req.headers.host}`);
-        const token = urlObj.searchParams.get('token');
-
         // Verify via Gateway's helper
         const check = await callTokenService('/verify', { token });
 
@@ -84,12 +89,24 @@ server.on('upgrade', async function (req, socket, head) {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
             socket.destroy();
         }
-    }else if (req.url.startsWith('/friend/') || req.url.startsWith('/social/')) {
-        console.log("Proxying WebSocket upgrade to Friend Service");
-        proxy.ws(req, socket, head, { target: PORTS.FRIEND });
-    }
-     else {
+    } 
+    else if (req.url.startsWith('/friend/') || req.url.startsWith('/social/')) {
+        // Verify via Gateway's helper
+        const check = await callTokenService('/verify', { token });
+
+        if (check.valid && check.userId) {
+            // Inject userId into a custom header for the Friend/Social service
+            req.headers['x-user-id'] = check.userId;
+            console.log("Proxying WebSocket upgrade to Friend Service");
+            proxy.ws(req, socket, head, { target: PORTS.SOCIAL }); 
+        } else {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+        }
+    } 
+    else {
         console.log("Proxying WebSocket upgrade to Engine");
+        // Depending on your engine setup, you might want to add token auth here eventually too!
         proxy.ws(req, socket, head, { target: PORTS.ENGINE });
     }
 });

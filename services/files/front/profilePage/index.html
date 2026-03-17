@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile & Friends - Khrypto</title>
+    <link rel="stylesheet" href="profilePage.css">
+    <script src="../js/socket.io.js"></script>
+    <script type="module" src="profilePage.js" defer></script>
+</head>
+<body>
+    <header class="profile-header">
+        <button id="backBtn" class="btn-secondary">← Back to Home</button>
+        <h1>Friends & Profile</h1>
+    </header>
+
+    <main class="container">
+        <section class="card search-section">
+            <h2>Find Users</h2>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search by username..." autocomplete="off">
+            </div>
+            <ul id="searchResults" class="user-list">
+                </ul>
+        </section>
+
+        <section class="card pending-section">
+            <h2>Pending Invitations</h2>
+            <ul id="pendingList" class="user-list">
+                <li class="empty-msg">No pending invitations.</li>
+            </ul>
+        </section>
+
+        <section class="card friends-section">
+            <h2>My Friends</h2>
+            <ul id="friendsList" class="user-list">
+                <li class="empty-msg">You have no friends yet.</li>
+            </ul>
+        </section>
+    </main>
+
+    <div id="toastContainer" class="toast-container"></div>
+</body>
+</html>
