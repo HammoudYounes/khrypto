@@ -41,7 +41,7 @@ body {
     background: var(--card-bg);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .search-bar input {
@@ -86,9 +86,98 @@ button {
     font-weight: bold;
     transition: opacity 0.2s;
 }
-button:hover { opacity: 0.8; }
 
-.btn-secondary { background: #555; color: white; }
-.btn-invite { background: var(--primary); color: white; }
-.btn-accept { background: var(--success); color: white; margin-right: 5px; }
-.btn-decline { background: var(--danger); color: white; }
+button:hover {
+    opacity: 0.8;
+}
+
+.btn-secondary {
+    background: #555;
+    color: white;
+}
+
+.btn-invite {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-accept {
+    background: var(--success);
+    color: white;
+    margin-right: 5px;
+}
+
+.btn-decline {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-remove {
+    background: var(--danger);
+    color: white;
+    font-size: 0.85rem;
+}
+
+.btn-cancel {
+    background: #555;
+    color: white;
+    font-size: 0.85rem;
+}
+
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+
+/* Friend info (dot + name) */
+.friend-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.friend-name {
+    font-size: 1rem;
+}
+
+/* Status dot */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.status-dot.online {
+    background-color: var(--success);
+    box-shadow: 0 0 6px var(--success);
+}
+
+.status-dot.offline {
+    background-color: #666;
+    box-shadow: none;
+}
+
+/* Pending sub-sections */
+.pending-subsection {
+    margin-bottom: 15px;
+}
+
+.pending-subsection:last-child {
+    margin-bottom: 0;
+}
+
+.pending-subsection h3 {
+    font-size: 0.95rem;
+    color: #aaa;
+    margin: 10px 0 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Smooth exit animation for list items */
+.user-list li {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}

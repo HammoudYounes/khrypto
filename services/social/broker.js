@@ -9,7 +9,7 @@ let io;
 async function broadcastFriendStatus(userId, isOnline) {
     try {
         const friendships = db.getFriendshipsCollection();
-        
+
         const friends = await friendships.find({
             status: 'accepted',
             $or: [{ requesterId: userId }, { receiverId: userId }]
@@ -18,7 +18,7 @@ async function broadcastFriendStatus(userId, isOnline) {
         friends.forEach(f => {
             const friendId = f.requesterId === userId ? f.receiverId : f.requesterId;
             const friendSocket = onlineUsers.get(friendId);
-            
+
             if (friendSocket) {
                 friendSocket.emit('friend:status-change', {
                     userId: userId,
@@ -43,7 +43,7 @@ function initBroker(server) {
     io.use((socket, next) => {
         const token = socket.handshake.query.token;
         if (!token) return next(new Error("Authentication error: Token required"));
-        
+
         const userId = socket.handshake.headers['x-user-id'];
 
 
@@ -73,7 +73,7 @@ function initBroker(server) {
                 const messageIds = [];
                 for (const msg of queuedMessages) {
                     // Reconstruct a payload for the frontend using the referenceId pointer
-                    
+
                     socket.emit(msg.type, msg.payload);
                     messageIds.push(msg._id);
                 }
@@ -87,6 +87,13 @@ function initBroker(server) {
         } catch (err) {
             console.error("Error flushing queued messages:", err);
         }
+
+        // 4. Handle bulk online status request from frontend
+        socket.on('friend:get-online-statuses', (data) => {
+            const friendIds = data.friendIds || [];
+            const onlineIds = friendIds.filter(id => onlineUsers.has(id));
+            socket.emit('friend:online-statuses', { onlineIds });
+        });
 
         socket.on('disconnect', async () => {
             console.log(`User disconnected from broker: ${userId}`);
@@ -111,12 +118,12 @@ async function dispatch(recipientId, event, payload) {
         console.log(`${recipientId} is offline`)
         try {
             const message_queue = db.getMessageQueueCollection();
-            
+
             // Ensure we safely cast the referenceId to an ObjectId if it exists
             await message_queue.insertOne({
                 recipientId: recipientId,
                 type: event,
-                payload: payload, 
+                payload: payload,
                 delivered: false,
                 createdAt: new Date()
             });

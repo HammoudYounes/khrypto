@@ -8,7 +8,7 @@ class NotificationManager {
 
     init() {
         // Prevent multiple connections on the same page
-        if (this.socket) return; 
+        if (this.socket) return;
 
         const token = TokenManager.getAccessToken();
         if (!token) return;
@@ -41,9 +41,25 @@ class NotificationManager {
             document.dispatchEvent(new CustomEvent('notification:friend_declined', { detail: payload }));
         });
 
+        this.socket.on('friend:removed', (payload) => {
+            document.dispatchEvent(new CustomEvent('notification:friend_removed', { detail: payload }));
+        });
+
+        this.socket.on('friend:status-change', (payload) => {
+            document.dispatchEvent(new CustomEvent('notification:friend_status_change', { detail: payload }));
+        });
+
+        this.socket.on('friend:online-statuses', (payload) => {
+            document.dispatchEvent(new CustomEvent('notification:friend_online_statuses', { detail: payload }));
+        });
+
         this.socket.on('connect_error', (err) => {
             console.error("[Notifications] WebSocket Error:", err.message);
         });
+    }
+
+    getSocket() {
+        return this.socket;
     }
 
     // Dynamically injects the toast container so you don't need to add it to every HTML file
