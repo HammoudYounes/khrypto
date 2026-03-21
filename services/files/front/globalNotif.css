@@ -16,18 +16,99 @@
 
 .toast {
     min-width: 250px;
+    max-width: 380px;
     padding: 15px 20px;
-    border-radius: 4px;
+    border-radius: 8px;
     color: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     animation: slideIn 0.3s ease-out forwards;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-.toast.success { background-color: var(--success); }
-.toast.error { background-color: var(--danger); }
-.toast.info { background-color: var(--primary); }
+.toast.success {
+    background-color: var(--success);
+}
+
+.toast.error {
+    background-color: var(--danger);
+}
+
+.toast.info {
+    background-color: var(--primary);
+}
+
+/* Interactive toasts remain until user acts */
+.toast.interactive {
+    border-left: 4px solid rgba(255, 255, 255, 0.5);
+}
+
+.toast-message {
+    margin-bottom: 10px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.toast-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.toast-actions button {
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.toast-actions button:hover {
+    opacity: 0.85;
+}
+
+.toast-btn-accept {
+    background: var(--success);
+    color: white;
+}
+
+.toast-btn-decline {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* Countdown bar */
+.toast-countdown {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    animation: countdownShrink linear forwards;
+    transform-origin: left;
+}
 
 @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes countdownShrink {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
 }

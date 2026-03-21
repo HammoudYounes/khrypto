@@ -223,6 +223,17 @@ function updateEloDisplays(myElo, opponentElo) {
     const p1PotentialDiv = document.getElementById('p1-elo-potential');
     const p2PotentialDiv = document.getElementById('p2-elo-potential');
 
+    const isRanked = sessionStorage.getItem('isRanked') === 'true';
+
+    // Only show Elo for ranked games
+    if (!isRanked) {
+        if (p1EloSpan) p1EloSpan.textContent = '';
+        if (p2EloSpan) p2EloSpan.textContent = '';
+        if (p1PotentialDiv) p1PotentialDiv.style.display = 'none';
+        if (p2PotentialDiv) p2PotentialDiv.style.display = 'none';
+        return;
+    }
+
     if (myElo && p1EloSpan) p1EloSpan.textContent = `(${myElo})`;
     if (opponentElo && p2EloSpan) p2EloSpan.textContent = `(${opponentElo})`;
 
@@ -240,17 +251,10 @@ function updateEloDisplays(myElo, opponentElo) {
 
         const formatPotential = (win, draw, loss) => `Potential: <span class="elo-win">W:${win > 0 ? '+' + win : win}</span> | <span class="elo-draw">D:${draw > 0 ? '+' + draw : draw}</span> | <span class="elo-loss">L:${loss > 0 ? '+' + loss : loss}</span>`;
 
-        if (state.myPlayerId === 0) {
-            p1PotentialDiv.style.display = 'block';
-            p2PotentialDiv.style.display = 'block';
-            p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
-            p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
-        } else {
-            p1PotentialDiv.style.display = 'block';
-            p2PotentialDiv.style.display = 'block';
-            p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
-            p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
-        }
+        p1PotentialDiv.style.display = 'block';
+        p2PotentialDiv.style.display = 'block';
+        p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
+        p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
     } else {
         if (p1PotentialDiv) p1PotentialDiv.style.display = 'none';
         if (p2PotentialDiv) p2PotentialDiv.style.display = 'none';
