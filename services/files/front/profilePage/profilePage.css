@@ -124,6 +124,13 @@ button:hover {
     font-size: 0.85rem;
 }
 
+.btn-challenge {
+    background: var(--accent, #e94560);
+    color: white;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+}
+
 .btn-group {
     display: flex;
     gap: 5px;

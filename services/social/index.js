@@ -1,10 +1,48 @@
 const http = require('http');
 const url = require('url');
 const { ObjectId } = require('mongodb');
+const crypto = require('crypto');
 const db = require('./db');
 const broker = require('./broker');
 
 const PORT = process.env.PORT || 8006;
+const ENGINE_URL = process.env.ENGINE_URL || 'http://127.0.0.1:8002';
+const CHALLENGE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+// In-memory store for pending challenges { challengeId -> { senderId, receiverId, mode, createdAt, timer } }
+const pendingChallenges = new Map();
+
+// Helper: Call Engine service to create a game
+function callEngine(body) {
+    return new Promise((resolve, reject) => {
+        const engineUrl = new URL(ENGINE_URL);
+        const jsonBody = JSON.stringify(body);
+        const options = {
+            hostname: engineUrl.hostname,
+            port: engineUrl.port,
+            path: '/api/games',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(jsonBody)
+            }
+        };
+        const req = http.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.gameId) resolve(parsed);
+                    else reject(new Error('Engine did not return a gameId'));
+                } catch (e) { reject(e); }
+            });
+        });
+        req.on('error', (e) => reject(e));
+        req.write(jsonBody);
+        req.end();
+    });
+}
 
 // Helper function to parse JSON body from raw HTTP requests
 const parseJSONBody = (req) => {
@@ -283,6 +321,157 @@ const server = http.createServer(async (req, res) => {
             });
 
             return sendResponse(res, 200, { message: "Friendship removed" });
+        }
+
+        // ---------------------------------------------------------
+        // GET /api/friend/challenge/pending
+        // ---------------------------------------------------------
+        if (pathname === "/api/friend/challenge/pending" && method === 'GET') {
+            const received = [];
+            const sent = [];
+            for (const [challengeId, ch] of pendingChallenges) {
+                if (ch.receiverId === currentUserId) {
+                    received.push({ challengeId, senderId: ch.senderId, senderUsername: ch.senderUsername, mode: ch.mode, createdAt: ch.createdAt });
+                }
+                if (ch.senderId === currentUserId) {
+                    sent.push({ challengeId, receiverId: ch.receiverId, mode: ch.mode, createdAt: ch.createdAt });
+                }
+            }
+            return sendResponse(res, 200, { received, sent });
+        }
+
+        // ---------------------------------------------------------
+        // POST /api/friend/challenge
+        // ---------------------------------------------------------
+        if (pathname === "/api/friend/challenge" && method === 'POST') {
+            const body = await parseJSONBody(req);
+            const { receiverId, mode } = body;
+
+            if (!receiverId || !['ranked', 'unranked'].includes(mode)) {
+                return sendResponse(res, 400, { error: "receiverId and mode ('ranked' or 'unranked') required" });
+            }
+            if (currentUserId === receiverId) {
+                return sendResponse(res, 400, { error: "You cannot challenge yourself" });
+            }
+
+            // Validate friendship exists and is accepted
+            const friendship = await friendships.findOne({
+                status: 'accepted',
+                $or: [
+                    { requesterId: currentUserId, receiverId: receiverId },
+                    { requesterId: receiverId, receiverId: currentUserId }
+                ]
+            });
+            if (!friendship) {
+                return sendResponse(res, 403, { error: "You can only challenge accepted friends" });
+            }
+
+            const challengeId = crypto.randomUUID();
+            const sender = await users.findOne({ _id: ObjectId.createFromHexString(currentUserId) });
+
+            // Store with TTL timer
+            const timer = setTimeout(async () => {
+                pendingChallenges.delete(challengeId);
+                await broker.dispatch(currentUserId, 'challenge:expired', { challengeId });
+            }, CHALLENGE_TTL_MS);
+
+            pendingChallenges.set(challengeId, {
+                senderId: currentUserId,
+                senderUsername: sender.username,
+                receiverId,
+                mode,
+                createdAt: Date.now(),
+                timer
+            });
+
+            await broker.dispatch(receiverId, 'challenge:received', {
+                challengeId,
+                senderId: currentUserId,
+                senderUsername: sender.username,
+                mode
+            });
+
+            return sendResponse(res, 201, { message: "Challenge sent", challengeId });
+        }
+
+        // ---------------------------------------------------------
+        // POST /api/friend/challenge/respond
+        // ---------------------------------------------------------
+        if (pathname === "/api/friend/challenge/respond" && method === 'POST') {
+            const body = await parseJSONBody(req);
+            const { challengeId, action } = body;
+
+            if (!challengeId || !['accept', 'decline'].includes(action)) {
+                return sendResponse(res, 400, { error: "challengeId and action ('accept' or 'decline') required" });
+            }
+
+            const challenge = pendingChallenges.get(challengeId);
+            if (!challenge) {
+                return sendResponse(res, 410, { error: "Challenge expired or not found" });
+            }
+            if (challenge.receiverId !== currentUserId) {
+                return sendResponse(res, 403, { error: "Not authorized to respond to this challenge" });
+            }
+
+            // Check TTL
+            if (Date.now() - challenge.createdAt > CHALLENGE_TTL_MS) {
+                clearTimeout(challenge.timer);
+                pendingChallenges.delete(challengeId);
+                return sendResponse(res, 410, { error: "Challenge expired" });
+            }
+
+            // Clean up
+            clearTimeout(challenge.timer);
+            pendingChallenges.delete(challengeId);
+
+            const responder = await users.findOne({ _id: ObjectId.createFromHexString(currentUserId) });
+
+            if (action === 'decline') {
+                await broker.dispatch(challenge.senderId, 'challenge:declined', {
+                    challengeId,
+                    responderUsername: responder.username
+                });
+                return sendResponse(res, 200, { message: "Challenge declined" });
+            }
+
+            // Accept: create game on Engine
+            try {
+                const senderUser = await users.findOne({ _id: ObjectId.createFromHexString(challenge.senderId) });
+                const engineMode = challenge.mode === 'ranked' ? 'online' : 'online';
+                const { gameId } = await callEngine({
+                    mode: engineMode,
+                    player1UserId: challenge.senderId,
+                    player2UserId: currentUserId,
+                    player1Elo: senderUser.elo || 600,
+                    player2Elo: responder.elo || 600
+                });
+
+                const gameSessionData = {
+                    gameId,
+                    gameMode: challenge.mode,
+                    challengeId,
+                    // Challenger is player 0, responder is player 1
+                    challenger: {
+                        playerId: 0,
+                        username: senderUser.username,
+                        elo: senderUser.elo || 600
+                    },
+                    responder: {
+                        playerId: 1,
+                        username: responder.username,
+                        elo: responder.elo || 600
+                    }
+                };
+
+                // Notify the challenger to redirect
+                await broker.dispatch(challenge.senderId, 'challenge:accepted', gameSessionData);
+
+                // Return data to responder
+                return sendResponse(res, 200, gameSessionData);
+            } catch (err) {
+                console.error("Failed to create game on Engine:", err);
+                return sendResponse(res, 500, { error: "Failed to create game. Engine may be unavailable." });
+            }
         }
 
         return sendResponse(res, 404, { error: "Route Not Found" });
