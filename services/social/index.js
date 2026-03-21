@@ -34,7 +34,7 @@ const server = http.createServer(async (req, res) => {
     console.log(`Received query for social service: ${req.url}`);
 
     // Assuming the API Gateway verifies Auth and passes the userId in the headers
-    const currentUserId = req.headers['x-user-id']; 
+    const currentUserId = req.headers['x-user-id'];
 
     res.setHeader('Content-Type', 'application/json');
 
@@ -42,6 +42,10 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(204);
         res.end();
         return;
+    }
+
+    if (!currentUserId && req.url !== "/social/health") {
+        return sendResponse(res, 401, { error: "Unauthorized" });
     }
 
     const parsedUrl = url.parse(req.url, true);
@@ -71,20 +75,20 @@ const server = http.createServer(async (req, res) => {
             }).toArray();
 
             // 2. Extract the IDs of the other users in those relationships
-            const excludedUserIds = existingLinks.map(link => 
+            const excludedUserIds = existingLinks.map(link =>
                 link.requesterId === currentUserId ? link.receiverId : link.requesterId
             );
 
             // 3. Convert those string IDs to ObjectIds
             const excludedObjectIds = excludedUserIds.map(id => ObjectId.createFromHexString(id));
-            
+
             // 4. Also exclude the current user from the search
             excludedObjectIds.push(ObjectId.createFromHexString(currentUserId));
 
             // 5. Search users, explicitly excluding the ObjectIds we just gathered using $nin
             const results = await users.find({
                 username: { $regex: searchQuery, $options: 'i' },
-                _id: { $nin: excludedObjectIds } 
+                _id: { $nin: excludedObjectIds }
             }).project({ username: 1 }).limit(20).toArray();
 
             return sendResponse(res, 200, { users: results });
@@ -113,7 +117,7 @@ const server = http.createServer(async (req, res) => {
                 };
                 const insertResult = await friendships.insertOne(friendshipDoc);
 
-                const requester = await users.findOne({_id: ObjectId.createFromHexString(currentUserId)})
+                const requester = await users.findOne({ _id: ObjectId.createFromHexString(currentUserId) })
 
                 // USE BROKER INSTEAD OF DIRECT DB INSERT
                 await broker.dispatch(receiverId, "friend:invitation", {
@@ -144,12 +148,12 @@ const server = http.createServer(async (req, res) => {
             }
 
             const friendship = await friendships.findOne({ _id: ObjectId.createFromHexString(friendshipId) });
-            
+
             if (!friendship) return sendResponse(res, 404, { error: "Friendship request not found" });
             if (friendship.receiverId !== currentUserId) return sendResponse(res, 403, { error: "Not authorized to respond to this request" });
             if (friendship.status !== 'pending') return sendResponse(res, 400, { error: "Request is no longer pending" });
 
-            const accepter = await users.findOne({_id: ObjectId.createFromHexString(friendship.receiverId)})
+            const accepter = await users.findOne({ _id: ObjectId.createFromHexString(friendship.receiverId) })
 
             if (action === 'accept') {
                 await friendships.updateOne({ _id: ObjectId.createFromHexString(friendshipId) }, { $set: { status: 'accepted', updatedAt: new Date() } });
@@ -183,7 +187,7 @@ const server = http.createServer(async (req, res) => {
                 $or: [{ requesterId: currentUserId }, { receiverId: currentUserId }]
             }).toArray();
 
-            const friendIds = friends.map(f => 
+            const friendIds = friends.map(f =>
                 f.requesterId === currentUserId ? ObjectId.createFromHexString(f.receiverId) : ObjectId.createFromHexString(f.requesterId)
             );
 
@@ -234,7 +238,7 @@ const server = http.createServer(async (req, res) => {
             await friendships.deleteOne({ _id: new ObjectId.createFromHexString(friendshipId) });
 
             const otherUserId = friendship.requesterId === currentUserId ? friendship.receiverId : friendship.requesterId;
-            
+
             // USE BROKER INSTEAD OF DIRECT DB INSERT
             await broker.dispatch(otherUserId, "friend:removed", {
                 referenceId: new ObjectId.createFromHexString(friendshipId)

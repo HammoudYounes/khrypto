@@ -35,9 +35,11 @@ http.createServer(async (req, res) => {
             const { token } = await getBody(req);
             try {
                 const decodedPayload = jwt.verify(token, ACCESS_SECRET);
+                const userId = decodedPayload.id || decodedPayload.userId;
+                if (!userId) throw new Error("Invalid token payload");
                 res.writeHead(200);
                 // Return valid: true and the userId that was encoded in the token
-                return res.end(JSON.stringify({ valid: true, userId: decodedPayload.id }));
+                return res.end(JSON.stringify({ valid: true, userId: userId }));
             } catch (e) {
                 res.writeHead(200);
                 return res.end(JSON.stringify({ valid: false }));
@@ -46,11 +48,12 @@ http.createServer(async (req, res) => {
 
         // 3. REFRESH (Renouvellement intelligent)
         if ((url === '/refresh' || url === '/api/refresh') && method === 'POST') {
-            console.log("HALLOOOO")
             const { refreshToken } = await getBody(req);
             try {
                 const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-                const payload = { userId: decoded.id };
+                const userId = decoded.id || decoded.userId;
+                if (!userId) throw new Error("Invalid token payload");
+                const payload = { id: userId };
 
                 // Nouvel Access Token (Toujours)
                 const newAccess = jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_LIFE });
