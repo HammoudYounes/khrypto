@@ -192,6 +192,7 @@ class NotificationManager {
         sessionStorage.setItem('opponentUsername', opponent.username);
         sessionStorage.setItem('myElo', String(me.elo));
         sessionStorage.setItem('opponentElo', String(opponent.elo));
+        sessionStorage.setItem('isRanked', data.gameMode === 'ranked' ? 'true' : 'false');
 
         window.location.href = '/gamePage/index.html';
     }

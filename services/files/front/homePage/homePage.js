@@ -119,11 +119,13 @@ function emitGame(gameMode) {
 
 localButton.addEventListener('click', () => {
     sessionStorage.setItem("gameMode", "local");
+    sessionStorage.setItem("isRanked", "false");
     emitGame("local")
 })
 
 aiButton.addEventListener('click', () => {
     sessionStorage.setItem("gameMode", "ai");
+    sessionStorage.setItem("isRanked", "false");
     emitGame("ai")
 })
 
@@ -179,6 +181,7 @@ onlineButton.addEventListener('click', () => {
         sessionStorage.setItem("gameId", data.gameId);
         sessionStorage.setItem("playerId", data.playerId.toString());
         sessionStorage.setItem("gameMode", "online");
+        sessionStorage.setItem("isRanked", "true");
         sessionStorage.setItem("myUsername", data.myUsername || 'Player');
         sessionStorage.setItem("opponentUsername", data.opponentUsername || 'Opponent');
         if (data.myElo) sessionStorage.setItem("myElo", data.myElo.toString());
