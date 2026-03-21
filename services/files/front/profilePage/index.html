@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Profile & Friends - Khrypto</title>
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="../globalNotif.css">
     <script type="module" src="profilePage.js" defer></script>
 </head>
+
 <body>
     <header class="profile-header">
         <button id="backBtn" class="btn-secondary">← Back to Home</button>
@@ -21,24 +23,34 @@
                 <input type="text" id="searchInput" placeholder="Search by username..." autocomplete="off">
             </div>
             <ul id="searchResults" class="user-list">
-                </ul>
+            </ul>
         </section>
 
         <section class="card pending-section">
             <h2>Pending Invitations</h2>
-            <ul id="pendingList" class="user-list">
-                <li class="empty-msg">No pending invitations.</li>
-            </ul>
+            <div class="pending-subsection">
+                <h3>Received</h3>
+                <ul id="pendingList" class="user-list">
+                    <li class="empty-msg">No pending invitations.</li>
+                </ul>
+            </div>
+            <div class="pending-subsection">
+                <h3>Sent</h3>
+                <ul id="sentList" class="user-list">
+                    <li class="empty-msg">No sent requests.</li>
+                </ul>
+            </div>
         </section>
 
         <section class="card friends-section">
             <h2>My Friends</h2>
             <ul id="friendsList" class="user-list">
-                <li class="empty-msg">You have no friends yet.</li>
+                <li class="empty-msg">No friends yet — search for users to add!</li>
             </ul>
         </section>
     </main>
 
     <div id="toastContainer" class="toast-container"></div>
 </body>
+
 </html>
