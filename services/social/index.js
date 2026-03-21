@@ -182,18 +182,31 @@ const server = http.createServer(async (req, res) => {
         // GET /api/friend/list
         // ---------------------------------------------------------
         if (pathname === "/api/friend/list" && method === 'GET') {
-            const friends = await friendships.find({
+            const friendDocs = await friendships.find({
                 status: 'accepted',
                 $or: [{ requesterId: currentUserId }, { receiverId: currentUserId }]
             }).toArray();
 
-            const friendIds = friends.map(f =>
+            const friendIds = friendDocs.map(f =>
                 f.requesterId === currentUserId ? ObjectId.createFromHexString(f.receiverId) : ObjectId.createFromHexString(f.requesterId)
             );
 
             const friendUsers = await users.find({ _id: { $in: friendIds } }).project({ username: 1 }).toArray();
 
-            return sendResponse(res, 200, { friends: friendUsers });
+            // Zip friendshipId into each friend object
+            const friendsWithMeta = friendUsers.map(user => {
+                const doc = friendDocs.find(f => {
+                    const otherId = f.requesterId === currentUserId ? f.receiverId : f.requesterId;
+                    return otherId === user._id.toString();
+                });
+                return {
+                    _id: user._id,
+                    username: user.username,
+                    friendshipId: doc ? doc._id : null
+                };
+            });
+
+            return sendResponse(res, 200, { friends: friendsWithMeta });
         }
 
         // ---------------------------------------------------------
@@ -222,26 +235,51 @@ const server = http.createServer(async (req, res) => {
         }
 
         // ---------------------------------------------------------
+        // GET /api/friend/sent
+        // ---------------------------------------------------------
+        if (pathname === "/api/friend/sent" && method === 'GET') {
+            const sentRequests = await friendships.find({
+                status: 'pending',
+                requesterId: currentUserId
+            }).toArray();
+
+            const receiverIds = sentRequests.map(f => ObjectId.createFromHexString(f.receiverId));
+            const receiverUsers = await users.find({ _id: { $in: receiverIds } }).project({ username: 1 }).toArray();
+
+            const responseData = sentRequests.map(req => {
+                const user = receiverUsers.find(u => u._id.toString() === req.receiverId);
+                return {
+                    friendshipId: req._id,
+                    receiverId: req.receiverId,
+                    receiverUsername: user ? user.username : "Unknown User",
+                    createdAt: req.createdAt
+                };
+            });
+
+            return sendResponse(res, 200, { sent: responseData });
+        }
+
+        // ---------------------------------------------------------
         // DELETE /api/friend/:friendshipId
         // ---------------------------------------------------------
         const deleteMatch = pathname.match(/^\/api\/friend\/([0-9a-fA-F]{24})$/);
         if (deleteMatch && method === 'DELETE') {
             const friendshipId = deleteMatch[1];
 
-            const friendship = await friendships.findOne({ _id: new ObjectId.createFromHexString(friendshipId) });
+            const friendship = await friendships.findOne({ _id: ObjectId.createFromHexString(friendshipId) });
             if (!friendship) return sendResponse(res, 404, { error: "Friendship not found" });
 
             if (friendship.requesterId !== currentUserId && friendship.receiverId !== currentUserId) {
                 return sendResponse(res, 403, { error: "Not authorized to delete this friendship" });
             }
 
-            await friendships.deleteOne({ _id: new ObjectId.createFromHexString(friendshipId) });
+            await friendships.deleteOne({ _id: ObjectId.createFromHexString(friendshipId) });
 
             const otherUserId = friendship.requesterId === currentUserId ? friendship.receiverId : friendship.requesterId;
 
             // USE BROKER INSTEAD OF DIRECT DB INSERT
             await broker.dispatch(otherUserId, "friend:removed", {
-                referenceId: new ObjectId.createFromHexString(friendshipId)
+                referenceId: ObjectId.createFromHexString(friendshipId)
             });
 
             return sendResponse(res, 200, { message: "Friendship removed" });
