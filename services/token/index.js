@@ -34,9 +34,10 @@ http.createServer(async (req, res) => {
         if (url === '/verify' && method === 'POST') {
             const { token } = await getBody(req);
             try {
-                jwt.verify(token, ACCESS_SECRET);
+                const decodedPayload = jwt.verify(token, ACCESS_SECRET);
                 res.writeHead(200);
-                return res.end(JSON.stringify({ valid: true }));
+                // Return valid: true and the userId that was encoded in the token
+                return res.end(JSON.stringify({ valid: true, userId: decodedPayload.id }));
             } catch (e) {
                 res.writeHead(200);
                 return res.end(JSON.stringify({ valid: false }));

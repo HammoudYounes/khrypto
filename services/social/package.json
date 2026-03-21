@@ -1,7 +1,6 @@
 {
-  "name": "matchmaking",
+  "name": "social",
   "version": "1.0.0",
-  "description": "Matchmaking service for online 1v1 games",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,6 +8,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "description": "",
   "dependencies": {
     "mongodb": "^6.21.0",
     "socket.io": "^4.8.3"
