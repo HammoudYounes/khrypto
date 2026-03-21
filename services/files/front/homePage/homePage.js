@@ -1,4 +1,5 @@
 import { TokenManager } from "../js/tokenManager.js";
+import { notificationManager } from "../js/notificationManager.js";
 const API_URL = "/api";
 
 // DOM elements - game buttons
@@ -10,6 +11,9 @@ const onlineButton = document.getElementById("onlineBtn");
 const profileBtn = document.getElementById("profileBtn");
 const profilePanel = document.getElementById("profilePanel");
 const logoutBtn = document.getElementById("logoutBtn");
+const goToProfileBtn = document.getElementById("goToProfileBtn");
+
+
 const socket = io({
     path: '/socket.io',
 
@@ -69,6 +73,7 @@ socket.on("connect_error", async (err) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeHome();
+    notificationManager.init();
 });
 
 // Toggle profile panel
@@ -83,6 +88,13 @@ logoutBtn.addEventListener('click', () => {
     // Redirect to auth page
     window.location.href = '../index.html';
 });
+
+// Navigate to Profile Page
+if (goToProfileBtn) {
+    goToProfileBtn.addEventListener('click', () => {
+        window.location.href = '../profilePage/index.html';
+    });
+}
 
 // Close profile panel when clicking outside
 document.addEventListener('click', (e) => {
