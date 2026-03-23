@@ -243,3 +243,186 @@ function cancelMatchmaking() {
     localButton.disabled = false;
     aiButton.disabled = false;
 }
+
+// ========== GLOBAL CHAT ==========
+
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSendBtn = document.getElementById('chatSendBtn');
+const chatEmpty = document.getElementById('chatEmpty');
+const chatLoading = document.getElementById('chatLoading');
+
+let socialSocket = null;
+let chatOffset = 0;
+let chatAllLoaded = false;
+let chatFetching = false;
+const currentUsername = sessionStorage.getItem('username');
+
+function initSocialSocket() {
+    socialSocket = io({
+        path: '/social/socket.io',
+        autoConnect: false,
+        query: { token: TokenManager.getAccessToken() }
+    });
+
+    socialSocket.on('connect', () => {
+        console.log('[Social] Connected to social broker');
+        // Fetch initial messages
+        fetchChatMessages();
+    });
+
+    socialSocket.on('global-chat:receive', (msg) => {
+        // Check if we should auto-scroll (user is at the bottom)
+        const isAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 30;
+
+        appendMessage(msg);
+
+        if (isAtBottom) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+
+    socialSocket.on('connect_error', async (err) => {
+        console.error('[Social] Connection error:', err.message);
+        const success = await TokenManager.refreshAccessToken();
+        if (success) {
+            socialSocket.io.opts.query = { token: TokenManager.getAccessToken() };
+            socialSocket.connect();
+        }
+    });
+
+    socialSocket.io.opts.query = { token: TokenManager.getAccessToken() };
+    socialSocket.connect();
+}
+
+async function fetchChatMessages() {
+    if (chatFetching || chatAllLoaded) return;
+    chatFetching = true;
+    chatLoading.style.display = 'block';
+
+    try {
+        const token = TokenManager.getAccessToken();
+        const res = await fetch(`/api/chat/global?limit=15&offset=${chatOffset}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            // Try refresh if 401
+            if (res.status === 401) {
+                const refreshed = await TokenManager.refreshAccessToken();
+                if (refreshed) {
+                    chatFetching = false;
+                    chatLoading.style.display = 'none';
+                    return fetchChatMessages();
+                }
+            }
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const messages = data.messages || [];
+
+        if (messages.length < 15) {
+            chatAllLoaded = true;
+        }
+
+        if (messages.length > 0 || chatOffset > 0) {
+            chatEmpty.style.display = 'none';
+        }
+
+        // Prepend older messages at the top (messages array is chronological)
+        const prevScrollHeight = chatMessages.scrollHeight;
+
+        for (const msg of messages) {
+            prependMessage(msg);
+        }
+
+        chatOffset += messages.length;
+
+        // Restore scroll position so it doesn't jump
+        if (chatOffset > 15) {
+            // Only restore for pagination loads (not initial)
+            chatMessages.scrollTop = chatMessages.scrollHeight - prevScrollHeight;
+        } else {
+            // Initial load: scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    } catch (err) {
+        console.error('[Chat] Error fetching messages:', err);
+    } finally {
+        chatFetching = false;
+        chatLoading.style.display = 'none';
+    }
+}
+
+function createMessageElement(msg) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    if (msg.senderUsername === currentUsername) {
+        div.classList.add('chat-msg-own');
+    }
+
+    const sender = document.createElement('div');
+    sender.className = 'chat-msg-sender';
+    sender.textContent = msg.senderUsername;
+
+    const content = document.createElement('div');
+    content.className = 'chat-msg-content';
+    content.textContent = msg.content;
+
+    const time = document.createElement('div');
+    time.className = 'chat-msg-time';
+    const date = new Date(msg.createdAt);
+    time.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    div.appendChild(sender);
+    div.appendChild(content);
+    div.appendChild(time);
+    return div;
+}
+
+function appendMessage(msg) {
+    chatEmpty.style.display = 'none';
+    const el = createMessageElement(msg);
+    chatMessages.appendChild(el);
+}
+
+function prependMessage(msg) {
+    const el = createMessageElement(msg);
+    // Insert after the loading indicator
+    chatLoading.insertAdjacentElement('afterend', el);
+}
+
+// Send message
+function sendChatMessage() {
+    const content = chatInput.value.trim();
+    if (!content || !socialSocket || !socialSocket.connected) return;
+
+    socialSocket.emit('global-chat:send', { content });
+    chatInput.value = '';
+}
+
+chatSendBtn.addEventListener('click', sendChatMessage);
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        sendChatMessage();
+    }
+});
+
+// Scroll pagination — load older messages when scrolled to top
+chatMessages.addEventListener('scroll', () => {
+    if (chatMessages.scrollTop === 0 && !chatFetching && !chatAllLoaded) {
+        fetchChatMessages();
+    }
+});
+
+// Initialize social socket when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Small delay to ensure auth is ready
+    setTimeout(() => {
+        if (TokenManager.getAccessToken()) {
+            initSocialSocket();
+        }
+    }, 500);
+});
