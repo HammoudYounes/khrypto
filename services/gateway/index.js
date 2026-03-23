@@ -40,7 +40,7 @@ const server = http.createServer(function (request, response) {
                 console.log("Routing API request to Token Service");
                 proxy.web(request, response, { target: PORTS.TOKEN });
             }
-            if (filePath[2] === "friend" || filePath[2] === "social") {
+            if (filePath[2] === "friend" || filePath[2] === "social" || filePath[2] === "chat") {
                 console.log("Routing API request to Friend Service");
                 return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
             }

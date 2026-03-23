@@ -95,6 +95,36 @@ function initBroker(server) {
             socket.emit('friend:online-statuses', { onlineIds });
         });
 
+        // --- Global Chat ---
+        socket.on('global-chat:send', async (data) => {
+            try {
+                const content = (data.content || '').trim();
+                if (!content || content.length > 500) return;
+
+                const users = db.getUsersCollection();
+                const sender = await users.findOne({ _id: new ObjectId(userId) });
+                if (!sender) return;
+
+                const message = {
+                    senderId: userId,
+                    senderUsername: sender.username,
+                    content: content,
+                    createdAt: new Date()
+                };
+
+                const globalMessages = db.getGlobalMessagesCollection();
+                const result = await globalMessages.insertOne(message);
+
+                // Broadcast to ALL connected users
+                io.emit('global-chat:receive', {
+                    _id: result.insertedId,
+                    ...message
+                });
+            } catch (err) {
+                console.error('Error handling global chat message:', err);
+            }
+        });
+
         socket.on('disconnect', async () => {
             console.log(`User disconnected from broker: ${userId}`);
             onlineUsers.delete(userId);

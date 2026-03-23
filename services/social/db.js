@@ -4,6 +4,7 @@ let DB_NAME = null;
 const FRIENDSHIPS_COLLECTION_NAME = 'friendships';
 const MESSAGE_QUEUE_COLLECTION_NAME = 'message_queue';
 const USERS_COLLECTION_NAME = 'users';
+const GLOBAL_MESSAGES_COLLECTION_NAME = 'global_messages';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
 
 const client = new MongoClient(MONGO_URL);
@@ -11,6 +12,7 @@ const client = new MongoClient(MONGO_URL);
 let friendships_collection;
 let message_queue_collection;
 let users_collection;
+let global_messages_collection;
 
 async function runGetStarted() {
     try {
@@ -21,6 +23,7 @@ async function runGetStarted() {
         friendships_collection = khryto_db.collection(FRIENDSHIPS_COLLECTION_NAME);
         message_queue_collection = khryto_db.collection(MESSAGE_QUEUE_COLLECTION_NAME);
         users_collection = khryto_db.collection(USERS_COLLECTION_NAME);
+        global_messages_collection = khryto_db.collection(GLOBAL_MESSAGES_COLLECTION_NAME);
         DB_NAME = khryto_db.databaseName;
 
         // --- Friendships Collection Indexes ---
@@ -57,6 +60,14 @@ async function runGetStarted() {
 
         console.log("Successfully created indexes for message_queue collection");
 
+        // --- Global Messages Collection Indexes ---
+        // Descending index on createdAt for efficient paginated queries (newest first)
+        await global_messages_collection.createIndex(
+            { createdAt: -1 }
+        );
+
+        console.log("Successfully created indexes for global_messages collection");
+
     } catch (error) {
         console.log(error);
     }
@@ -68,5 +79,6 @@ module.exports = {
     client,
     getFriendshipsCollection: () => friendships_collection,
     getMessageQueueCollection: () => message_queue_collection,
-    getUsersCollection: () => users_collection
+    getUsersCollection: () => users_collection,
+    getGlobalMessagesCollection: () => global_messages_collection
 };

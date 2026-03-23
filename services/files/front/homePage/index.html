@@ -65,7 +65,8 @@
                 <span class="chat-icon">💬</span> Global Chat
             </h2>
             <div id="chatMessages" class="chat-messages">
-                <p class="chat-empty">No messages yet. Say hello!</p>
+                <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
+                <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
             </div>
             <div class="chat-input-bar">
                 <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
