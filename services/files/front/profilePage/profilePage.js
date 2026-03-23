@@ -84,8 +84,6 @@ document.addEventListener('notification:friend_online_statuses', (e) => {
     onlineIds.forEach(id => {
         const dot = friendsList.querySelector(`li[data-user-id="${id}"] .status-dot`);
         if (dot) { dot.classList.remove('offline'); dot.classList.add('online'); }
-        // Show challenge buttons for online friends
-        toggleChallengeButtons(id, true);
     });
 });
 
@@ -96,7 +94,6 @@ document.addEventListener('notification:friend_status_change', (e) => {
         dot.classList.remove('online', 'offline');
         dot.classList.add(status === 'online' ? 'online' : 'offline');
     }
-    toggleChallengeButtons(userId, status === 'online');
 });
 
 // Challenge events → refresh challenges section
@@ -326,13 +323,12 @@ async function loadFriendsList(token) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'btn-group';
 
-            // Challenge buttons (hidden by default, shown when online)
+            // Challenge buttons (always shown now)
             const unrankedBtn = document.createElement('button');
             unrankedBtn.textContent = 'Unranked';
             unrankedBtn.className = 'btn-challenge';
             unrankedBtn.title = 'Challenge (Unranked)';
             unrankedBtn.dataset.challengeBtn = 'true';
-            unrankedBtn.style.display = 'none';
             unrankedBtn.onclick = () => sendChallenge(friend._id, 'unranked');
 
             const rankedBtn = document.createElement('button');
@@ -340,7 +336,6 @@ async function loadFriendsList(token) {
             rankedBtn.className = 'btn-challenge';
             rankedBtn.title = 'Challenge (Ranked)';
             rankedBtn.dataset.challengeBtn = 'true';
-            rankedBtn.style.display = 'none';
             rankedBtn.onclick = () => sendChallenge(friend._id, 'ranked');
 
             const removeBtn = document.createElement('button');
@@ -359,13 +354,7 @@ async function loadFriendsList(token) {
     } catch (err) { console.error("Failed to load friends", err); }
 }
 
-function toggleChallengeButtons(userId, show) {
-    const li = friendsList.querySelector(`li[data-user-id="${userId}"]`);
-    if (!li) return;
-    li.querySelectorAll('[data-challenge-btn]').forEach(btn => {
-        btn.style.display = show ? 'inline-block' : 'none';
-    });
-}
+
 
 // ==========================================
 // CHALLENGE FRIENDS
