@@ -74,6 +74,16 @@ socket.on("connect_error", async (err) => {
 document.addEventListener('DOMContentLoaded', () => {
     initializeHome();
     notificationManager.init();
+
+    // Populate username in profile button and panel
+    const username = sessionStorage.getItem('username') || 'Guest';
+    const profileUsernameEl = document.getElementById('profileUsername');
+    const usernameDisplayEl = document.getElementById('usernameDisplay');
+    if (profileUsernameEl) profileUsernameEl.textContent = username;
+    if (usernameDisplayEl) {
+        const span = usernameDisplayEl.querySelector('span');
+        if (span) span.textContent = username;
+    }
 });
 
 // Toggle profile panel
@@ -170,7 +180,8 @@ onlineButton.addEventListener('click', () => {
     matchmakingSocket.on('matchmaking:waiting', (data) => {
         console.log("[Matchmaking] Waiting for an opponent...");
         const rangeStr = data && data.eloRange ? ` (+/- ${data.eloRange})` : '';
-        onlineButton.textContent = `Searching...${rangeStr}`;
+        const label = onlineButton.querySelector('.mode-label');
+        if (label) label.textContent = `Searching...${rangeStr}`;
         localButton.disabled = true;
         aiButton.disabled = true;
     });
@@ -212,7 +223,8 @@ onlineButton.addEventListener('click', () => {
     });
 
     // Show searching state & connect
-    onlineButton.textContent = "Searching...";
+    const label = onlineButton.querySelector('.mode-label');
+    if (label) label.textContent = "Searching...";
     localButton.disabled = true;
     aiButton.disabled = true;
 
@@ -226,7 +238,8 @@ function cancelMatchmaking() {
         matchmakingSocket.disconnect();
         matchmakingSocket = null;
     }
-    onlineButton.textContent = "Online";
+    const label = onlineButton.querySelector('.mode-label');
+    if (label) label.textContent = "Online";
     localButton.disabled = false;
     aiButton.disabled = false;
 }

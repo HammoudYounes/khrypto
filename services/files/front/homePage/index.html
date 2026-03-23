@@ -3,40 +3,82 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Khrypto</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="homePage.css">
-    <script src="../js/socket.io.js"></script>
     <link rel="stylesheet" href="../globalNotif.css">
+    <script src="../js/socket.io.js"></script>
+    <script src="../js/matrixBackground.js"></script>
     <script type="module" src="homePage.js" defer></script>
 </head>
 
 <body>
+    <canvas id="matrixCanvas"></canvas>
+
     <!-- Profile button in top right corner -->
     <div class="profile-button-container">
-        <button id="profileBtn" class="profile-btn">Profile</button>
+        <button id="profileBtn" class="profile-btn">
+            <span class="profile-icon">⬡</span>
+            <span id="profileUsername">Guest</span>
+        </button>
     </div>
 
     <!-- Profile dropdown panel -->
-    <div id="profilePanel" class="profile-panel">
+    <div id="profilePanel" class="profile-panel glass-card">
         <div class="profile-panel-content">
             <h2>Profile</h2>
             <div class="profile-info">
                 <p id="usernameDisplay">Username: <span>Guest</span></p>
             </div>
-            <button id="goToProfileBtn" class="profile-btn" style="margin-bottom: 10px;">My Profile & Friends</button>
-            <button id="logoutBtn" class="logout-btn">Logout</button>
+            <button id="goToProfileBtn" class="btn btn-gold" style="margin-bottom: 10px; width: 100%;">My Profile &
+                Friends</button>
+            <button id="logoutBtn" class="btn btn-danger" style="width: 100%;">Logout</button>
         </div>
     </div>
 
     <!-- Main content -->
-    <div class="container">
-        <h1>KHRYPTO</h1>
-        <div class="buttons">
-            <button id="localBtn">Local</button>
-            <button id="aiBtn">AI</button>
-            <button id="onlineBtn">Online</button>
+    <div class="home-container">
+        <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-lg">
+
+        <div class="game-mode-buttons">
+            <button id="localBtn" class="mode-card glass-card">
+                <span class="mode-icon">🎮</span>
+                <span class="mode-label">Local</span>
+            </button>
+            <button id="aiBtn" class="mode-card glass-card">
+                <span class="mode-icon">🤖</span>
+                <span class="mode-label">AI</span>
+            </button>
+            <button id="onlineBtn" class="mode-card glass-card">
+                <span class="mode-icon">🌐</span>
+                <span class="mode-label">Online</span>
+            </button>
         </div>
+
+        <!-- Chat Section -->
+        <section class="chat-section glass-card">
+            <h2 class="chat-header">
+                <span class="chat-icon">💬</span> Global Chat
+            </h2>
+            <div id="chatMessages" class="chat-messages">
+                <p class="chat-empty">No messages yet. Say hello!</p>
+            </div>
+            <div class="chat-input-bar">
+                <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
+                <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
+            </div>
+        </section>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initMatrixBackground('matrixCanvas');
+        });
+    </script>
 </body>
 
 </html>
