@@ -223,17 +223,6 @@ function updateEloDisplays(myElo, opponentElo) {
     const p1PotentialDiv = document.getElementById('p1-elo-potential');
     const p2PotentialDiv = document.getElementById('p2-elo-potential');
 
-    const isRanked = sessionStorage.getItem('isRanked') === 'true';
-
-    // Only show Elo for ranked games
-    if (!isRanked) {
-        if (p1EloSpan) p1EloSpan.textContent = '';
-        if (p2EloSpan) p2EloSpan.textContent = '';
-        if (p1PotentialDiv) p1PotentialDiv.style.display = 'none';
-        if (p2PotentialDiv) p2PotentialDiv.style.display = 'none';
-        return;
-    }
-
     if (myElo && p1EloSpan) p1EloSpan.textContent = `(${myElo})`;
     if (opponentElo && p2EloSpan) p2EloSpan.textContent = `(${opponentElo})`;
 
@@ -249,7 +238,7 @@ function updateEloDisplays(myElo, opponentElo) {
         const oppDraw = computeEloChange(oE, mE, 0.5);
         const oppLoss = computeEloChange(oE, mE, 0);
 
-        const formatPotential = (win, draw, loss) => `Potential: <span class="elo-win">W:${win > 0 ? '+' + win : win}</span> | <span class="elo-draw">D:${draw > 0 ? '+' + draw : draw}</span> | <span class="elo-loss">L:${loss > 0 ? '+' + loss : loss}</span>`;
+        const formatPotential = (win, draw, loss) => `Potential: <span class="elo-win">W: ${win > 0 ? '+' + win : win}</span> | <span class="elo-draw">D: ${draw > 0 ? '+' + draw : draw}</span> | <span class="elo-loss">L: ${loss > 0 ? '+' + loss : loss}</span>`;
 
         p1PotentialDiv.style.display = 'block';
         p2PotentialDiv.style.display = 'block';

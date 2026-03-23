@@ -1,8 +1,6 @@
-:root {
-    --primary: #0f3460;
-    --success: #4caf50;
-    --danger: #f44336;
-}
+/* ═══════════════════════════════════════════════════════
+   KHRYPTO — Global Toast Notifications
+   ═══════════════════════════════════════════════════════ */
 
 .toast-container {
     position: fixed;
@@ -18,36 +16,42 @@
     min-width: 250px;
     max-width: 380px;
     padding: 15px 20px;
-    border-radius: 8px;
-    color: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-radius: var(--radius-md, 8px);
+    color: var(--text-primary, #F0F0F0);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
     animation: slideIn 0.3s ease-out forwards;
     transition: opacity 0.3s ease, transform 0.3s ease;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .toast.success {
-    background-color: var(--success);
+    background: rgba(0, 230, 118, 0.15);
+    border-left: 3px solid var(--neon-green, #00E676);
 }
 
 .toast.error {
-    background-color: var(--danger);
+    background: rgba(255, 23, 68, 0.15);
+    border-left: 3px solid var(--neon-red, #FF1744);
 }
 
 .toast.info {
-    background-color: var(--primary);
+    background: rgba(212, 175, 55, 0.12);
+    border-left: 3px solid var(--gold, #D4AF37);
 }
 
-/* Interactive toasts remain until user acts */
+/* Interactive toasts */
 .toast.interactive {
-    border-left: 4px solid rgba(255, 255, 255, 0.5);
+    border-left: 4px solid var(--gold-light, #F5D76E);
 }
 
 .toast-message {
     margin-bottom: 10px;
     font-weight: 500;
     line-height: 1.4;
+    font-family: var(--font-body, 'Inter', sans-serif);
 }
 
 .toast-actions {
@@ -58,25 +62,31 @@
 .toast-actions button {
     border: none;
     padding: 6px 14px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm, 4px);
     font-weight: bold;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s ease;
+    font-family: var(--font-body, 'Inter', sans-serif);
 }
 
 .toast-actions button:hover {
     opacity: 0.85;
+    transform: translateY(-1px);
 }
 
 .toast-btn-accept {
-    background: var(--success);
-    color: white;
+    background: var(--neon-green, #00E676);
+    color: #0B0B0B;
 }
 
 .toast-btn-decline {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #F0F0F0);
+}
+
+.toast-btn-decline:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 /* Countdown bar */
@@ -84,9 +94,9 @@
     position: absolute;
     bottom: 0;
     left: 0;
-    height: 3px;
+    height: 2px;
     width: 100%;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--gold-dim, #A68523);
     animation: countdownShrink linear forwards;
     transform-origin: left;
 }

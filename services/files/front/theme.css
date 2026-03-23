@@ -1,0 +1,265 @@
+/* ═══════════════════════════════════════════════════════
+   KHRYPTO — Global Design System (theme.css)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ── */
+:root {
+    /* Backgrounds */
+    --bg-primary: #0B0B0B;
+    --bg-surface: #111111;
+    --bg-card: rgba(17, 17, 17, 0.75);
+    --bg-card-solid: #161616;
+
+    /* Gold Accents */
+    --gold: #D4AF37;
+    --gold-light: #F5D76E;
+    --gold-dim: #A68523;
+    --gold-glow: rgba(212, 175, 55, 0.35);
+
+    /* Action Colors */
+    --neon-green: #00E676;
+    --neon-green-dim: rgba(0, 230, 118, 0.15);
+    --neon-red: #FF1744;
+    --neon-red-dim: rgba(255, 23, 68, 0.15);
+
+    /* Text */
+    --text-primary: #F0F0F0;
+    --text-secondary: #A0A0A0;
+    --text-muted: #666666;
+
+    /* Borders */
+    --border-gold: 1px solid var(--gold-dim);
+    --border-subtle: 1px solid #222222;
+
+    /* Shadows */
+    --shadow-gold: 0 0 20px var(--gold-glow);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.6);
+
+    /* Typography */
+    --font-heading: 'Orbitron', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Radii */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-med: 0.3s ease;
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* ── Base ── */
+body {
+    font-family: var(--font-body);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography ── */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    color: var(--gold);
+    letter-spacing: 0.05em;
+}
+
+a {
+    color: var(--gold-light);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--gold);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gold-dim);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
+}
+
+/* ── KHRYPTO Logo ── */
+.khrypto-logo {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 12px var(--gold-glow));
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.khrypto-logo.logo-sm {
+    height: 48px;
+}
+
+.khrypto-logo.logo-lg {
+    height: 160px;
+}
+
+/* ── Glass Card ── */
+.glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: var(--border-gold);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 1.5rem;
+}
+
+/* ── Buttons ── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all var(--transition-med);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-gold {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+    color: #0B0B0B;
+    border: none;
+    box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.btn-gold:hover {
+    box-shadow: 0 0 24px var(--gold-glow), 0 0 48px rgba(212, 175, 55, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: var(--neon-green);
+    color: #0B0B0B;
+}
+
+.btn-success:hover {
+    box-shadow: 0 0 16px rgba(0, 230, 118, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: var(--neon-red);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    box-shadow: 0 0 16px rgba(255, 23, 68, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: var(--border-subtle);
+}
+
+.btn-ghost:hover {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+}
+
+/* ── Inputs ── */
+.input-dark {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-surface);
+    border: 1px solid #333;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    outline: none;
+}
+
+.input-dark:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
+.input-dark::placeholder {
+    color: var(--text-muted);
+}
+
+/* ── Matrix Canvas (global) ── */
+#matrixCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+#matrixCanvas.matrix-blurred {
+    filter: blur(6px);
+    opacity: 0.3;
+}
+
+/* ── Status Dot ── */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.status-dot.online {
+    background-color: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green);
+}
+
+.status-dot.offline {
+    background-color: var(--text-muted);
+    box-shadow: none;
+}

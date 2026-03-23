@@ -3,84 +3,119 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>GamePage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game - Khrypto</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="gamePage.css">
     <link rel="stylesheet" href="../globalNotif.css">
     <script src="../js/socket.io.js"></script>
+    <script src="../js/matrixBackground.js"></script>
     <script type="module" src="index.js" defer></script>
 </head>
 
 <body>
+    <canvas id="matrixCanvas"></canvas>
+
     <header>
-        <h1>Game Header</h1>
-        <button id="leaveBtn">Leave Game</button>
+        <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-sm">
+        <button id="leaveBtn" class="btn btn-danger">Leave Game</button>
     </header>
+
     <main>
+        <!-- Left: Player Info -->
         <div class="player-info-sec">
-            <div class="opposing-player">
-                <p>joueur 2 <span id="p2-elo" class="player-elo"></span></p>
+            <div class="opposing-player glass-card">
+                <p class="player-label">Player 2 <span id="p2-elo" class="player-elo"></span></p>
                 <div id="p2-elo-potential" class="player-elo-potential"></div>
                 <div class="player-preview-cell">
                     <img id="p2-reserve-piece" src="assets/red_pyramid.png" alt="red_pyramid" class="piece-image">
                 </div>
-
                 <div class="reserve-controls">
-                    <button id="btn-p2-left">↺</button>
-                    <button id="btn-p2-right">↻</button>
+                    <button id="btn-p2-left" class="btn btn-ghost btn-sm">↺</button>
+                    <button id="btn-p2-right" class="btn btn-ghost btn-sm">↻</button>
                 </div>
-
                 <p class="pyramid-count" id="p2-pyramid-count">0</p>
                 <div class="cooldown-info">
-                    <p>Sphinx Swap Cooldown: <span id="p2-sphinx-cooldown">0</span></p>
-                    <p>Pharaoh Swap Cooldown: <span id="p2-pharaoh-cooldown">0</span></p>
+                    <p>Sphinx Cooldown: <span id="p2-sphinx-cooldown">0</span></p>
+                    <p>Pharaoh Cooldown: <span id="p2-pharaoh-cooldown">0</span></p>
                 </div>
             </div>
 
-            <div class="current-player">
-                <p>joueur 1 <span id="p1-elo" class="player-elo"></span></p>
+            <div class="current-player glass-card">
+                <p class="player-label">Player 1 <span id="p1-elo" class="player-elo"></span></p>
                 <div id="p1-elo-potential" class="player-elo-potential"></div>
                 <div class="player-preview-cell">
                     <img id="p1-reserve-piece" src="assets/green_pyramid.png" alt="green_pyramid" class="piece-image">
                 </div>
-
                 <div class="reserve-controls">
-                    <button id="btn-p1-left">↺</button>
-                    <button id="btn-p1-right">↻</button>
+                    <button id="btn-p1-left" class="btn btn-ghost btn-sm">↺</button>
+                    <button id="btn-p1-right" class="btn btn-ghost btn-sm">↻</button>
                 </div>
-
                 <p class="pyramid-count" id="p1-pyramid-count">0</p>
                 <div class="cooldown-info">
-                    <p>Sphinx Swap Cooldown: <span id="p1-sphinx-cooldown">0</span></p>
-                    <p>Pharaoh Swap Cooldown: <span id="p1-pharaoh-cooldown">0</span></p>
+                    <p>Sphinx Cooldown: <span id="p1-sphinx-cooldown">0</span></p>
+                    <p>Pharaoh Cooldown: <span id="p1-pharaoh-cooldown">0</span></p>
                 </div>
             </div>
         </div>
+
+        <!-- Center: Game Board -->
         <div class="game-sec">
             <div class="board-wrapper">
                 <div id="board"></div>
                 <canvas id="laserCanvas"></canvas>
             </div>
-
-
             <div class="rot-buttons">
-                <button id="btn-rotate-left" class="action-btn" disabled>↺</button>
-                <button id="btn-rotate-right" class="action-btn" disabled>↻</button>
+                <button id="btn-rotate-left" class="action-btn btn btn-ghost" disabled>↺</button>
+                <button id="btn-rotate-right" class="action-btn btn btn-ghost" disabled>↻</button>
             </div>
         </div>
-        <div class="chat-moves-sec">Right Section</div>
+
+        <!-- Right: Emote Chat -->
+        <div class="chat-moves-sec">
+            <div class="emote-chat glass-card">
+                <h3 class="emote-chat-title">Emotes</h3>
+                <div id="emoteDisplay" class="emote-display">
+                    <p class="emote-empty">No emotes yet</p>
+                </div>
+                <div class="emote-picker">
+                    <button class="emote-btn" data-emote="😀">😀</button>
+                    <button class="emote-btn" data-emote="😎">😎</button>
+                    <button class="emote-btn" data-emote="🔥">🔥</button>
+                    <button class="emote-btn" data-emote="💀">💀</button>
+                    <button class="emote-btn" data-emote="👑">👑</button>
+                    <button class="emote-btn" data-emote="🎯">🎯</button>
+                    <button class="emote-btn" data-emote="💎">💎</button>
+                    <button class="emote-btn" data-emote="🏆">🏆</button>
+                    <button class="emote-btn" data-emote="😤">😤</button>
+                    <button class="emote-btn" data-emote="👏">👏</button>
+                    <button class="emote-btn" data-emote="🤔">🤔</button>
+                    <button class="emote-btn" data-emote="😈">😈</button>
+                </div>
+            </div>
+        </div>
     </main>
-</body>
 
-
-<div id="gameOverModal" class="modal-overlay">
-    <div class="modal-content">
-        <h2 id="victoryMessage"></h2>
-        <p id="voteStatus"></p>
-        <div class="modal-actions">
-            <button id="restartBtn" class="btn-restart">Rejouer</button>
-            <button id="leaveModalBtn" class="btn-restart btn-leave-modal">Leave Game</button>
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <h2 id="victoryMessage"></h2>
+            <p id="voteStatus"></p>
+            <div class="modal-actions">
+                <button id="restartBtn" class="btn btn-gold">Replay</button>
+                <button id="leaveModalBtn" class="btn btn-danger">Leave</button>
+            </div>
         </div>
     </div>
-</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initMatrixBackground('matrixCanvas');
+        });
+    </script>
+</body>
 
 </html>
