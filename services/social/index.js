@@ -101,6 +101,27 @@ const server = http.createServer(async (req, res) => {
         const users = db.getUsersCollection();
 
         // ---------------------------------------------------------
+        // GET /api/chat/global?limit=15&offset=0
+        // ---------------------------------------------------------
+        if (pathname === "/api/chat/global" && method === 'GET') {
+            const limit = Math.min(parseInt(parsedUrl.query.limit) || 15, 50);
+            const offset = parseInt(parsedUrl.query.offset) || 0;
+
+            const globalMessages = db.getGlobalMessagesCollection();
+            const messages = await globalMessages
+                .find({})
+                .sort({ createdAt: -1 })
+                .skip(offset)
+                .limit(limit)
+                .toArray();
+
+            // Reverse so the array is chronological (oldest first)
+            messages.reverse();
+
+            return sendResponse(res, 200, { messages });
+        }
+
+        // ---------------------------------------------------------
         // GET /api/friend/search?username=X
         // ---------------------------------------------------------
         if (pathname === "/api/friend/search" && method === 'GET') {
