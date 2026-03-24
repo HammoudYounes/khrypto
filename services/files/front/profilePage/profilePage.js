@@ -11,9 +11,31 @@ const challengesReceivedList = document.getElementById('challengesReceivedList')
 const challengesSentList = document.getElementById('challengesSentList');
 const friendsList = document.getElementById('friendsList');
 
+// Private Chat Elements
+const privateChatPanel = document.getElementById('privateChatPanel');
+const closeChatBtn = document.getElementById('closeChatBtn');
+const chatFriendName = document.getElementById('chatFriendName');
+const chatOnlineStatus = document.getElementById('chatOnlineStatus');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSendBtn = document.getElementById('chatSendBtn');
+const chatLoading = document.getElementById('chatLoading');
+const chatChallengeUnrankedBtn = document.getElementById('chatChallengeUnrankedBtn');
+const chatChallengeRankedBtn = document.getElementById('chatChallengeRankedBtn');
+const chatRemoveBtn = document.getElementById('chatRemoveBtn');
+
 // In-memory caches
 let cachedFriendIds = [];
 let sentChallenges = []; // Track challenges we've sent (for profile page display)
+
+// Private Chat State
+let activeChatFriendshipId = null;
+let activeChatFriendId = null;
+let activeChatFriendUsername = null;
+let chatOffset = 0;
+let chatAllLoaded = false;
+let chatFetching = false;
+const currentUsername = sessionStorage.getItem('username');
 
 // ==========================================
 // INITIALIZATION
@@ -27,10 +49,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     notificationManager.init();
+    initPrivateChatListeners();
     loadPendingInvitations(token);
     loadSentRequests(token);
     loadPendingChallenges(token);
-    await loadFriendsList(token);
+    await loadFriendsListWithChat(token);
     requestOnlineStatuses();
 });
 
@@ -323,6 +346,13 @@ async function loadFriendsList(token) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'btn-group';
 
+            // Chat button
+            const chatBtn = document.createElement('button');
+            chatBtn.textContent = 'Chat';
+            chatBtn.className = 'btn-chat';
+            chatBtn.title = 'Open private chat';
+            chatBtn.onclick = () => openPrivateChat(friend.friendshipId, friend._id, friend.username);
+
             // Challenge buttons (always shown now)
             const unrankedBtn = document.createElement('button');
             unrankedBtn.textContent = 'Unranked';
@@ -343,6 +373,7 @@ async function loadFriendsList(token) {
             removeBtn.className = 'btn-remove';
             removeBtn.onclick = () => removeFriend(friend.friendshipId, li);
 
+            actionsDiv.appendChild(chatBtn);
             actionsDiv.appendChild(unrankedBtn);
             actionsDiv.appendChild(rankedBtn);
             actionsDiv.appendChild(removeBtn);
@@ -525,6 +556,324 @@ function requestOnlineStatuses() {
         }, 500);
         setTimeout(() => clearInterval(checkInterval), 10000);
     }
+}
+
+// ==========================================
+// PRIVATE CHAT FUNCTIONALITY
+// ==========================================
+
+// Update friends list to make items clickable
+async function loadFriendsListWithChat(token) {
+    await loadFriendsList(token);
+
+    // Make friend list items clickable
+    friendsList.querySelectorAll('li:not(.empty-msg)').forEach(li => {
+        const friendInfo = li.querySelector('.friend-info');
+        if (friendInfo) {
+            friendInfo.style.cursor = 'pointer';
+            friendInfo.onclick = () => {
+                const friendshipId = li.dataset.friendshipId;
+                const userId = li.dataset.userId;
+                const username = li.querySelector('.friend-name').textContent;
+                openPrivateChat(friendshipId, userId, username);
+            };
+        }
+    });
+
+    // Fetch unread counts and add badges
+    try {
+        const unreadRes = await fetch('/api/chat/private/unread/count', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (unreadRes.ok) {
+            const unreadData = await unreadRes.json();
+            const unread = unreadData.unread || {};
+            Object.keys(unread).forEach(friendshipId => {
+                const li = friendsList.querySelector(`li[data-friendship-id="${friendshipId}"]`);
+                if (li && !li.querySelector('.unread-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'unread-badge';
+                    badge.textContent = unread[friendshipId];
+                    const friendInfo = li.querySelector('.friend-info');
+                    if (friendInfo) friendInfo.appendChild(badge);
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Failed to fetch unread counts:', err);
+    }
+}
+
+function openPrivateChat(friendshipId, friendId, friendUsername) {
+    // Store active chat info
+    activeChatFriendshipId = friendshipId;
+    activeChatFriendId = friendId;
+    activeChatFriendUsername = friendUsername;
+
+    // Reset pagination
+    chatOffset = 0;
+    chatAllLoaded = false;
+
+    // Update UI
+    chatFriendName.textContent = friendUsername;
+    // Clear messages but preserve the chatLoading element
+    chatMessages.innerHTML = '';
+    chatLoading.style.display = 'none';
+    chatMessages.appendChild(chatLoading);
+    chatInput.value = '';
+
+    // Update online status
+    const friendLi = friendsList.querySelector(`li[data-user-id="${friendId}"]`);
+    if (friendLi) {
+        const statusDot = friendLi.querySelector('.status-dot');
+        if (statusDot) {
+            chatOnlineStatus.className = statusDot.className;
+        }
+        // Clear unread badge when opening the chat
+        const badge = friendLi.querySelector('.unread-badge');
+        if (badge) badge.remove();
+    }
+
+    // Show chat panel, hide friends list
+    document.querySelector('.friends-panel').style.display = 'none';
+    privateChatPanel.style.display = 'flex';
+
+    // Fetch initial messages
+    fetchChatMessages();
+
+    // Mark messages as read
+    markMessagesAsRead();
+}
+
+function closePrivateChat() {
+    activeChatFriendshipId = null;
+    activeChatFriendId = null;
+    activeChatFriendUsername = null;
+    chatOffset = 0;
+    chatAllLoaded = false;
+
+    privateChatPanel.style.display = 'none';
+    document.querySelector('.friends-panel').style.display = 'block';
+}
+
+async function fetchChatMessages() {
+    if (chatFetching || chatAllLoaded || !activeChatFriendshipId) return;
+
+    chatFetching = true;
+    chatLoading.style.display = 'block';
+
+    try {
+        const token = TokenManager.getAccessToken();
+        const res = await fetch(`/api/chat/private/${activeChatFriendshipId}?limit=15&offset=${chatOffset}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            if (res.status === 401) {
+                const refreshed = await TokenManager.refreshAccessToken();
+                if (refreshed) {
+                    chatFetching = false;
+                    chatLoading.style.display = 'none';
+                    return fetchChatMessages();
+                }
+            }
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const messages = data.messages || [];
+
+        if (messages.length < 15) {
+            chatAllLoaded = true;
+        }
+
+        // Prepend older messages at the top
+        const prevScrollHeight = chatMessages.scrollHeight;
+
+        // Iterate in reverse so oldest messages end up at the top
+        for (let i = messages.length - 1; i >= 0; i--) {
+            prependMessage(messages[i]);
+        }
+
+        chatOffset += messages.length;
+
+        // Restore scroll position
+        if (chatOffset > 15) {
+            chatMessages.scrollTop = chatMessages.scrollHeight - prevScrollHeight;
+        } else {
+            // Initial load: scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    } catch (err) {
+        console.error('[Chat] Error fetching messages:', err);
+        showToast('Failed to load messages', 'error');
+    } finally {
+        chatFetching = false;
+        chatLoading.style.display = 'none';
+    }
+}
+
+function createMessageElement(msg) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    if (msg.senderUsername === currentUsername) {
+        div.classList.add('chat-msg-own');
+    }
+
+    const sender = document.createElement('div');
+    sender.className = 'chat-msg-sender';
+    sender.textContent = msg.senderUsername;
+
+    const content = document.createElement('div');
+    content.className = 'chat-msg-content';
+    content.textContent = msg.content;
+
+    const time = document.createElement('div');
+    time.className = 'chat-msg-time';
+    const date = new Date(msg.createdAt);
+    time.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    div.appendChild(sender);
+    div.appendChild(content);
+    div.appendChild(time);
+    return div;
+}
+
+function appendMessage(msg) {
+    const el = createMessageElement(msg);
+    chatMessages.appendChild(el);
+}
+
+function prependMessage(msg) {
+    const el = createMessageElement(msg);
+    chatLoading.insertAdjacentElement('afterend', el);
+}
+
+function sendChatMessage() {
+    const content = chatInput.value.trim();
+    if (!content || !activeChatFriendshipId) return;
+
+    const socket = notificationManager.getSocket();
+    if (!socket || !socket.connected) {
+        showToast('Not connected to server', 'error');
+        return;
+    }
+
+    socket.emit('private-chat:send', {
+        friendshipId: activeChatFriendshipId,
+        content: content
+    });
+
+    chatInput.value = '';
+}
+
+function markMessagesAsRead() {
+    if (!activeChatFriendshipId) return;
+
+    const socket = notificationManager.getSocket();
+    if (socket && socket.connected) {
+        socket.emit('private-chat:mark-read', {
+            friendshipId: activeChatFriendshipId
+        });
+    }
+}
+
+function initPrivateChatListeners() {
+    // Close chat button
+    closeChatBtn.addEventListener('click', closePrivateChat);
+
+    // Send message
+    chatSendBtn.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendChatMessage();
+        }
+    });
+
+    // Scroll pagination
+    chatMessages.addEventListener('scroll', () => {
+        if (chatMessages.scrollTop === 0 && !chatFetching && !chatAllLoaded) {
+            fetchChatMessages();
+        }
+    });
+
+    // Challenge buttons in chat
+    chatChallengeUnrankedBtn.addEventListener('click', () => {
+        if (activeChatFriendId) {
+            sendChallenge(activeChatFriendId, 'unranked');
+        }
+    });
+
+    chatChallengeRankedBtn.addEventListener('click', () => {
+        if (activeChatFriendId) {
+            sendChallenge(activeChatFriendId, 'ranked');
+        }
+    });
+
+    chatRemoveBtn.addEventListener('click', async () => {
+        if (activeChatFriendshipId) {
+            const confirmed = confirm(`Remove ${activeChatFriendUsername} from your friends?`);
+            if (confirmed) {
+                try {
+                    const token = TokenManager.getAccessToken();
+                    const res = await fetch(`/api/friend/${activeChatFriendshipId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!res.ok) throw new Error("Could not remove friend.");
+
+                    closePrivateChat();
+                    showToast('Friend removed.', 'success');
+                    loadFriendsListWithChat(token);
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+        }
+    });
+
+    // Listen for incoming private messages
+    document.addEventListener('notification:private_chat_receive', (e) => {
+        const msg = e.detail;
+
+        // If we're in the chat with this person, append the message
+        if (activeChatFriendshipId === msg.friendshipId) {
+            msg._handled = true; // Suppress toast in notificationManager
+            const isAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 30;
+            appendMessage(msg);
+            if (isAtBottom) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            // Mark as read
+            markMessagesAsRead();
+        } else {
+            // Not viewing this chat — add/update unread badge on the friend's list item
+            const li = friendsList.querySelector(`li[data-friendship-id="${msg.friendshipId}"]`);
+            if (li) {
+                const existing = li.querySelector('.unread-badge');
+                if (existing) {
+                    const count = parseInt(existing.textContent) || 0;
+                    existing.textContent = count + 1;
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'unread-badge';
+                    badge.textContent = '1';
+                    const friendInfo = li.querySelector('.friend-info');
+                    if (friendInfo) friendInfo.appendChild(badge);
+                }
+            }
+        }
+    });
+
+    // Update online status in chat header
+    document.addEventListener('notification:friend_status_change', (e) => {
+        const { userId, status } = e.detail;
+        if (activeChatFriendId === userId) {
+            chatOnlineStatus.classList.remove('online', 'offline');
+            chatOnlineStatus.classList.add(status === 'online' ? 'online' : 'offline');
+        }
+    });
 }
 
 // ==========================================

@@ -69,6 +69,26 @@ class NotificationManager {
         });
 
         // ==========================================
+        // PRIVATE CHAT EVENTS
+        // ==========================================
+
+        this.socket.on('private-chat:receive', (payload) => {
+            // Add a flag so the profile page can mark the message as handled
+            payload._handled = false;
+
+            // Dispatch event for profile page to handle
+            document.dispatchEvent(new CustomEvent('notification:private_chat_receive', { detail: payload }));
+
+            // After a microtask, check if the profile page handled it
+            // If not (user is on another page or has a different chat open), show a toast
+            Promise.resolve().then(() => {
+                if (!payload._handled) {
+                    this.showToast(`New message from ${payload.senderUsername || 'a friend'}`, 'info');
+                }
+            });
+        });
+
+        // ==========================================
         // CHALLENGE EVENTS
         // ==========================================
 

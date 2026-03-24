@@ -122,6 +122,57 @@ const server = http.createServer(async (req, res) => {
         }
 
         // ---------------------------------------------------------
+        // GET /api/chat/private/unread/count
+        // ---------------------------------------------------------
+        if (pathname === "/api/chat/private/unread/count" && method === 'GET') {
+            const privateMessages = db.getPrivateMessagesCollection();
+            const unreadCounts = await privateMessages.aggregate([
+                { $match: { receiverId: currentUserId, readStatus: false } },
+                { $group: { _id: "$friendshipId", count: { $sum: 1 } } }
+            ]).toArray();
+
+            const result = {};
+            unreadCounts.forEach(item => {
+                result[item._id] = item.count;
+            });
+
+            return sendResponse(res, 200, { unread: result });
+        }
+
+        // ---------------------------------------------------------
+        // GET /api/chat/private/:friendshipId?limit=15&offset=0
+        // ---------------------------------------------------------
+        if (pathname.startsWith("/api/chat/private/") && method === 'GET') {
+            const friendshipId = pathname.split('/')[4];
+            const limit = Math.min(parseInt(parsedUrl.query.limit) || 15, 50);
+            const offset = parseInt(parsedUrl.query.offset) || 0;
+
+            const friendship = await friendships.findOne({ _id: ObjectId.createFromHexString(friendshipId) });
+            if (!friendship) {
+                return sendResponse(res, 404, { error: "Friendship not found" });
+            }
+            if (friendship.requesterId !== currentUserId && friendship.receiverId !== currentUserId) {
+                return sendResponse(res, 403, { error: "Not authorized to view this conversation" });
+            }
+            if (friendship.status !== 'accepted') {
+                return sendResponse(res, 403, { error: "Can only message accepted friends" });
+            }
+
+            const privateMessages = db.getPrivateMessagesCollection();
+            const messages = await privateMessages
+                .find({ friendshipId: friendshipId })
+                .sort({ createdAt: -1 })
+                .skip(offset)
+                .limit(limit)
+                .toArray();
+
+            // Reverse so the array is chronological (oldest first)
+            messages.reverse();
+
+            return sendResponse(res, 200, { messages });
+        }
+
+        // ---------------------------------------------------------
         // GET /api/friend/search?username=X
         // ---------------------------------------------------------
         if (pathname === "/api/friend/search" && method === 'GET') {
@@ -332,7 +383,13 @@ const server = http.createServer(async (req, res) => {
                 return sendResponse(res, 403, { error: "Not authorized to delete this friendship" });
             }
 
+            // Delete the friendship
             await friendships.deleteOne({ _id: ObjectId.createFromHexString(friendshipId) });
+
+            // Delete all private messages associated with this friendship
+            const privateMessages = db.getPrivateMessagesCollection();
+            const deleteResult = await privateMessages.deleteMany({ friendshipId: friendshipId });
+            console.log(`Deleted ${deleteResult.deletedCount} private messages for friendship ${friendshipId}`);
 
             const otherUserId = friendship.requesterId === currentUserId ? friendship.receiverId : friendship.requesterId;
 

@@ -125,6 +125,91 @@ function initBroker(server) {
             }
         });
 
+        // --- Private Chat ---
+        socket.on('private-chat:send', async (data) => {
+            try {
+                const { friendshipId, content } = data;
+                const trimmedContent = (content || '').trim();
+
+                if (!friendshipId || !trimmedContent || trimmedContent.length > 500) return;
+
+                // Verify the friendship exists and user is part of it
+                const friendships = db.getFriendshipsCollection();
+                const friendship = await friendships.findOne({ _id: new ObjectId(friendshipId) });
+
+                if (!friendship) return;
+                if (friendship.status !== 'accepted') return;
+                if (friendship.requesterId !== userId && friendship.receiverId !== userId) return;
+
+                // Determine the receiver
+                const receiverId = friendship.requesterId === userId ? friendship.receiverId : friendship.requesterId;
+
+                // Get sender info
+                const users = db.getUsersCollection();
+                const sender = await users.findOne({ _id: new ObjectId(userId) });
+                if (!sender) return;
+
+                // Save message to DB
+                const message = {
+                    friendshipId: friendshipId,
+                    senderId: userId,
+                    senderUsername: sender.username,
+                    receiverId: receiverId,
+                    content: trimmedContent,
+                    readStatus: false,
+                    createdAt: new Date()
+                };
+
+                const privateMessages = db.getPrivateMessagesCollection();
+                const result = await privateMessages.insertOne(message);
+
+                // Send to receiver using dispatch (handles online/offline)
+                await dispatch(receiverId, 'private-chat:receive', {
+                    _id: result.insertedId,
+                    ...message
+                });
+
+                // Echo back to sender for confirmation
+                socket.emit('private-chat:receive', {
+                    _id: result.insertedId,
+                    ...message
+                });
+            } catch (err) {
+                console.error('Error handling private chat message:', err);
+            }
+        });
+
+        socket.on('private-chat:mark-read', async (data) => {
+            try {
+                const { friendshipId } = data;
+                if (!friendshipId) return;
+
+                // Verify the friendship exists and user is part of it
+                const friendships = db.getFriendshipsCollection();
+                const friendship = await friendships.findOne({ _id: new ObjectId(friendshipId) });
+
+                if (!friendship) return;
+                if (friendship.requesterId !== userId && friendship.receiverId !== userId) return;
+
+                // Mark all messages in this conversation where current user is the receiver as read
+                const privateMessages = db.getPrivateMessagesCollection();
+                await privateMessages.updateMany(
+                    {
+                        friendshipId: friendshipId,
+                        receiverId: userId,
+                        readStatus: false
+                    },
+                    {
+                        $set: { readStatus: true }
+                    }
+                );
+
+                console.log(`Marked messages as read for user ${userId} in friendship ${friendshipId}`);
+            } catch (err) {
+                console.error('Error marking messages as read:', err);
+            }
+        });
+
         socket.on('disconnect', async () => {
             console.log(`User disconnected from broker: ${userId}`);
             onlineUsers.delete(userId);
