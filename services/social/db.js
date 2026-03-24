@@ -5,6 +5,7 @@ const FRIENDSHIPS_COLLECTION_NAME = 'friendships';
 const MESSAGE_QUEUE_COLLECTION_NAME = 'message_queue';
 const USERS_COLLECTION_NAME = 'users';
 const GLOBAL_MESSAGES_COLLECTION_NAME = 'global_messages';
+const PRIVATE_MESSAGES_COLLECTION_NAME = 'private_messages';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
 
 const client = new MongoClient(MONGO_URL);
@@ -13,6 +14,7 @@ let friendships_collection;
 let message_queue_collection;
 let users_collection;
 let global_messages_collection;
+let private_messages_collection;
 
 async function runGetStarted() {
     try {
@@ -24,6 +26,7 @@ async function runGetStarted() {
         message_queue_collection = khryto_db.collection(MESSAGE_QUEUE_COLLECTION_NAME);
         users_collection = khryto_db.collection(USERS_COLLECTION_NAME);
         global_messages_collection = khryto_db.collection(GLOBAL_MESSAGES_COLLECTION_NAME);
+        private_messages_collection = khryto_db.collection(PRIVATE_MESSAGES_COLLECTION_NAME);
         DB_NAME = khryto_db.databaseName;
 
         // --- Friendships Collection Indexes ---
@@ -68,6 +71,24 @@ async function runGetStarted() {
 
         console.log("Successfully created indexes for global_messages collection");
 
+        // --- Private Messages Collection Indexes ---
+        // 1. Compound index on friendshipId + createdAt (descending) for efficient paginated queries
+        await private_messages_collection.createIndex(
+            { friendshipId: 1, createdAt: -1 }
+        );
+
+        // 2. Index on receiverId + readStatus for efficient unread count queries
+        await private_messages_collection.createIndex(
+            { receiverId: 1, readStatus: 1 }
+        );
+
+        // 3. Index on friendshipId for efficient bulk deletion when friendship is removed
+        await private_messages_collection.createIndex(
+            { friendshipId: 1 }
+        );
+
+        console.log("Successfully created indexes for private_messages collection");
+
     } catch (error) {
         console.log(error);
     }
@@ -80,5 +101,6 @@ module.exports = {
     getFriendshipsCollection: () => friendships_collection,
     getMessageQueueCollection: () => message_queue_collection,
     getUsersCollection: () => users_collection,
-    getGlobalMessagesCollection: () => global_messages_collection
+    getGlobalMessagesCollection: () => global_messages_collection,
+    getPrivateMessagesCollection: () => private_messages_collection
 };
