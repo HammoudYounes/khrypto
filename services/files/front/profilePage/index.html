@@ -3,54 +3,150 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile & Friends - Khrypto</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="profilePage.css">
-    <script src="../js/socket.io.js"></script>
     <link rel="stylesheet" href="../globalNotif.css">
+    <script src="../js/socket.io.js"></script>
+    <script src="../js/matrixBackground.js"></script>
     <script type="module" src="profilePage.js" defer></script>
 </head>
 
 <body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- Header -->
     <header class="profile-header">
-        <button id="backBtn" class="btn-secondary">← Back to Home</button>
-        <h1>Friends & Profile</h1>
+        <button id="backBtn" class="btn btn-ghost">← Back</button>
+        <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-sm">
     </header>
 
-    <main class="container">
-        <section class="card search-section">
-            <h2>Find Users</h2>
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Search by username..." autocomplete="off">
-            </div>
-            <ul id="searchResults" class="user-list">
-            </ul>
-        </section>
+    <!-- 3-Column Layout -->
+    <main class="profile-grid">
 
-        <section class="card pending-section">
-            <h2>Pending Invitations</h2>
-            <div class="pending-subsection">
-                <h3>Received</h3>
-                <ul id="pendingList" class="user-list">
-                    <li class="empty-msg">No pending invitations.</li>
+        <!-- LEFT COLUMN: Profile Info -->
+        <aside class="profile-col-left">
+            <section class="glass-card profile-info-panel">
+                <div class="profile-avatar">⬡</div>
+                <h2 id="profileDisplayName" class="profile-username">Player</h2>
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">ELO</span>
+                        <span id="profileElo" class="stat-value">1000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Email</span>
+                        <span id="profileEmail" class="stat-value">—</span>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- MIDDLE COLUMN: Friends & Chat -->
+        <section class="profile-col-center">
+            <div class="glass-card friends-panel">
+                <h2>My Friends</h2>
+                <ul id="friendsList" class="user-list">
+                    <li class="empty-msg">No friends yet — search for users to add!</li>
                 </ul>
             </div>
-            <div class="pending-subsection">
-                <h3>Sent</h3>
-                <ul id="sentList" class="user-list">
-                    <li class="empty-msg">No sent requests.</li>
-                </ul>
+
+            <!-- Private Chat Panel (hidden by default) -->
+            <div id="privateChatPanel" class="glass-card private-chat-panel" style="display: none;">
+                <div class="chat-header">
+                    <button id="closeChatBtn" class="btn-close-chat">← Back</button>
+                    <h2 id="chatFriendName">Friend</h2>
+                    <span id="chatOnlineStatus" class="status-dot offline"></span>
+                </div>
+
+                <div class="chat-actions">
+                    <button id="chatChallengeUnrankedBtn" class="btn-challenge">Challenge (Unranked)</button>
+                    <button id="chatChallengeRankedBtn" class="btn-challenge">Challenge (Ranked)</button>
+                    <button id="chatRemoveBtn" class="btn-remove">Remove Friend</button>
+                </div>
+
+                <div id="chatMessages" class="chat-messages">
+                    <div id="chatLoading" class="chat-loading" style="display: none;">Loading...</div>
+                </div>
+
+                <div class="chat-input-container">
+                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." maxlength="500">
+                    <button id="chatSendBtn" class="btn-send">Send</button>
+                </div>
             </div>
         </section>
 
-        <section class="card friends-section">
-            <h2>My Friends</h2>
-            <ul id="friendsList" class="user-list">
-                <li class="empty-msg">No friends yet — search for users to add!</li>
-            </ul>
-        </section>
+        <!-- RIGHT COLUMN: Search & Invitations -->
+        <aside class="profile-col-right">
+            <!-- Search Users -->
+            <section class="glass-card search-panel">
+                <h2>Find Users</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" class="input-dark" placeholder="Search by username..."
+                        autocomplete="off">
+                </div>
+                <ul id="searchResults" class="user-list"></ul>
+            </section>
+
+            <!-- Pending Friend Invitations -->
+            <section class="glass-card pending-panel">
+                <h2>Pending Invitations</h2>
+                <div class="pending-subsection">
+                    <h3>Received</h3>
+                    <ul id="pendingList" class="user-list">
+                        <li class="empty-msg">No pending invitations.</li>
+                    </ul>
+                </div>
+                <div class="pending-subsection">
+                    <h3>Sent</h3>
+                    <ul id="sentList" class="user-list">
+                        <li class="empty-msg">No sent requests.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Pending Challenges -->
+            <section class="glass-card challenges-panel">
+                <h2>Pending Challenges</h2>
+                <div class="pending-subsection">
+                    <h3>Received</h3>
+                    <ul id="challengesReceivedList" class="user-list">
+                        <li class="empty-msg">No pending challenges.</li>
+                    </ul>
+                </div>
+                <div class="pending-subsection">
+                    <h3>Sent</h3>
+                    <ul id="challengesSentList" class="user-list">
+                        <li class="empty-msg">No sent challenges.</li>
+                    </ul>
+                </div>
+            </section>
+        </aside>
+
     </main>
 
     <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initMatrixBackground('matrixCanvas');
+
+            // Populate profile info from sessionStorage
+            const username = sessionStorage.getItem('username') || 'Player';
+            const elo = sessionStorage.getItem('elo') || '1000';
+            const email = sessionStorage.getItem('email') || '—';
+            const nameEl = document.getElementById('profileDisplayName');
+            const eloEl = document.getElementById('profileElo');
+            const emailEl = document.getElementById('profileEmail');
+            if (nameEl) nameEl.textContent = username;
+            if (eloEl) eloEl.textContent = elo;
+            if (emailEl) emailEl.textContent = email;
+        });
+    </script>
 </body>
 
 </html>

@@ -123,9 +123,11 @@ services:
     environment:
       - PORT=8006
       - GATEWAY_URL=http://gateway:8000
+      - ENGINE_URL=http://engine:8002
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
     depends_on:
       - mongo
+      - engine
     networks:
       - app_network
 

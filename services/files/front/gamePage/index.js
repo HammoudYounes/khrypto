@@ -238,19 +238,12 @@ function updateEloDisplays(myElo, opponentElo) {
         const oppDraw = computeEloChange(oE, mE, 0.5);
         const oppLoss = computeEloChange(oE, mE, 0);
 
-        const formatPotential = (win, draw, loss) => `Potential: <span class="elo-win">W:${win > 0 ? '+' + win : win}</span> | <span class="elo-draw">D:${draw > 0 ? '+' + draw : draw}</span> | <span class="elo-loss">L:${loss > 0 ? '+' + loss : loss}</span>`;
+        const formatPotential = (win, draw, loss) => `Potential: <span class="elo-win">W: ${win > 0 ? '+' + win : win}</span> | <span class="elo-draw">D: ${draw > 0 ? '+' + draw : draw}</span> | <span class="elo-loss">L: ${loss > 0 ? '+' + loss : loss}</span>`;
 
-        if (state.myPlayerId === 0) {
-            p1PotentialDiv.style.display = 'block';
-            p2PotentialDiv.style.display = 'block';
-            p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
-            p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
-        } else {
-            p1PotentialDiv.style.display = 'block';
-            p2PotentialDiv.style.display = 'block';
-            p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
-            p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
-        }
+        p1PotentialDiv.style.display = 'block';
+        p2PotentialDiv.style.display = 'block';
+        p1PotentialDiv.innerHTML = formatPotential(myWin, myDraw, myLoss);
+        p2PotentialDiv.innerHTML = formatPotential(oppWin, oppDraw, oppLoss);
     } else {
         if (p1PotentialDiv) p1PotentialDiv.style.display = 'none';
         if (p2PotentialDiv) p2PotentialDiv.style.display = 'none';
