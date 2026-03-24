@@ -252,6 +252,19 @@ button:hover {
     box-shadow: 0 0 8px var(--gold-glow);
 }
 
+.btn-chat {
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--gold-light);
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.btn-chat:hover {
+    background: rgba(212, 175, 55, 0.35);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
 .btn-group {
     display: flex;
     gap: 0.35rem;
@@ -343,4 +356,205 @@ button:hover {
         flex-direction: row;
         border-bottom: var(--border-subtle);
     }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PRIVATE CHAT PANEL
+   ══════════════════════════════════════════════════════════ */
+
+.private-chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+    max-height: 70vh;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    margin-bottom: 0.75rem;
+}
+
+.btn-close-chat {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.btn-close-chat:hover {
+    color: var(--gold-light);
+    transform: none;
+}
+
+.chat-header h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.chat-header .status-dot {
+    margin-left: auto;
+}
+
+.chat-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+}
+
+.chat-loading {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 0.5rem;
+}
+
+.chat-msg {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-width: 75%;
+    animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-msg-own {
+    align-self: flex-end;
+}
+
+.chat-msg-sender {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.chat-msg-own .chat-msg-sender {
+    text-align: right;
+}
+
+.chat-msg-content {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    word-wrap: break-word;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-msg-own .chat-msg-content {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: rgba(212, 175, 55, 0.2);
+}
+
+.chat-msg-time {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.chat-msg-own .chat-msg-time {
+    text-align: right;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.chat-input-container .input-dark {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.btn-send {
+    background: var(--gold);
+    color: var(--bg-primary);
+    padding: 0.6rem 1.25rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-send:hover {
+    background: var(--gold-light);
+    box-shadow: 0 0 10px var(--gold-glow);
+}
+
+/* Status dots in chat */
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.status-dot.online {
+    background: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green);
+}
+
+.status-dot.offline {
+    background: var(--text-muted);
+    opacity: 0.5;
+}
+
+/* ── Unread Badge ── */
+.unread-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--gold);
+    color: var(--bg-primary);
+    font-size: 0.6rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    margin-left: 0.5rem;
+    box-shadow: 0 0 8px var(--gold-glow);
+    animation: unreadPulse 2s ease-in-out infinite;
+}
+
+@keyframes unreadPulse {
+    0%, 100% { box-shadow: 0 0 6px var(--gold-glow); }
+    50% { box-shadow: 0 0 14px var(--gold-glow), 0 0 20px rgba(212, 175, 55, 0.3); }
 }

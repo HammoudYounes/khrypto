@@ -54,6 +54,30 @@
                     <li class="empty-msg">No friends yet — search for users to add!</li>
                 </ul>
             </div>
+
+            <!-- Private Chat Panel (hidden by default) -->
+            <div id="privateChatPanel" class="glass-card private-chat-panel" style="display: none;">
+                <div class="chat-header">
+                    <button id="closeChatBtn" class="btn-close-chat">← Back</button>
+                    <h2 id="chatFriendName">Friend</h2>
+                    <span id="chatOnlineStatus" class="status-dot offline"></span>
+                </div>
+
+                <div class="chat-actions">
+                    <button id="chatChallengeUnrankedBtn" class="btn-challenge">Challenge (Unranked)</button>
+                    <button id="chatChallengeRankedBtn" class="btn-challenge">Challenge (Ranked)</button>
+                    <button id="chatRemoveBtn" class="btn-remove">Remove Friend</button>
+                </div>
+
+                <div id="chatMessages" class="chat-messages">
+                    <div id="chatLoading" class="chat-loading" style="display: none;">Loading...</div>
+                </div>
+
+                <div class="chat-input-container">
+                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." maxlength="500">
+                    <button id="chatSendBtn" class="btn-send">Send</button>
+                </div>
+            </div>
         </section>
 
         <!-- RIGHT COLUMN: Search & Invitations -->

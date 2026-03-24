@@ -333,8 +333,9 @@ async function fetchChatMessages() {
         // Prepend older messages at the top (messages array is chronological)
         const prevScrollHeight = chatMessages.scrollHeight;
 
-        for (const msg of messages) {
-            prependMessage(msg);
+        // Iterate in reverse so oldest messages end up at the top
+        for (let i = messages.length - 1; i >= 0; i--) {
+            prependMessage(messages[i]);
         }
 
         chatOffset += messages.length;

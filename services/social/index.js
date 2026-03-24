@@ -122,6 +122,24 @@ const server = http.createServer(async (req, res) => {
         }
 
         // ---------------------------------------------------------
+        // GET /api/chat/private/unread/count
+        // ---------------------------------------------------------
+        if (pathname === "/api/chat/private/unread/count" && method === 'GET') {
+            const privateMessages = db.getPrivateMessagesCollection();
+            const unreadCounts = await privateMessages.aggregate([
+                { $match: { receiverId: currentUserId, readStatus: false } },
+                { $group: { _id: "$friendshipId", count: { $sum: 1 } } }
+            ]).toArray();
+
+            const result = {};
+            unreadCounts.forEach(item => {
+                result[item._id] = item.count;
+            });
+
+            return sendResponse(res, 200, { unread: result });
+        }
+
+        // ---------------------------------------------------------
         // GET /api/chat/private/:friendshipId?limit=15&offset=0
         // ---------------------------------------------------------
         if (pathname.startsWith("/api/chat/private/") && method === 'GET') {
