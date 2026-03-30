@@ -10,7 +10,18 @@ class NotificationManager {
         this.debugMode = true; // Set to false in production
     }
 
-    init() {
+    init(externalSocket = null) {
+        // If an external socket is provided, use it instead of creating a new one
+        if (externalSocket) {
+            this.debug("Using external socket provided by caller");
+            this.socket = externalSocket;
+            this.socket._externalSocket = true; // Mark as external
+            this.setupToastContainer();
+            this.debug("Toast container setup complete");
+            this.registerEventListeners();
+            return;
+        }
+
         // Prevent multiple connections - check if socket exists AND is connected
         if (this.socket) {
             if (this.socket.connected) {
@@ -43,33 +54,50 @@ class NotificationManager {
             reconnectionAttempts: this.maxReconnectAttempts
         });
 
-        this.socket.on('connect', () => {
-            this.isConnected = true;
-            this.reconnectAttempts = 0;
-            this.debug(" Connected to broker", { socketId: this.socket.id });
-            console.log("[Notifications] Connected to broker");
-        });
+        this.registerEventListeners();
+    }
 
-        this.socket.on('disconnect', (reason) => {
-            this.isConnected = false;
-            this.debug(" Disconnected from broker", { reason });
-            console.warn("[Notifications] Disconnected:", reason);
-        });
+    registerEventListeners() {
+        if (!this.socket) {
+            console.error("[NotifMgr] Cannot register event listeners - no socket");
+            return;
+        }
 
-        this.socket.on('reconnect_attempt', (attemptNumber) => {
-            this.reconnectAttempts = attemptNumber;
-            this.debug(` Reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts}`);
-        });
+        // Only register connection events if we created the socket ourselves
+        // If using external socket, these are already handled by the parent
+        if (!this.socket._externalSocket) {
+            this.socket.on('connect', () => {
+                this.isConnected = true;
+                this.reconnectAttempts = 0;
+                this.debug(" Connected to broker", { socketId: this.socket.id });
+                console.log("[Notifications] Connected to broker");
+            });
 
-        this.socket.on('reconnect', (attemptNumber) => {
-            this.debug(` Reconnected after ${attemptNumber} attempts`);
-            this.showToast('Notifications reconnected', 'success');
-        });
+            this.socket.on('disconnect', (reason) => {
+                this.isConnected = false;
+                this.debug(" Disconnected from broker", { reason });
+                console.warn("[Notifications] Disconnected:", reason);
+            });
 
-        this.socket.on('reconnect_failed', () => {
-            this.debug("Reconnection failed after all attempts");
-            this.showToast('Unable to connect to notifications', 'error');
-        });
+            this.socket.on('reconnect_attempt', (attemptNumber) => {
+                this.reconnectAttempts = attemptNumber;
+                this.debug(` Reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts}`);
+            });
+
+            this.socket.on('reconnect', (attemptNumber) => {
+                this.debug(` Reconnected after ${attemptNumber} attempts`);
+                this.showToast('Notifications reconnected', 'success');
+            });
+
+            this.socket.on('reconnect_failed', () => {
+                this.debug("Reconnection failed after all attempts");
+                this.showToast('Unable to connect to notifications', 'error');
+            });
+
+            this.socket.on('connect_error', (err) => {
+                console.error("[Notifications] WebSocket Error:", err.message);
+            });
+        }
 
         // ==========================================
         // FRIEND EVENTS
@@ -178,10 +206,6 @@ class NotificationManager {
         this.socket.on('challenge:expired', (payload) => {
             this.showToast('Your challenge has expired.', 'error');
             document.dispatchEvent(new CustomEvent('notification:challenge_expired', { detail: payload }));
-        });
-
-        this.socket.on('connect_error', (err) => {
-            console.error("[Notifications] WebSocket Error:", err.message);
         });
     }
 

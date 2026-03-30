@@ -73,7 +73,6 @@ socket.on("connect_error", async (err) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeHome();
-    notificationManager.init();
 
     // Populate username in profile button and panel
     const username = sessionStorage.getItem('username') || 'Guest';
@@ -267,6 +266,8 @@ function initSocialSocket() {
 
     socialSocket.on('connect', () => {
         console.log('[Social] Connected to social broker');
+        // Initialize notification manager with this socket to avoid duplicate connections
+        notificationManager.init(socialSocket);
         // Fetch initial messages
         fetchChatMessages();
     });
