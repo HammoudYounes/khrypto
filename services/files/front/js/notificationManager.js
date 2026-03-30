@@ -11,10 +11,16 @@ class NotificationManager {
     }
 
     init() {
-        // Prevent multiple connections on the same page
+        // Prevent multiple connections - check if socket exists AND is connected
         if (this.socket) {
-            this.debug("Init called but socket already exists");
-            return;
+            if (this.socket.connected) {
+                this.debug("Init called but socket already exists and is connected");
+                return;
+            } else {
+                this.debug("Init called with stale socket, cleaning up...");
+                this.socket.disconnect();
+                this.socket = null;
+            }
         }
 
         const token = TokenManager.getAccessToken();
@@ -122,14 +128,16 @@ class NotificationManager {
             // Dispatch event for profile page to handle
             document.dispatchEvent(new CustomEvent('notification:private_chat_receive', { detail: payload }));
 
-            // After a microtask, check if the profile page handled it
-            // If not (user is on another page or has a different chat open), show a toast
-            Promise.resolve().then(() => {
+            // Give the event handler time to mark the message as handled
+            // Use setTimeout instead of Promise.resolve() for more reliable timing
+            setTimeout(() => {
                 if (!payload._handled) {
                     this.debug("Message not handled by page, showing toast");
                     this.showToast(`New message from ${payload.senderUsername || 'a friend'}`, 'info');
+                } else {
+                    this.debug("Message handled by profile page, toast suppressed");
                 }
-            });
+            }, 10);
         });
 
         // ==========================================
@@ -267,23 +275,47 @@ class NotificationManager {
     // ==========================================
 
     setupToastContainer() {
-        this.toastContainer = document.getElementById('toastContainer');
-        if (!this.toastContainer) {
-            this.toastContainer = document.createElement('div');
-            this.toastContainer.id = 'toastContainer';
-            this.toastContainer.className = 'toast-container';
-            document.body.appendChild(this.toastContainer);
-            this.debug("Created new toast container");
+        // Always try to get existing container first
+        let container = document.getElementById('toastContainer');
+
+        // If container exists but is not in DOM, remove the reference
+        if (container && !container.parentNode) {
+            this.debug("Toast container exists but not in DOM, will recreate");
+            container = null;
+        }
+
+        // Create container if needed
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+
+            // Ensure document.body exists
+            if (document.body) {
+                document.body.appendChild(container);
+                this.debug("Created new toast container");
+            } else {
+                console.error("[NotifMgr] Cannot create toast container - document.body not ready");
+                return;
+            }
         } else {
             this.debug("Toast container already exists");
         }
+
+        this.toastContainer = container;
     }
 
     showToast(message, type = 'info') {
-        // Ensure toast container exists
+        // Ensure toast container exists and is in DOM
         if (!this.toastContainer || !this.toastContainer.parentNode) {
-            this.debug("️ Toast container missing, recreating...");
+            this.debug("Toast container missing, recreating...");
             this.setupToastContainer();
+
+            // Double-check after recreation
+            if (!this.toastContainer || !this.toastContainer.parentNode) {
+                console.error("[NotifMgr] Failed to create toast container, cannot show toast");
+                return;
+            }
         }
 
         this.debug(`Showing toast: [${type}] ${message}`);
@@ -311,10 +343,16 @@ class NotificationManager {
      * @param {number|null} countdownMs - Optional countdown in ms
      */
     showInteractiveToast(message, type, actions = [], countdownMs = null) {
-        // Ensure toast container exists
+        // Ensure toast container exists and is in DOM
         if (!this.toastContainer || !this.toastContainer.parentNode) {
-            this.debug("️Toast container missing, recreating...");
+            this.debug("Toast container missing, recreating...");
             this.setupToastContainer();
+
+            // Double-check after recreation
+            if (!this.toastContainer || !this.toastContainer.parentNode) {
+                console.error("[NotifMgr] Failed to create toast container, cannot show interactive toast");
+                return;
+            }
         }
 
         this.debug(`Showing interactive toast: [${type}] ${message}`, { actions: actions.length, countdown: countdownMs });
