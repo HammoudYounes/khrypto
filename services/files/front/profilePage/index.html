@@ -134,17 +134,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initMatrixBackground('matrixCanvas');
-
-            // Populate profile info from sessionStorage
-            const username = sessionStorage.getItem('username') || 'Player';
-            const elo = sessionStorage.getItem('elo') || '1000';
-            const email = sessionStorage.getItem('email') || '—';
-            const nameEl = document.getElementById('profileDisplayName');
-            const eloEl = document.getElementById('profileElo');
-            const emailEl = document.getElementById('profileEmail');
-            if (nameEl) nameEl.textContent = username;
-            if (eloEl) eloEl.textContent = elo;
-            if (emailEl) emailEl.textContent = email;
         });
     </script>
 </body>

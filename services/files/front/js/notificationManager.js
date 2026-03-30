@@ -4,31 +4,107 @@ class NotificationManager {
     constructor() {
         this.socket = null;
         this.toastContainer = null;
+        this.isConnected = false;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.debugMode = true; // Set to false in production
     }
 
-    init() {
-        // Prevent multiple connections on the same page
-        if (this.socket) return;
+    init(externalSocket = null) {
+        // If an external socket is provided, use it instead of creating a new one
+        if (externalSocket) {
+            this.debug("Using external socket provided by caller");
+            this.socket = externalSocket;
+            this.socket._externalSocket = true; // Mark as external
+            this.setupToastContainer();
+            this.debug("Toast container setup complete");
+            this.registerEventListeners();
+            return;
+        }
+
+        // Prevent multiple connections - check if socket exists AND is connected
+        if (this.socket) {
+            if (this.socket.connected) {
+                this.debug("Init called but socket already exists and is connected");
+                return;
+            } else {
+                this.debug("Init called with stale socket, cleaning up...");
+                this.socket.disconnect();
+                this.socket = null;
+            }
+        }
 
         const token = TokenManager.getAccessToken();
-        if (!token) return;
+        if (!token) {
+            this.debug("Init failed: No token available");
+            return;
+        }
 
         this.setupToastContainer();
+        this.debug("Toast container setup complete");
 
         // Initialize Socket
         this.socket = io({
             path: '/social/socket.io',
             auth: { token },
-            query: { token }
+            query: { token },
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: this.maxReconnectAttempts
         });
 
-        this.socket.on('connect', () => console.log("[Notifications] Connected to broker"));
+        this.registerEventListeners();
+    }
+
+    registerEventListeners() {
+        if (!this.socket) {
+            console.error("[NotifMgr] Cannot register event listeners - no socket");
+            return;
+        }
+
+        // Only register connection events if we created the socket ourselves
+        // If using external socket, these are already handled by the parent
+        if (!this.socket._externalSocket) {
+            this.socket.on('connect', () => {
+                this.isConnected = true;
+                this.reconnectAttempts = 0;
+                this.debug(" Connected to broker", { socketId: this.socket.id });
+                console.log("[Notifications] Connected to broker");
+            });
+
+            this.socket.on('disconnect', (reason) => {
+                this.isConnected = false;
+                this.debug(" Disconnected from broker", { reason });
+                console.warn("[Notifications] Disconnected:", reason);
+            });
+
+            this.socket.on('reconnect_attempt', (attemptNumber) => {
+                this.reconnectAttempts = attemptNumber;
+                this.debug(` Reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts}`);
+            });
+
+            this.socket.on('reconnect', (attemptNumber) => {
+                this.debug(` Reconnected after ${attemptNumber} attempts`);
+                this.showToast('Notifications reconnected', 'success');
+            });
+
+            this.socket.on('reconnect_failed', () => {
+                this.debug("Reconnection failed after all attempts");
+                this.showToast('Unable to connect to notifications', 'error');
+            });
+
+            this.socket.on('connect_error', (err) => {
+                console.error("[Notifications] WebSocket Error:", err.message);
+            });
+        }
 
         // ==========================================
         // FRIEND EVENTS
         // ==========================================
 
         this.socket.on('friend:invitation', (payload) => {
+            this.debug("Friend invitation received", payload);
             this.showInteractiveToast(
                 `Friend request from ${payload.senderUsername || 'someone'}`,
                 'info',
@@ -73,19 +149,23 @@ class NotificationManager {
         // ==========================================
 
         this.socket.on('private-chat:receive', (payload) => {
+            this.debug("Private chat message received", payload);
             // Add a flag so the profile page can mark the message as handled
             payload._handled = false;
 
             // Dispatch event for profile page to handle
             document.dispatchEvent(new CustomEvent('notification:private_chat_receive', { detail: payload }));
 
-            // After a microtask, check if the profile page handled it
-            // If not (user is on another page or has a different chat open), show a toast
-            Promise.resolve().then(() => {
+            // Give the event handler time to mark the message as handled
+            // Use setTimeout instead of Promise.resolve() for more reliable timing
+            setTimeout(() => {
                 if (!payload._handled) {
+                    this.debug("Message not handled by page, showing toast");
                     this.showToast(`New message from ${payload.senderUsername || 'a friend'}`, 'info');
+                } else {
+                    this.debug("Message handled by profile page, toast suppressed");
                 }
-            });
+            }, 10);
         });
 
         // ==========================================
@@ -93,6 +173,7 @@ class NotificationManager {
         // ==========================================
 
         this.socket.on('challenge:received', (payload) => {
+            this.debug("Challenge received", payload);
             const modeLabel = payload.mode === 'ranked' ? 'Ranked' : 'Unranked';
             this.showInteractiveToast(
                 `${payload.senderUsername} challenges you! (${modeLabel})`,
@@ -125,10 +206,6 @@ class NotificationManager {
         this.socket.on('challenge:expired', (payload) => {
             this.showToast('Your challenge has expired.', 'error');
             document.dispatchEvent(new CustomEvent('notification:challenge_expired', { detail: payload }));
-        });
-
-        this.socket.on('connect_error', (err) => {
-            console.error("[Notifications] WebSocket Error:", err.message);
         });
     }
 
@@ -222,21 +299,59 @@ class NotificationManager {
     // ==========================================
 
     setupToastContainer() {
-        this.toastContainer = document.getElementById('toastContainer');
-        if (!this.toastContainer) {
-            this.toastContainer = document.createElement('div');
-            this.toastContainer.id = 'toastContainer';
-            this.toastContainer.className = 'toast-container';
-            document.body.appendChild(this.toastContainer);
+        // Always try to get existing container first
+        let container = document.getElementById('toastContainer');
+
+        // If container exists but is not in DOM, remove the reference
+        if (container && !container.parentNode) {
+            this.debug("Toast container exists but not in DOM, will recreate");
+            container = null;
         }
+
+        // Create container if needed
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+
+            // Ensure document.body exists
+            if (document.body) {
+                document.body.appendChild(container);
+                this.debug("Created new toast container");
+            } else {
+                console.error("[NotifMgr] Cannot create toast container - document.body not ready");
+                return;
+            }
+        } else {
+            this.debug("Toast container already exists");
+        }
+
+        this.toastContainer = container;
     }
 
     showToast(message, type = 'info') {
+        // Ensure toast container exists and is in DOM
+        if (!this.toastContainer || !this.toastContainer.parentNode) {
+            this.debug("Toast container missing, recreating...");
+            this.setupToastContainer();
+
+            // Double-check after recreation
+            if (!this.toastContainer || !this.toastContainer.parentNode) {
+                console.error("[NotifMgr] Failed to create toast container, cannot show toast");
+                return;
+            }
+        }
+
+        this.debug(`Showing toast: [${type}] ${message}`);
+
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.textContent = message;
 
         this.toastContainer.appendChild(toast);
+
+        // Force a reflow to ensure animation plays
+        toast.offsetHeight;
 
         setTimeout(() => {
             this._dismissToast(toast);
@@ -252,6 +367,20 @@ class NotificationManager {
      * @param {number|null} countdownMs - Optional countdown in ms
      */
     showInteractiveToast(message, type, actions = [], countdownMs = null) {
+        // Ensure toast container exists and is in DOM
+        if (!this.toastContainer || !this.toastContainer.parentNode) {
+            this.debug("Toast container missing, recreating...");
+            this.setupToastContainer();
+
+            // Double-check after recreation
+            if (!this.toastContainer || !this.toastContainer.parentNode) {
+                console.error("[NotifMgr] Failed to create toast container, cannot show interactive toast");
+                return;
+            }
+        }
+
+        this.debug(`Showing interactive toast: [${type}] ${message}`, { actions: actions.length, countdown: countdownMs });
+
         const toast = document.createElement('div');
         toast.className = `toast interactive ${type}`;
 
@@ -284,12 +413,16 @@ class NotificationManager {
 
             // Auto-dismiss when countdown expires
             const timer = setTimeout(() => {
+                this.debug("️ Toast countdown expired, dismissing");
                 this._dismissToast(toast);
             }, countdownMs);
             toast._countdownTimer = timer;
         }
 
         this.toastContainer.appendChild(toast);
+
+        // Force a reflow to ensure animation plays
+        toast.offsetHeight;
     }
 
     _dismissToast(toast) {
@@ -298,6 +431,79 @@ class NotificationManager {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => toast.remove(), 300);
+    }
+
+    // ==========================================
+    // DEBUG & DIAGNOSTICS
+    // ==========================================
+
+    debug(message, data = null) {
+        if (!this.debugMode) return;
+
+        const timestamp = new Date().toISOString().substr(11, 12);
+        if (data) {
+            console.log(`[NotifMgr ${timestamp}] ${message}`, data);
+        } else {
+            console.log(`[NotifMgr ${timestamp}] ${message}`);
+        }
+    }
+
+    /**
+     * Get current connection status and diagnostics
+     * Call this from browser console: notificationManager.getStatus()
+     */
+    getStatus() {
+        const status = {
+            isConnected: this.isConnected,
+            socketExists: !!this.socket,
+            socketConnected: this.socket ? this.socket.connected : false,
+            socketId: this.socket ? this.socket.id : null,
+            reconnectAttempts: this.reconnectAttempts,
+            toastContainerExists: !!this.toastContainer,
+            toastContainerInDOM: this.toastContainer ? !!this.toastContainer.parentNode : false,
+            debugMode: this.debugMode
+        };
+
+        console.table(status);
+        return status;
+    }
+
+    /**
+     * Test the notification system
+     * Call this from browser console: notificationManager.test()
+     */
+    test() {
+        console.log("Testing notification system...");
+
+        this.showToast("Test notification - Info", "info");
+
+        setTimeout(() => {
+            this.showToast("Test notification - Success", "success");
+        }, 500);
+
+        setTimeout(() => {
+            this.showToast("Test notification - Error", "error");
+        }, 1000);
+
+        setTimeout(() => {
+            this.showInteractiveToast(
+                "Test interactive notification",
+                "info",
+                [
+                    {
+                        label: "OK",
+                        className: "toast-btn-accept",
+                        onClick: (toast) => {
+                            console.log("Test button clicked");
+                            this._dismissToast(toast);
+                        }
+                    }
+                ],
+                10000
+            );
+        }, 1500);
+
+        console.log("Test notifications sent");
     }
 }
 

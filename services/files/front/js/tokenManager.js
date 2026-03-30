@@ -28,6 +28,14 @@ export const TokenManager = {
             if (response.ok) {
                 const data = await response.json();
                 TokenManager.setTokens(data.accessToken, data.refreshToken);
+                
+                try {
+                    const { ProfileManager } = await import('./profileManager.js');
+                    await ProfileManager.loadProfile();
+                } catch (err) {
+                    console.error("Failed to load ProfileManager after token refresh", err);
+                }
+                
                 return true;
             }
             return false;

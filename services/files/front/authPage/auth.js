@@ -43,7 +43,6 @@ loginForm.addEventListener('submit', async (e) => {
     if (result && !result.error) {
         localStorage.setItem('accessToken', result.accessToken)
         localStorage.setItem('refreshToken', result.refreshToken)
-        sessionStorage.setItem('username', identifier)
         window.location.href = '../homePage/index.html';
     } else {
         alert('Login failed. Please check your credentials.');
