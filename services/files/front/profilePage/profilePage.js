@@ -1,5 +1,6 @@
 import { TokenManager } from "../js/tokenManager.js";
 import { notificationManager } from "../js/notificationManager.js";
+import { ProfileManager } from "../js/profileManager.js";
 
 // DOM Elements
 const backBtn = document.getElementById('backBtn');
@@ -35,7 +36,6 @@ let activeChatFriendUsername = null;
 let chatOffset = 0;
 let chatAllLoaded = false;
 let chatFetching = false;
-const currentUsername = sessionStorage.getItem('username');
 
 // ==========================================
 // INITIALIZATION
@@ -47,6 +47,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!success) window.location.href = '../index.html';
         token = TokenManager.getAccessToken();
     }
+
+    if (token) {
+        await ProfileManager.ensureProfile();
+    }
+
+    // Populate profile info from sessionStorage
+    const username = sessionStorage.getItem('username') || 'Player';
+    const elo = sessionStorage.getItem('elo') || '1000';
+    const email = sessionStorage.getItem('email') || '—';
+    const nameEl = document.getElementById('profileDisplayName');
+    const eloEl = document.getElementById('profileElo');
+    const emailEl = document.getElementById('profileEmail');
+    if (nameEl) nameEl.textContent = username;
+    if (eloEl) eloEl.textContent = elo;
+    if (emailEl) emailEl.textContent = email;
 
     notificationManager.init();
     initPrivateChatListeners();
@@ -716,7 +731,7 @@ async function fetchChatMessages() {
 function createMessageElement(msg) {
     const div = document.createElement('div');
     div.className = 'chat-msg';
-    if (msg.senderUsername === currentUsername) {
+    if (msg.senderUsername === sessionStorage.getItem('username')) {
         div.classList.add('chat-msg-own');
     }
 

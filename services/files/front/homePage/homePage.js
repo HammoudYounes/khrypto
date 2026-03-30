@@ -1,5 +1,6 @@
 import { TokenManager } from "../js/tokenManager.js";
 import { notificationManager } from "../js/notificationManager.js";
+import { ProfileManager } from "../js/profileManager.js";
 const API_URL = "/api";
 
 // DOM elements - game buttons
@@ -46,6 +47,8 @@ async function initializeHome() {
         return;
     }
 
+    await ProfileManager.ensureProfile();
+
     // Si tout est bon, on connecte le socket
     console.log("Session valide, connexion au serveur...");
     socket.io.opts.query = { token: TokenManager.getAccessToken() };
@@ -71,8 +74,8 @@ socket.on("connect_error", async (err) => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeHome();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeHome();
 
     // Populate username in profile button and panel
     const username = sessionStorage.getItem('username') || 'Guest';
@@ -255,7 +258,6 @@ let socialSocket = null;
 let chatOffset = 0;
 let chatAllLoaded = false;
 let chatFetching = false;
-const currentUsername = sessionStorage.getItem('username');
 
 function initSocialSocket() {
     socialSocket = io({
@@ -360,7 +362,7 @@ async function fetchChatMessages() {
 function createMessageElement(msg) {
     const div = document.createElement('div');
     div.className = 'chat-msg';
-    if (msg.senderUsername === currentUsername) {
+    if (msg.senderUsername === sessionStorage.getItem('username')) {
         div.classList.add('chat-msg-own');
     }
 

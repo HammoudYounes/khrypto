@@ -1,5 +1,5 @@
 const http = require('http');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const { error } = require('console');
 
@@ -149,7 +149,7 @@ async function getTokens(userId) {
 // --- INTERNAL API HELPERS ---
 // Used by other services via Gateway.
 
-http.createServer(function (request, response) {
+http.createServer(async function (request, response) {
   console.log(`Received query for a auth: ${request.url}`);
 
   if (request.url === "/api/auth/login") {
@@ -215,6 +215,42 @@ http.createServer(function (request, response) {
         }
       }
     });
+  }
+
+  else if (request.url === "/api/profile") {
+    if (request.method !== 'GET') {
+      response.writeHead(405, { "Content-Type": "text/plain" });
+      return response.end("Method Not Allowed");
+    }
+
+    try {
+      const userIdStr = request.headers['x-user-id'];
+      if (!userIdStr) {
+        response.writeHead(401, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "Unauthorized: Missing user ID" }));
+      }
+
+      console.log(`Profile request received for user ID: ${userIdStr}`);
+      const user = await user_collection.findOne({ _id: new ObjectId(userIdStr) });
+
+      if (!user) {
+        response.writeHead(404, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "User not found" }));
+      }
+
+      // Return profile data (without sensitive info)
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({
+        username: user.username,
+        email: user.mail,
+        elo: user.elo
+      }));
+
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      response.writeHead(500, { "Content-Type": "text/plain" });
+      response.end("Internal Server Error");
+    }
   }
 
 }).listen(PORT, () => console.log(`Auth service listening on port ${PORT}`));
