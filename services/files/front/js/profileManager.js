@@ -1,9 +1,13 @@
 import { TokenManager } from './tokenManager.js';
 
 export const ProfileManager = {
-    // Auto-load profile if tokens exist but sessionStorage is empty
+    // Auto-load profile if tokens exist but sessionStorage is missing full data
     async ensureProfile() {
-        if (TokenManager.getAccessToken() && !sessionStorage.getItem('username')) {
+        const hasFullProfile = sessionStorage.getItem('username') && 
+                               sessionStorage.getItem('email') && 
+                               sessionStorage.getItem('elo');
+                               
+        if (TokenManager.getAccessToken() && !hasFullProfile) {
             await this.loadProfile();
         }
     },
