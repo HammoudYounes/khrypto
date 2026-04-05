@@ -60,12 +60,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Populate profile info from sessionStorage
     const username = sessionStorage.getItem('username') || 'Player';
     const elo = sessionStorage.getItem('elo') || '1000';
+    const coins = sessionStorage.getItem('coins') || '0';
     const email = sessionStorage.getItem('email') || '—';
     const nameEl = document.getElementById('profileDisplayName');
     const eloEl = document.getElementById('profileElo');
+    const coinsEl = document.getElementById('profileCoins');
     const emailEl = document.getElementById('profileEmail');
     if (nameEl) nameEl.textContent = username;
     if (eloEl) eloEl.textContent = elo;
+    if (coinsEl) {
+        coinsEl.textContent = coins;
+        // Format negative balance in red
+        if (parseInt(coins) < 0) {
+            coinsEl.style.color = '#e74c3c';
+        } else {
+            coinsEl.style.color = '#2ecc71';
+        }
+    }
     if (emailEl) emailEl.textContent = email;
 
     notificationManager.init();
