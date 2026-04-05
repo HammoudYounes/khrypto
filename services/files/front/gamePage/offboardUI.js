@@ -189,5 +189,7 @@ export function goHome() {
     sessionStorage.removeItem("opponentUsername");
     sessionStorage.removeItem("myElo");
     sessionStorage.removeItem("opponentElo");
+    sessionStorage.removeItem("myCoins");
+    sessionStorage.removeItem("opponentCoins");
     window.location.href = '../homePage/index.html';
 }

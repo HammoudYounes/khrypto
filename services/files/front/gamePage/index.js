@@ -159,15 +159,19 @@ socket.on('game:over', (winner) => {
     }, 3000);
 })
 
-socket.on('game:elo_update', (elos) => {
-    console.log("[GamePage] Elo updated quietly in storage:", elos);
+socket.on('game:stats_update', (stats) => {
+    console.log("[GamePage] Stats updated:", stats);
 
     if (state.myPlayerId === 0) {
-        sessionStorage.setItem("myElo", elos[0]);
-        sessionStorage.setItem("opponentElo", elos[1]);
+        sessionStorage.setItem("myElo", stats[0].elo);
+        sessionStorage.setItem("opponentElo", stats[1].elo);
+        sessionStorage.setItem("myCoins", stats[0].deltaCoins);
+        sessionStorage.setItem("opponentCoins", stats[1].deltaCoins);
     } else if (state.myPlayerId === 1) {
-        sessionStorage.setItem("myElo", elos[1]);
-        sessionStorage.setItem("opponentElo", elos[0]);
+        sessionStorage.setItem("myElo", stats[1].elo);
+        sessionStorage.setItem("opponentElo", stats[0].elo);
+        sessionStorage.setItem("myCoins", stats[1].deltaCoins);
+        sessionStorage.setItem("opponentCoins", stats[0].deltaCoins);
     }
 });
 

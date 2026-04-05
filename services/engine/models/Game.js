@@ -136,10 +136,10 @@ class Game {
         this.elos[0] = newElo0;
         this.elos[1] = newElo1;
 
-        // Emit new elos to players for UI update
-        this.io.to(this.id).emit('game:elo_update', {
-            0: newElo0,
-            1: newElo1
+        // Emit updated stats (elo and coins) to players for UI update
+        this.io.to(this.id).emit('game:stats_update', {
+            0: { elo: newElo0, deltaCoins: deltaElo0 },
+            1: { elo: newElo1, deltaCoins: deltaElo1 }
         });
     }
 
