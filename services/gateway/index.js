@@ -9,7 +9,8 @@ const PORTS = {
     AUTH: process.env.AUTH_URL || 'http://127.0.0.1:8003',
     TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004',
     MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005',
-    SOCIAL: process.env.SOCIAL_URL || 'http://127.0.0.1:8006'
+    SOCIAL: process.env.SOCIAL_URL || 'http://127.0.0.1:8006',
+    MARKET: process.env.MARKET_URL || 'http://127.0.0.1:8007'
 };
 
 const proxy = httpProxy.createProxyServer();
@@ -47,6 +48,10 @@ const server = http.createServer(function (request, response) {
             if (filePath[2] === "friend" || filePath[2] === "social" || filePath[2] === "chat") {
                 console.log("Routing API request to Friend Service");
                 return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
+            }
+            if (filePath[2] === "market") {
+                console.log("Routing API request to Market Service");
+                return proxyWithTokenCheck(request, response, PORTS.MARKET);
             }
         }
         else if (filePath[1] === "matchmaking") {
