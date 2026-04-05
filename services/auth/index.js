@@ -254,7 +254,8 @@ http.createServer(async function (request, response) {
       response.end(JSON.stringify({
         username: user.username,
         email: user.mail,
-        elo: user.elo
+        elo: user.elo,
+        coins: user.coins
       }));
 
     } catch (error) {
