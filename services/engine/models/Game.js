@@ -121,11 +121,16 @@ class Game {
         const newElo0 = this.computeNewElo(this.elos[0], this.elos[1], p0Result);
         const newElo1 = this.computeNewElo(this.elos[1], this.elos[0], p1Result);
 
+        const deltaElo0 = newElo0 - this.elos[0];
+        const deltaElo1 = newElo1 - this.elos[1];
+
         console.log(`[Game] Online game ended. P0 Elo: ${this.elos[0]} -> ${newElo0}. P1 Elo: ${this.elos[1]} -> ${newElo1}`);
 
         // Update DB
         this.updateEloInDb(this.userIds[0], newElo0);
         this.updateEloInDb(this.userIds[1], newElo1);
+        this.updateCoinsInDb(this.userIds[0], deltaElo0);
+        this.updateCoinsInDb(this.userIds[1], deltaElo1);
 
         // Update internal cache
         this.elos[0] = newElo0;
@@ -154,6 +159,20 @@ class Game {
             console.log(`[Game] Elo Update Result matched: ${result.matchedCount}, modified: ${result.modifiedCount}`);
         } catch (e) {
             console.error(`[Game] Error strictly committing Elo to MongoDB: ${e.message}`);
+        }
+    }
+
+    async updateCoinsInDb(userId, deltaCoins) {
+        if (!userId || !this.usersCollection || !ObjectId.isValid(userId)) return;
+
+        try {
+            const result = await this.usersCollection.updateOne(
+                { _id: ObjectId.createFromHexString(userId) },
+                { $inc: { coins: deltaCoins } }
+            );
+            console.log(`[Game] Coins Update Result matched: ${result.matchedCount}, modified: ${result.modifiedCount}`);
+        } catch (e) {
+            console.error(`[Game] Error strictly committing Coins to MongoDB: ${e.message}`);
         }
     }
 }
