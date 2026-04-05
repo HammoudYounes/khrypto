@@ -41,6 +41,11 @@ let chatFetching = false;
 // INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+    if (sessionStorage.getItem('isGuest') === 'true') {
+        window.location.href = '../homePage/index.html';
+        return;
+    }
+
     let token = TokenManager.getAccessToken();
     if (!token) {
         const success = await TokenManager.refreshAccessToken();

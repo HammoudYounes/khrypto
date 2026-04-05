@@ -59,7 +59,7 @@ const server = http.createServer(function (request, response) {
             return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
         }
         else if (filePath[1] === "socket.io") {
-            return proxyWithTokenCheck(request, response, PORTS.ENGINE);
+            return proxyWithEngineGuestSupport(request, response);
         }
         else {
             console.log("Request for a file received, transferring to the file service")
@@ -153,6 +153,42 @@ function callTokenService(path, body) {
         req.write(JSON.stringify(body));
         req.end();
     });
+}
+
+// --- ENGINE PROXY (allows unauthenticated guest connections) ---
+async function proxyWithEngineGuestSupport(req, res) {
+    let accessToken = null;
+
+    const authHeader = req.headers['authorization'];
+    if (authHeader) {
+        accessToken = authHeader.split(' ')[1];
+    } else {
+        try {
+            const urlObj = new URL(req.url, `http://${req.headers.host}`);
+            accessToken = urlObj.searchParams.get('token');
+        } catch (e) {}
+    }
+
+    if (!accessToken) {
+        // Guest: inject a random guest ID and forward to engine
+        req.headers['x-user-id'] = `guest_${Math.random().toString(36).slice(2, 10)}`;
+        return proxy.web(req, res, { target: PORTS.ENGINE });
+    }
+
+    // Authenticated user: validate token normally
+    try {
+        const check = await callTokenService('/verify', { token: accessToken });
+        if (check.valid) {
+            if (check.userId) req.headers['x-user-id'] = check.userId;
+            return proxy.web(req, res, { target: PORTS.ENGINE });
+        } else {
+            res.writeHead(401);
+            return res.end(JSON.stringify({ error: "Token expired" }));
+        }
+    } catch (err) {
+        console.error("Gateway Engine Check Error", err);
+        res.writeHead(500); res.end();
+    }
 }
 
 // --- LE "SMART PROXY" (Middleware Token) ---

@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = url;
     };
 
+    // Guest short-circuit: skip token checks entirely
+    if (sessionStorage.getItem('isGuest') === 'true') {
+        await redirectWithMinDelay('./homePage/index.html');
+        return;
+    }
+
     // Si aucun token, rediriger vers auth page
     if (!accessToken && !refreshToken) {
         await redirectWithMinDelay('./authPage/index.html');

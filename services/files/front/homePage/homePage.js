@@ -28,8 +28,25 @@ const socket = io({
     }
 });
 
+// Guest UI: hides features unavailable without an account
+function applyGuestUI() {
+    if (onlineButton) onlineButton.style.display = 'none';
+    const chatSection = document.querySelector('.chat-section');
+    if (chatSection) chatSection.style.display = 'none';
+    if (goToProfileBtn) goToProfileBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.textContent = 'Exit Guest Mode';
+}
+
 // 3. FONCTION D'INITIALISATION (Check Session)
 async function initializeHome() {
+    // Guest short-circuit: skip auth, connect without token
+    if (sessionStorage.getItem('isGuest') === 'true') {
+        applyGuestUI();
+        socket.io.opts.query = {};
+        socket.connect();
+        return;
+    }
+
     let accessToken = TokenManager.getAccessToken();
     const refreshToken = TokenManager.getRefreshToken();
 
@@ -57,6 +74,7 @@ async function initializeHome() {
 
 // 4. GESTION DES ERREURS DE CONNEXION (Ex: Token expiré pendant l'attente)
 socket.on("connect_error", async (err) => {
+    if (sessionStorage.getItem('isGuest') === 'true') return;
     console.log("Erreur connexion socket:", err.message);
 
     // Tentative de refresh automatique
