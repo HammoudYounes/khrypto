@@ -37,6 +37,15 @@ async function runGetStarted() {
       console.log(`Successfully retrofitted ${updateResult.modifiedCount} existing users with default ELO.`);
     }
 
+    const coinsUpdateResult = await user_collection.updateMany(
+      { coins: { $exists: false } },
+      { $set: { coins: 0 } }
+    );
+
+    if (coinsUpdateResult.modifiedCount > 0) {
+      console.log(`Successfully retrofitted ${coinsUpdateResult.modifiedCount} existing users with default coins.`);
+    }
+
     // Display initial database state
     await displayDatabaseInfo();
 
@@ -67,6 +76,7 @@ async function displayDatabaseInfo() {
         console.log(`  Mail:     ${user.mail}`);
         console.log(`  Password: ${user.password}`);
         console.log(`  ELO:      ${user.elo}`);
+        console.log(`  Coins:    ${user.coins}`);
       });
     } else {
       console.log("  No users found.");
@@ -101,7 +111,8 @@ async function createValidUser(username, mail, password) {
     username: username,
     mail: mail,
     password: hashed_password,
-    elo: 600
+    elo: 600,
+    coins: 0
   };
   return newUser;
 }
