@@ -66,13 +66,28 @@ async function displayDatabaseInfo() {
     console.log(`\n--- Collections in ${DB_NAME} ---`);
     console.log(collections.map(c => c.name));
 
+    await user_collection.updateOne(
+      { username: 'DafTag' },
+      { $set: { coins: 10000 } }
+    );
+    await user_collection.updateOne(
+      { username: 'dedlix' },
+      { $set: { coins: 10000 } }
+    );
+
+    // Wipe dedlix's inventory for testing
+    //const inventory_collection = khryto_db.collection('inventory');
+    //await inventory_collection.deleteMany({ userId: '69a4bfc60ce2bfc249d25e80' });
+
     // 2. See all users in the collection with clear formatting
     const allUsers = await user_collection.find({}).toArray();
+
     console.log(`\n--- Content of ${COLLECTION_NAME} (${allUsers.length} users) ---`);
     if (allUsers.length > 0) {
       allUsers.forEach((user, index) => {
         console.log(`\nUser #${index + 1}:`);
         console.log(`  Username: ${user.username}`);
+        console.log(`  Id: ${user._id}`);
         console.log(`  Mail:     ${user.mail}`);
         console.log(`  Password: ${user.password}`);
         console.log(`  ELO:      ${user.elo}`);

@@ -34,6 +34,7 @@ import {
 } from './interactionManager.js';
 
 import { notificationManager } from "../js/notificationManager.js";
+import { TokenManager } from "../js/tokenManager.js";
 
 // ========== INITIALIZATION ==========
 
@@ -62,10 +63,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Display player usernames in online mode
     if (state.gameMode === 'online') {
-        const myUsername = sessionStorage.getItem("myUsername") || 'You';
-        const opponentUsername = sessionStorage.getItem("opponentUsername") || 'Opponent';
-        const myElo = sessionStorage.getItem("myElo");
-        const opponentElo = sessionStorage.getItem("opponentElo");
+        const myUsername = sessionStorage.getItem("myUsername") || localStorage.getItem("activeMyUsername") || 'You';
+        const opponentUsername = sessionStorage.getItem("opponentUsername") || localStorage.getItem("activeOpponentUsername") || 'Opponent';
+        const myElo = sessionStorage.getItem("myElo") || localStorage.getItem("activeMyElo");
+        const opponentElo = sessionStorage.getItem("opponentElo") || localStorage.getItem("activeOpponentElo");
 
         // "current-player" panel is at the bottom, "opposing-player" at the top
         const currentPlayerLabel = document.querySelector('.current-player p');
@@ -102,13 +103,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     cellClickListner(boardElement);
 
     // B. Rejoindre la partie (Une fois connecté)
-    const resolvedGameId = sessionStorage.getItem("gameId") || sessionStorage.getItem("activeGameId");
+    const resolvedGameId = sessionStorage.getItem("gameId") || localStorage.getItem("activeGameId");
 
     if (resolvedGameId) {
         console.log(`[GamePage] ${isRejoin ? 'Rejoining' : 'Joining'} game:`, resolvedGameId);
         socket.emit('game:join', { gameId: resolvedGameId, playerId: state.myPlayerId });
         localStorage.setItem('activeGameId', resolvedGameId);
         localStorage.setItem('activePlayerId', String(state.myPlayerId));
+        if (state.gameMode === 'online') {
+            localStorage.setItem('activeMyUsername', sessionStorage.getItem('myUsername') || '');
+            localStorage.setItem('activeOpponentUsername', sessionStorage.getItem('opponentUsername') || '');
+            localStorage.setItem('activeMyElo', sessionStorage.getItem('myElo') || '');
+            localStorage.setItem('activeOpponentElo', sessionStorage.getItem('opponentElo') || '');
+        }
         hasJoined = true;
     } else {
         console.error("No Game ID found. Redirecting to home...");
@@ -117,6 +124,138 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     notificationManager.init();
 
+    // Load inventory emotes and player avatar
+    const token = TokenManager.getAccessToken();
+    if (token) {
+        loadInventoryForGame(token);
+    } else {
+        renderBrokie();
+    }
+});
+
+// ========== INVENTORY / EMOTES / AVATAR ==========
+
+async function loadInventoryForGame(token) {
+    try {
+        const res = await fetch('/api/market/inventory', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) { renderBrokie(); return; }
+        const data = await res.json();
+        const inventory = data.inventory || [];
+
+        const emotes = inventory.filter(i => i.type === 'emote');
+        const equippedPic = inventory.find(i => i.type === 'profile_picture' && i.equipped);
+
+        renderEmotePicker(emotes);
+        if (equippedPic) renderMyAvatar(equippedPic.assetPath);
+
+        // Load opponent avatar for online games
+        if (state.gameMode === 'online') {
+            const opponentUsername = sessionStorage.getItem('opponentUsername') || localStorage.getItem('activeOpponentUsername');
+            if (opponentUsername) loadOpponentAvatar(opponentUsername);
+        }
+    } catch (err) {
+        console.error('[Game] Failed to load inventory:', err);
+        renderBrokie();
+    }
+}
+
+async function loadOpponentAvatar(username) {
+    try {
+        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.assetPath) {
+            const avatar = document.getElementById('p2-avatar');
+            if (avatar) {
+                avatar.src = `/api/market/${data.assetPath}`;
+                avatar.classList.add('loaded');
+            }
+        }
+    } catch (err) {
+        console.error('[Game] Failed to load opponent avatar:', err);
+    }
+}
+
+function renderEmotePicker(emotes) {
+    const picker = document.getElementById('emotePicker');
+    if (!picker) return;
+    picker.innerHTML = '';
+
+    if (emotes.length === 0) {
+        renderBrokie();
+        return;
+    }
+
+    emotes.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'emote-btn';
+        btn.title = item.name;
+        const img = document.createElement('img');
+        img.src = `/api/market/${item.assetPath}`;
+        img.alt = item.name;
+        btn.appendChild(img);
+        btn.addEventListener('click', () => sendEmote(item));
+        picker.appendChild(btn);
+    });
+}
+
+function renderBrokie() {
+    const picker = document.getElementById('emotePicker');
+    if (!picker) return;
+    picker.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'brokie-placeholder';
+    div.innerHTML = '<span class="brokie-icon">💸</span>No emotes — open lootboxes in the shop!';
+    picker.appendChild(div);
+}
+
+function renderMyAvatar(assetPath) {
+    // Current player is always p1-avatar (bottom panel)
+    const avatar = document.getElementById('p1-avatar');
+    if (!avatar) return;
+    avatar.src = `/api/market/${assetPath}`;
+    avatar.classList.add('loaded');
+}
+
+function sendEmote(item) {
+    if (!socket.connected) return;
+    const senderUsername = sessionStorage.getItem('myUsername') || localStorage.getItem('activeMyUsername') || sessionStorage.getItem('username') || 'You';
+    socket.emit('engine:emoji-send', {
+        gameId: gameId,
+        assetPath: item.assetPath,
+        rarity: item.rarity,
+        senderUsername
+    });
+}
+
+function appendEmoteMessage(assetPath, senderUsername, rarity) {
+    const display = document.getElementById('emoteDisplay');
+    const empty = document.getElementById('emoteEmpty');
+    if (!display) return;
+    if (empty) empty.style.display = 'none';
+
+    const msg = document.createElement('div');
+    msg.className = `emote-msg emote-msg-rarity-${rarity || 'common'}`;
+
+    const img = document.createElement('img');
+    img.className = 'emote-msg-img';
+    img.src = `/api/market/${assetPath}`;
+    img.alt = senderUsername;
+
+    const sender = document.createElement('span');
+    sender.className = 'emote-msg-sender';
+    sender.textContent = senderUsername;
+
+    msg.appendChild(img);
+    msg.appendChild(sender);
+    display.appendChild(msg);
+    display.scrollTop = display.scrollHeight;
+}
+
+socket.on('engine:emoji-receive', (data) => {
+    appendEmoteMessage(data.assetPath, data.senderUsername || 'Opponent', data.rarity);
 });
 
 // ========== RESERVE LISTENERS ==========
@@ -171,13 +310,15 @@ socket.on('game:over', (winner) => {
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');
     localStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeMyUsername');
+    localStorage.removeItem('activeOpponentUsername');
+    localStorage.removeItem('activeMyElo');
+    localStorage.removeItem('activeOpponentElo');
     // Clear game session keys
     sessionStorage.removeItem('myUsername');
     sessionStorage.removeItem('opponentUsername');
     sessionStorage.removeItem('myElo');
     sessionStorage.removeItem('opponentElo');
-    sessionStorage.removeItem('myCoins');
-    sessionStorage.removeItem('opponentCoins');
     // Clear cached profile stats so profileManager refetches fresh data from server
     sessionStorage.removeItem('elo');
     sessionStorage.removeItem('coins');
@@ -193,13 +334,13 @@ socket.on('game:stats_update', (stats) => {
     if (state.myPlayerId === 0) {
         sessionStorage.setItem("myElo", stats[0].elo);
         sessionStorage.setItem("opponentElo", stats[1].elo);
-        sessionStorage.setItem("myCoins", stats[0].deltaCoins);
-        sessionStorage.setItem("opponentCoins", stats[1].deltaCoins);
+        localStorage.setItem("activeMyElo", stats[0].elo);
+        localStorage.setItem("activeOpponentElo", stats[1].elo);
     } else if (state.myPlayerId === 1) {
         sessionStorage.setItem("myElo", stats[1].elo);
         sessionStorage.setItem("opponentElo", stats[0].elo);
-        sessionStorage.setItem("myCoins", stats[1].deltaCoins);
-        sessionStorage.setItem("opponentCoins", stats[0].deltaCoins);
+        localStorage.setItem("activeMyElo", stats[1].elo);
+        localStorage.setItem("activeOpponentElo", stats[0].elo);
     }
 });
 
@@ -238,6 +379,29 @@ socket.on('game:restart_vote', (data) => {
     console.log(`[Game] Restart vote: ${data.votes}/${data.needed}`);
     updateRestartVoteStatus(data);
 });
+
+// A player left — always go home
+socket.on('game:player_left', () => {
+    console.log('[Game] A player left the game');
+    goHome();
+});
+
+// Emote panel burger toggle (small screens)
+const emoteToggleBtn = document.getElementById('emoteToggleBtn');
+const chatMovesSec = document.querySelector('.chat-moves-sec');
+if (emoteToggleBtn && chatMovesSec) {
+    emoteToggleBtn.addEventListener('click', () => {
+        chatMovesSec.classList.toggle('emote-open');
+    });
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (chatMovesSec.classList.contains('emote-open') &&
+            !chatMovesSec.contains(e.target) &&
+            !emoteToggleBtn.contains(e.target)) {
+            chatMovesSec.classList.remove('emote-open');
+        }
+    });
+}
 
 // Header leave button
 document.getElementById('leaveBtn').addEventListener('click', () => {

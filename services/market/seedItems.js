@@ -1,97 +1,181 @@
-const { connectDB, getItemsCollection } = require('./db');
+const { connectDB, getItemsCollection, getInventoryCollection } = require('./db');
 
 async function seedItems() {
   try {
     await connectDB();
     const itemsCollection = getItemsCollection();
 
-    // Check if items already exist
-    const count = await itemsCollection.countDocuments();
-    if (count > 0) {
-      console.log(`Items collection already has ${count} items. Skipping seed.`);
-      return;
-    }
-
+    // Upsert each item by assetPath (stable key) so existing _ids are preserved.
+    // Deleting and re-inserting would break all inventory references after a restart.
     const items = [
-      // Common items (5)
-      {
-        name: 'Golden Frame',
-        type: 'profile_picture',
-        rarity: 'common',
-        assetPath: 'assets/items/golden_frame.png',
-        description: 'A simple golden frame for your profile picture'
-      },
-      {
-        name: 'Silver Border',
-        type: 'profile_picture',
-        rarity: 'common',
-        assetPath: 'assets/items/silver_border.png',
-        description: 'An elegant silver border'
-      },
-      {
-        name: 'Laugh Emote',
-        type: 'emote',
-        rarity: 'common',
-        assetPath: 'assets/items/emote_laugh.png',
-        description: 'A simple laugh emote'
-      },
-      {
-        name: 'Thumbs Up Emote',
-        type: 'emote',
-        rarity: 'common',
-        assetPath: 'assets/items/emote_thumbsup.png',
-        description: 'Thumbs up emote'
-      },
-      {
-        name: 'Wave Emote',
-        type: 'emote',
-        rarity: 'common',
-        assetPath: 'assets/items/emote_wave.png',
-        description: 'A friendly wave emote'
-      },
-
-      // Rare items (3)
-      {
-        name: 'Neon Glow Frame',
-        type: 'profile_picture',
-        rarity: 'rare',
-        assetPath: 'assets/items/neon_frame.png',
-        description: 'A futuristic neon glowing frame'
-      },
-      {
-        name: 'Crystal Border',
-        type: 'profile_picture',
-        rarity: 'rare',
-        assetPath: 'assets/items/crystal_border.png',
-        description: 'A shimmering crystal border'
-      },
-      {
-        name: 'Fire Emote',
-        type: 'emote',
-        rarity: 'rare',
-        assetPath: 'assets/items/emote_fire.png',
-        description: 'A burning fire emote'
-      },
-
-      // Mythical items (2)
-      {
-        name: 'Diamond Crown Frame',
-        type: 'profile_picture',
-        rarity: 'mythical',
-        assetPath: 'assets/items/diamond_crown_frame.png',
-        description: 'The legendary diamond crown frame'
-      },
-      {
-        name: 'Legendary Star Emote',
-        type: 'emote',
-        rarity: 'mythical',
-        assetPath: 'assets/items/emote_legendary_star.png',
-        description: 'A legendary star that shines with power'
-      }
+        // Common emotes (5)
+        {
+          name: 'Flamed Scarab',
+          type: 'emote',
+          rarity: 'common',
+          assetPath: 'assets/emotes/flamed_scarab_common.png',
+          description: 'A flaming scarab emote to intimidate your opponent'
+        },
+        {
+          name: 'GG',
+          type: 'emote',
+          rarity: 'common',
+          assetPath: 'assets/emotes/gg_common.png',
+          description: 'The classic good game emote'
+        },
+        {
+          name: 'Haha',
+          type: 'emote',
+          rarity: 'common',
+          assetPath: 'assets/emotes/haha_common.png',
+          description: 'Laugh at your opponent with this emote'
+        },
+        {
+          name: 'Question Marks',
+          type: 'emote',
+          rarity: 'common',
+          assetPath: 'assets/emotes/question_marks_common.png',
+          description: 'Express total confusion with this emote'
+        },
+        {
+          name: 'Shield',
+          type: 'emote',
+          rarity: 'common',
+          assetPath: 'assets/emotes/shield_common.png',
+          description: 'Show off your defensive playstyle'
+        },
+        // Rare emotes (3)
+        {
+          name: 'EZ',
+          type: 'emote',
+          rarity: 'rare',
+          assetPath: 'assets/emotes/ez_rare.png',
+          description: 'For when the game was just too easy'
+        },
+        {
+          name: 'MVP',
+          type: 'emote',
+          rarity: 'rare',
+          assetPath: 'assets/emotes/mvp_rare.png',
+          description: 'Claim your MVP status after a dominant performance'
+        },
+        {
+          name: 'Sad',
+          type: 'emote',
+          rarity: 'rare',
+          assetPath: 'assets/emotes/sad_rare.png',
+          description: 'A sad emote for those heartbreaking losses'
+        },
+        // Mythical emotes (2)
+        {
+          name: 'FF',
+          type: 'emote',
+          rarity: 'mythical',
+          assetPath: 'assets/emotes/ff_mythical.png',
+          description: 'The ultimate surrender emote — make them forfeit'
+        },
+        {
+          name: 'What A Move',
+          type: 'emote',
+          rarity: 'mythical',
+          assetPath: 'assets/emotes/what_a_move_mythical.png',
+          description: 'Celebrate an incredible play with this legendary emote'
+        },
+        // Common profile pictures (4)
+        {
+          name: 'Ankh',
+          type: 'profile_picture',
+          rarity: 'common',
+          assetPath: 'assets/profiles/ankh_common.png',
+          description: 'The ancient symbol of life'
+        },
+        {
+          name: 'Anubis',
+          type: 'profile_picture',
+          rarity: 'common',
+          assetPath: 'assets/profiles/anubis_common.png',
+          description: 'The god of the afterlife watches over you'
+        },
+        {
+          name: 'Sphinx',
+          type: 'profile_picture',
+          rarity: 'common',
+          assetPath: 'assets/profiles/sphinx_common.png',
+          description: 'The enigmatic guardian of the pyramids'
+        },
+        {
+          name: 'Pyramid',
+          type: 'profile_picture',
+          rarity: 'common',
+          assetPath: 'assets/profiles/pyramid_common.png',
+          description: 'A monument to an ancient civilization'
+        },
+        // Rare profile pictures (3)
+        {
+          name: 'Egyptian Magician',
+          type: 'profile_picture',
+          rarity: 'rare',
+          assetPath: 'assets/profiles/egyptian_magician_rare.png',
+          description: 'A master of ancient arcane arts'
+        },
+        {
+          name: 'Solana Boat',
+          type: 'profile_picture',
+          rarity: 'rare',
+          assetPath: 'assets/profiles/solana_boat_rare.png',
+          description: 'Sailing the crypto seas'
+        },
+        {
+          name: 'Horus',
+          type: 'profile_picture',
+          rarity: 'rare',
+          assetPath: 'assets/profiles/horus_rare.png',
+          description: 'The falcon-headed god of the sky'
+        },
+        // Mythical profile pictures (3)
+        {
+          name: 'Bitcoin Temple',
+          type: 'profile_picture',
+          rarity: 'mythical',
+          assetPath: 'assets/profiles/bitcoin_temple_mythical.png',
+          description: 'Where ancient gods meet the blockchain'
+        },
+        {
+          name: 'Shiba',
+          type: 'profile_picture',
+          rarity: 'mythical',
+          assetPath: 'assets/profiles/shiba_mythical.png',
+          description: 'Such wow. Very rare. Much mythical.'
+        },
+        {
+          name: 'Goat Trader',
+          type: 'profile_picture',
+          rarity: 'goat',
+          assetPath: 'assets/profiles/goat_trader_goat.png',
+          description: 'The Greatest Of All Time trader — an ultra-rare legend'
+        }
     ];
 
-    const result = await itemsCollection.insertMany(items);
-    console.log(`Successfully seeded ${result.insertedCount} items into the database`);
+    for (const item of items) {
+      await itemsCollection.updateOne(
+        { assetPath: item.assetPath },
+        { $set: item },
+        { upsert: true }
+      );
+    }
+    console.log(`Seeded ${items.length} items (upsert — existing _ids preserved)`);
+
+    // Remove inventory entries that reference item _ids no longer in the items collection.
+    // This cleans up stale references left by previous delete+reinsert seed runs.
+    const inventoryCollection = getInventoryCollection();
+    const validItems = await itemsCollection.find({}, { projection: { _id: 1 } }).toArray();
+    const validIds = validItems.map(i => i._id.toString());
+    const staleResult = await inventoryCollection.deleteMany({
+      $expr: { $not: { $in: [{ $toString: '$itemId' }, validIds] } }
+    });
+    if (staleResult.deletedCount > 0) {
+      console.log(`Cleaned up ${staleResult.deletedCount} stale inventory entries with missing item references`);
+    }
 
   } catch (error) {
     console.error("Error seeding items:", error);

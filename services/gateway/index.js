@@ -50,6 +50,11 @@ const server = http.createServer(function (request, response) {
                 return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
             }
             if (filePath[2] === "market") {
+                // Public endpoints (no token required)
+                if (filePath[3] === "assets" || filePath[3] === "avatar") {
+                    console.log("Routing API request to Market Service (public)");
+                    return proxy.web(request, response, { target: PORTS.MARKET });
+                }
                 console.log("Routing API request to Market Service");
                 return proxyWithTokenCheck(request, response, PORTS.MARKET);
             }
