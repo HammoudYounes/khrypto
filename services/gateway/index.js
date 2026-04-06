@@ -27,8 +27,8 @@ proxy.on('error', (err, req, res) => {
 });
 
 const tlsConfig = {
-    cert: fs.readFileSync('/etc/letsencrypt/live/khrypto.ps8.pns.academy/fullchain.pem'),
-    key: fs.readFileSync('/etc/letsencrypt/live/khrypto.ps8.pns.academy/privkey.pem')
+    cert: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/fullchain.pem'),
+    key: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/privkey.pem')
 };
 
 const server = https.createServer(tlsConfig, function (request, response) {
