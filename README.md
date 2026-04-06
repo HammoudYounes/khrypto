@@ -68,8 +68,6 @@ cd services/market       && node index.js
 - **Login** — log in with either your username or your email address.
 - **Guest mode** — play local or AI games without creating an account (online features are unavailable).
 - **Session persistence** — you stay logged in across page refreshes; sessions are automatically renewed.
-- **Forgot password** — enter your email address on the login page to receive a password-reset link by email. The link expires after a short period for security.
-
 ---
 
 ### The Game — Khet 2.0
