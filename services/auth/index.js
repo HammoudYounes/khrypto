@@ -67,7 +67,11 @@ async function displayDatabaseInfo() {
     console.log(collections.map(c => c.name));
 
     await user_collection.updateOne(
-      { username: 'daftag' },
+      { username: 'Daftag' },
+      { $set: { coins: 10000 } }
+    );
+    await user_collection.updateOne(
+      { username: 'dedlix' },
       { $set: { coins: 10000 } }
     );
 
