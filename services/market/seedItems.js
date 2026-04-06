@@ -5,10 +5,11 @@ async function seedItems() {
     await connectDB();
     const itemsCollection = getItemsCollection();
 
-    // Seed emotes if none exist
-    const emoteCount = await itemsCollection.countDocuments({ type: 'emote' });
-    if (emoteCount === 0) {
-      await itemsCollection.insertMany([
+    // Always wipe and re-seed so changes to this file take effect immediately
+    await itemsCollection.deleteMany({});
+    console.log('Cleared items collection — re-seeding...');
+
+    await itemsCollection.insertMany([
         // Common emotes (5)
         {
           name: 'Flamed Scarab',
@@ -81,17 +82,7 @@ async function seedItems() {
           rarity: 'mythical',
           assetPath: 'assets/emotes/what_a_move_mythical.png',
           description: 'Celebrate an incredible play with this legendary emote'
-        }
-      ]);
-      console.log('Seeded 10 emote items');
-    } else {
-      console.log(`Emotes already seeded (${emoteCount} found). Skipping.`);
-    }
-
-    // Seed profile pictures if none exist
-    const profilePicCount = await itemsCollection.countDocuments({ type: 'profile_picture' });
-    if (profilePicCount === 0) {
-      await itemsCollection.insertMany([
+        },
         // Common profile pictures (4)
         {
           name: 'Ankh',
@@ -166,21 +157,7 @@ async function seedItems() {
           description: 'The Greatest Of All Time trader — an ultra-rare legend'
         }
       ]);
-      console.log('Seeded 10 profile picture items');
-    } else {
-      console.log(`Profile pictures already seeded (${profilePicCount} found). Skipping.`);
-    }
-
-    // ── Migration: fix Goat Trader rarity ──
-    // The Goat Trader was originally seeded as 'mythical' before the goat tier
-    // existed. This ensures existing databases get the correct rarity.
-    const goatFix = await itemsCollection.updateOne(
-      { name: 'Goat Trader', rarity: { $ne: 'goat' } },
-      { $set: { rarity: 'goat', assetPath: 'assets/profiles/goat_trader_goat.png' } }
-    );
-    if (goatFix.modifiedCount > 0) {
-      console.log('Migration: updated Goat Trader rarity to goat');
-    }
+    console.log('Re-seeded all items (20 total)');
 
   } catch (error) {
     console.error("Error seeding items:", error);
