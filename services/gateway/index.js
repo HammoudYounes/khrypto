@@ -1,5 +1,7 @@
 // The http module contains methods to handle http queries.
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const httpProxy = require('http-proxy');
 
 
@@ -24,7 +26,12 @@ proxy.on('error', (err, req, res) => {
     }
 });
 
-const server = http.createServer(function (request, response) {
+const tlsConfig = {
+    cert: fs.readFileSync('/etc/letsencrypt/live/khrypto.ps8.pns.academy/fullchain.pem'),
+    key: fs.readFileSync('/etc/letsencrypt/live/khrypto.ps8.pns.academy/privkey.pem')
+};
+
+const server = https.createServer(tlsConfig, function (request, response) {
 
     let filePath = request.url.split("/").filter(function (elem) {
         return elem !== "..";
