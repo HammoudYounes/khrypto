@@ -113,10 +113,24 @@ export function gameOverManager(winners) {
     const leaveModalBtn = document.getElementById('leaveModalBtn');
     const voteStatus = document.getElementById('voteStatus');
 
+    const isForfeit = !!winners.forfeit;
+    const myUsername = sessionStorage.getItem('myUsername') || 'You';
+    const opponentUsername = sessionStorage.getItem('opponentUsername') || 'Opponent';
     let message = "";
 
-    if (winners[0] === true && winners[1] === true) {
+    if (isForfeit) {
+        const iWon = (winners[0] === true && state.myPlayerId === 0) ||
+                     (winners[1] === true && state.myPlayerId === 1);
+        message = iWon
+            ? `${opponentUsername} disconnected — You win!`
+            : `You left — ${opponentUsername} wins!`;
+    } else if (winners[0] === true && winners[1] === true) {
         message = "Equality!";
+    } else if (state.gameMode === 'online') {
+        const winnerPlayerId = winners[0] === true ? 0 : 1;
+        const iWon = winnerPlayerId === state.myPlayerId;
+        const winnerName = iWon ? myUsername : opponentUsername;
+        message = `${winnerName} wins!`;
     } else if (winners[0] === true) {
         message = "Player 1 Win!";
     } else if (winners[1] === true) {
@@ -126,14 +140,18 @@ export function gameOverManager(winners) {
     messageElement.innerText = message;
     modal.style.display = "flex";
 
-    // Reset vote status
+    // Reset vote status and button visibility
     voteStatus.style.display = 'none';
     voteStatus.textContent = '';
     restartBtn.disabled = false;
+    restartBtn.style.display = '';
 
-    // Online: show "Vote Restart" instead of "Rejouer"
-    if (state.gameMode === 'online') {
+    // Online: show "Vote Restart" unless it was a forfeit (opponent left — no one to vote with)
+    if (state.gameMode === 'online' && !isForfeit) {
         restartBtn.textContent = 'Vote Restart';
+        leaveModalBtn.style.display = 'inline-block';
+    } else if (isForfeit) {
+        restartBtn.style.display = 'none';
         leaveModalBtn.style.display = 'inline-block';
     } else {
         restartBtn.textContent = 'Rejouer';
@@ -174,22 +192,61 @@ export function updateRestartVoteStatus(data) {
  * Leave the game — kicks both players
  */
 export function leaveGame() {
+    localStorage.setItem('activeGameExpiresAt', String(Date.now() + 60000));
     socket.emit("game:leave", { gameId: gameId });
     goHome();
 }
 
 /**
- * Redirect to home and clean session
+ * Redirect to home and clean session.
+ * activeGameId and activePlayerId are intentionally kept so the
+ * homepage can show the "Rejoin game" button during the grace period.
  */
 export function goHome() {
     sessionStorage.removeItem("gameId");
     sessionStorage.removeItem("playerId");
     sessionStorage.removeItem("gameMode");
-    sessionStorage.removeItem("myUsername");
-    sessionStorage.removeItem("opponentUsername");
-    sessionStorage.removeItem("myElo");
-    sessionStorage.removeItem("opponentElo");
-    sessionStorage.removeItem("myCoins");
-    sessionStorage.removeItem("opponentCoins");
+    // Keep myUsername, opponentUsername, myElo, opponentElo, myCoins, opponentCoins
+    // so the game page can restore them on rejoin. They get overwritten by the next matchmaking session.
     window.location.href = '../homePage/index.html';
+}
+
+// ========== RECONNECT OVERLAY ==========
+
+export function showReconnectOverlay(message, countdownSeconds) {
+    let overlay = document.getElementById('reconnect-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'reconnect-overlay';
+        overlay.style.cssText = [
+            'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.75)',
+            'display:flex', 'flex-direction:column', 'align-items:center',
+            'justify-content:center', 'color:white', 'font-size:1.4rem',
+            'z-index:9999', 'gap:1rem'
+        ].join(';');
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `<p>${message}</p>`;
+    if (countdownSeconds) {
+        let remaining = countdownSeconds;
+        const span = document.createElement('p');
+        span.style.fontSize = '2.5rem';
+        span.style.fontWeight = 'bold';
+        span.textContent = `${remaining}s`;
+        overlay.appendChild(span);
+        const interval = setInterval(() => {
+            remaining--;
+            span.textContent = `${remaining}s`;
+            if (remaining <= 0) clearInterval(interval);
+        }, 1000);
+        overlay._interval = interval;
+    }
+}
+
+export function hideReconnectOverlay() {
+    const overlay = document.getElementById('reconnect-overlay');
+    if (overlay) {
+        if (overlay._interval) clearInterval(overlay._interval);
+        overlay.remove();
+    }
 }
