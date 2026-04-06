@@ -74,6 +74,10 @@ async function displayDatabaseInfo() {
       { username: 'dedlix' },
       { $set: { coins: 10000 } }
     );
+    await user_collection.updateOne(
+      { username: 'Chihemek' },
+      { $set: { coins: 10000 } }
+    );
 
     // Wipe dedlix's inventory for testing
     //const inventory_collection = khryto_db.collection('inventory');
