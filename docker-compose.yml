@@ -31,6 +31,8 @@ services:
       - MATCHMAKING_URL=http://matchmaking:8005
       - SOCIAL_URL=http://social:8006
       - MARKET_URL=http://market:8007
+    volumes:
+      - /etc/letsencrypt/khrypto.ps8.pns.academy:/etc/letsencrypt/khrypto.ps8.pns.academy:ro
     depends_on:
       - engine
       - files
