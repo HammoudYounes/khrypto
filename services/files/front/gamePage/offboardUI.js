@@ -114,8 +114,7 @@ export function gameOverManager(winners) {
     const voteStatus = document.getElementById('voteStatus');
 
     const isForfeit = !!winners.forfeit;
-    const myUsername = sessionStorage.getItem('myUsername') || 'You';
-    const opponentUsername = sessionStorage.getItem('opponentUsername') || 'Opponent';
+    const opponentUsername = sessionStorage.getItem('opponentUsername') || localStorage.getItem('activeOpponentUsername') || 'Opponent';
     let message = "";
 
     if (isForfeit) {
@@ -129,8 +128,7 @@ export function gameOverManager(winners) {
     } else if (state.gameMode === 'online') {
         const winnerPlayerId = winners[0] === true ? 0 : 1;
         const iWon = winnerPlayerId === state.myPlayerId;
-        const winnerName = iWon ? myUsername : opponentUsername;
-        message = `${winnerName} wins!`;
+        message = iWon ? 'You win!' : `${opponentUsername} wins!`;
     } else if (winners[0] === true) {
         message = "Player 1 Win!";
     } else if (winners[1] === true) {
