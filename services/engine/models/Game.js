@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
 const { initializeBoard } = require('../rules/initBoard');
 const { applyAction, computeLaserPath, applyDestructions } = require('../rules/actions');
+const aiAdapter = require('../ai/aiAdapter'); 
 
 class Game {
     constructor(id, mode, io, player1UserId = null, player2UserId = null, player1Elo = 600, player2Elo = 600, usersCollection = null) {
@@ -25,6 +26,7 @@ class Game {
             winner: { 0: false, 1: false },
             swapHistory: { 0: { Sphinx: -10, Pharaoh: -10 }, 1: { Sphinx: -10, Pharaoh: -10 } }
         };
+        this.initialBoardSnapshot = JSON.parse(JSON.stringify(this.state.board));
     }
 
     handleMove(action, playerId) {
@@ -73,6 +75,15 @@ class Game {
             if (this.state.winner[0] === true || this.state.winner[1] === true) {
                 this.io.to(this.id).emit('game:over', this.state.winner);
                 this.handleGameOver();
+            } else {
+                if (this.mode === 'ai' && playerId === 0) {
+                    this.lastHumanAction = action;
+                }
+                if (this.mode === 'ai' && this.state.turn === 1) {
+                    setTimeout(() => {
+                        this.playAITurn();
+                    }, 2500); 
+                }
             }
 
             return true; // Success
@@ -95,6 +106,7 @@ class Game {
         this.state.pendingReserves = { 0: [], 1: [] };
         this.state.canPassTurn = false;
         this.restartVotes.clear();
+        this.initialBoardSnapshot = JSON.parse(JSON.stringify(this.state.board));
     }
 
     /**
@@ -167,6 +179,26 @@ class Game {
     computeNewElo(playerElo, opponentElo, result, K = 20) {
         const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
         return Math.round(playerElo + K * (result - expected));
+    }
+
+    async playAITurn() {
+        if (this.state.winner[0] || this.state.winner[1] || this.mode !== 'ai' || this.state.turn !== 1) return;
+        
+        try {
+            if (this.state.turnCount === 1) {
+                await aiAdapter.initializeAI({ board: this.initialBoardSnapshot });
+            }
+
+            console.log("L'IA réfléchit...");
+            const engineFormattedBotMove = await aiAdapter.askBot(this.lastHumanAction, this.state);
+
+            if (engineFormattedBotMove) {
+                console.log("L'IA a choisi de jouer :", engineFormattedBotMove);
+                this.handleMove(engineFormattedBotMove, 1);
+            }
+        } catch (error) {
+            console.error("Erreur critique de l'Adaptateur IA :", error);
+        }
     }
 
     async updateEloInDb(userId, newElo) {
