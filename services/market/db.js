@@ -7,6 +7,7 @@ const client = new MongoClient(MONGO_URL);
 let db;
 let itemsCollection;
 let inventoryCollection;
+let usersCollection;
 
 async function connectDB() {
   try {
@@ -18,6 +19,7 @@ async function connectDB() {
     // Initialize collections
     itemsCollection = db.collection('items');
     inventoryCollection = db.collection('inventory');
+    usersCollection = db.collection('users');
 
     // Create indexes for items collection
     await itemsCollection.createIndex({ rarity: 1 });
@@ -44,9 +46,14 @@ function getInventoryCollection() {
   return inventoryCollection;
 }
 
+function getUsersCollection() {
+  return usersCollection;
+}
+
 module.exports = {
   connectDB,
   getItemsCollection,
   getInventoryCollection,
+  getUsersCollection,
   client
 };
