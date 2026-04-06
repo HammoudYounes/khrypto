@@ -145,6 +145,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Emote relay: broadcast to everyone in the game room
+    socket.on('engine:emoji-send', (data) => {
+        const { gameId, assetPath, rarity, senderUsername } = data;
+        if (!gameId || !assetPath) return;
+        const game = gameManager.getGame(gameId);
+        if (!game) return;
+        io.to(gameId).emit('engine:emoji-receive', { assetPath, rarity: rarity || 'common', senderUsername: senderUsername || 'Player' });
+    });
+
     // 3. Player makes a move
     socket.on('player:action', (payload) => {
         const { gameId, action, playerId } = payload;

@@ -32,6 +32,7 @@ import {
 } from './interactionManager.js';
 
 import { notificationManager } from "../js/notificationManager.js";
+import { TokenManager } from "../js/tokenManager.js";
 
 // ========== INITIALIZATION ==========
 
@@ -103,6 +104,138 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     notificationManager.init();
 
+    // Load inventory emotes and player avatar
+    const token = TokenManager.getAccessToken();
+    if (token) {
+        loadInventoryForGame(token);
+    } else {
+        renderBrokie();
+    }
+});
+
+// ========== INVENTORY / EMOTES / AVATAR ==========
+
+async function loadInventoryForGame(token) {
+    try {
+        const res = await fetch('/api/market/inventory', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) { renderBrokie(); return; }
+        const data = await res.json();
+        const inventory = data.inventory || [];
+
+        const emotes = inventory.filter(i => i.type === 'emote');
+        const equippedPic = inventory.find(i => i.type === 'profile_picture' && i.equipped);
+
+        renderEmotePicker(emotes);
+        if (equippedPic) renderMyAvatar(equippedPic.assetPath);
+
+        // Load opponent avatar for online games
+        if (state.gameMode === 'online') {
+            const opponentUsername = sessionStorage.getItem('opponentUsername');
+            if (opponentUsername) loadOpponentAvatar(opponentUsername);
+        }
+    } catch (err) {
+        console.error('[Game] Failed to load inventory:', err);
+        renderBrokie();
+    }
+}
+
+async function loadOpponentAvatar(username) {
+    try {
+        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.assetPath) {
+            const avatar = document.getElementById('p2-avatar');
+            if (avatar) {
+                avatar.src = `/api/market/${data.assetPath}`;
+                avatar.classList.add('loaded');
+            }
+        }
+    } catch (err) {
+        console.error('[Game] Failed to load opponent avatar:', err);
+    }
+}
+
+function renderEmotePicker(emotes) {
+    const picker = document.getElementById('emotePicker');
+    if (!picker) return;
+    picker.innerHTML = '';
+
+    if (emotes.length === 0) {
+        renderBrokie();
+        return;
+    }
+
+    emotes.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'emote-btn';
+        btn.title = item.name;
+        const img = document.createElement('img');
+        img.src = `/api/market/${item.assetPath}`;
+        img.alt = item.name;
+        btn.appendChild(img);
+        btn.addEventListener('click', () => sendEmote(item));
+        picker.appendChild(btn);
+    });
+}
+
+function renderBrokie() {
+    const picker = document.getElementById('emotePicker');
+    if (!picker) return;
+    picker.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'brokie-placeholder';
+    div.innerHTML = '<span class="brokie-icon">💸</span>No emotes — open lootboxes in the shop!';
+    picker.appendChild(div);
+}
+
+function renderMyAvatar(assetPath) {
+    // Current player is always p1-avatar (bottom panel)
+    const avatar = document.getElementById('p1-avatar');
+    if (!avatar) return;
+    avatar.src = `/api/market/${assetPath}`;
+    avatar.classList.add('loaded');
+}
+
+function sendEmote(item) {
+    if (!socket.connected) return;
+    const senderUsername = sessionStorage.getItem('myUsername') || sessionStorage.getItem('username') || 'You';
+    socket.emit('engine:emoji-send', {
+        gameId: sessionStorage.getItem('gameId'),
+        assetPath: item.assetPath,
+        rarity: item.rarity,
+        senderUsername
+    });
+}
+
+function appendEmoteMessage(assetPath, senderUsername, rarity) {
+    const display = document.getElementById('emoteDisplay');
+    const empty = document.getElementById('emoteEmpty');
+    if (!display) return;
+    if (empty) empty.style.display = 'none';
+
+    const msg = document.createElement('div');
+    msg.className = `emote-msg emote-msg-rarity-${rarity || 'common'}`;
+
+    const img = document.createElement('img');
+    img.className = 'emote-msg-img';
+    img.src = `/api/market/${assetPath}`;
+    img.alt = senderUsername;
+
+    const sender = document.createElement('span');
+    sender.className = 'emote-msg-sender';
+    sender.textContent = senderUsername;
+
+    msg.appendChild(img);
+    msg.appendChild(sender);
+    display.appendChild(msg);
+    display.scrollTop = display.scrollHeight;
+}
+
+socket.on('engine:emoji-receive', (data) => {
+    appendEmoteMessage(data.assetPath, data.senderUsername || 'Opponent', data.rarity);
 });
 
 // ========== RESERVE LISTENERS ==========
@@ -191,6 +324,23 @@ socket.on('game:player_left', () => {
     alert('A player has left the game.');
     goHome();
 });
+
+// Emote panel burger toggle (small screens)
+const emoteToggleBtn = document.getElementById('emoteToggleBtn');
+const chatMovesSec = document.querySelector('.chat-moves-sec');
+if (emoteToggleBtn && chatMovesSec) {
+    emoteToggleBtn.addEventListener('click', () => {
+        chatMovesSec.classList.toggle('emote-open');
+    });
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (chatMovesSec.classList.contains('emote-open') &&
+            !chatMovesSec.contains(e.target) &&
+            !emoteToggleBtn.contains(e.target)) {
+            chatMovesSec.classList.remove('emote-open');
+        }
+    });
+}
 
 // Header leave button
 document.getElementById('leaveBtn').addEventListener('click', () => {
