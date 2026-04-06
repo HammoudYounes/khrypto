@@ -21,7 +21,7 @@ services:
     container_name: khrypto_gateway
     restart: always
     ports:
-      - "8000:8000"
+      - "443:8000"
     environment:
       - PORT=8000
       - ENGINE_URL=http://engine:8002
