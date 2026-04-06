@@ -114,14 +114,23 @@ export function gameOverManager(winners) {
     const voteStatus = document.getElementById('voteStatus');
 
     const isForfeit = !!winners.forfeit;
+    const myUsername = sessionStorage.getItem('myUsername') || 'You';
+    const opponentUsername = sessionStorage.getItem('opponentUsername') || 'Opponent';
     let message = "";
 
     if (isForfeit) {
-        const opponentLeft = (winners[0] === true && state.myPlayerId === 0) ||
-                             (winners[1] === true && state.myPlayerId === 1);
-        message = opponentLeft ? "Opponent disconnected — You win!" : "You left — Opponent wins!";
+        const iWon = (winners[0] === true && state.myPlayerId === 0) ||
+                     (winners[1] === true && state.myPlayerId === 1);
+        message = iWon
+            ? `${opponentUsername} disconnected — You win!`
+            : `You left — ${opponentUsername} wins!`;
     } else if (winners[0] === true && winners[1] === true) {
         message = "Equality!";
+    } else if (state.gameMode === 'online') {
+        const winnerPlayerId = winners[0] === true ? 0 : 1;
+        const iWon = winnerPlayerId === state.myPlayerId;
+        const winnerName = iWon ? myUsername : opponentUsername;
+        message = `${winnerName} wins!`;
     } else if (winners[0] === true) {
         message = "Player 1 Win!";
     } else if (winners[1] === true) {
