@@ -66,8 +66,14 @@ async function displayDatabaseInfo() {
     console.log(`\n--- Collections in ${DB_NAME} ---`);
     console.log(collections.map(c => c.name));
 
+    await user_collection.updateOne(
+      { username: 'daftag' },
+      { $set: { coins: 10000 } }
+    );
+
     // 2. See all users in the collection with clear formatting
     const allUsers = await user_collection.find({}).toArray();
+
     console.log(`\n--- Content of ${COLLECTION_NAME} (${allUsers.length} users) ---`);
     if (allUsers.length > 0) {
       allUsers.forEach((user, index) => {
