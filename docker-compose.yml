@@ -30,6 +30,7 @@ services:
       - TOKEN_URL=http://token:8004
       - MATCHMAKING_URL=http://matchmaking:8005
       - SOCIAL_URL=http://social:8006
+      - MARKET_URL=http://market:8007
     depends_on:
       - engine
       - files
@@ -37,6 +38,7 @@ services:
       - token
       - matchmaking
       - social
+      - market
     networks:
       - app_network
 
@@ -128,6 +130,20 @@ services:
     depends_on:
       - mongo
       - engine
+    networks:
+      - app_network
+
+  market:
+    build: ./services/market
+    container_name: khrypto_market
+    restart: always
+    expose:
+      - "8007"
+    environment:
+      - PORT=8007
+      - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+    depends_on:
+      - mongo
     networks:
       - app_network
 

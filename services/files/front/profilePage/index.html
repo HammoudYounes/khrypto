@@ -8,6 +8,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
         rel="stylesheet">
+    <link rel="preload" href="../assets/khrypto_logo.png" as="image">
     <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="profilePage.css">
     <link rel="stylesheet" href="../globalNotif.css">
@@ -31,12 +32,19 @@
         <!-- LEFT COLUMN: Profile Info -->
         <aside class="profile-col-left">
             <section class="glass-card profile-info-panel">
-                <div class="profile-avatar">⬡</div>
+                <div class="profile-avatar" id="profileAvatar">
+                    <img id="profileAvatarImg" src="" alt="" class="profile-avatar-img">
+                    <span id="profileAvatarFallback">⬡</span>
+                </div>
                 <h2 id="profileDisplayName" class="profile-username">Player</h2>
                 <div class="profile-stats">
                     <div class="stat-item">
                         <span class="stat-label">ELO</span>
                         <span id="profileElo" class="stat-value">1000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Coins</span>
+                        <span id="profileCoins" class="stat-value">0</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Email</span>
@@ -127,6 +135,29 @@
             </section>
         </aside>
 
+        <!-- INVENTORY: Full-width row below the 3 columns -->
+        <section class="glass-card inventory-panel" id="inventoryPanel">
+            <h2 class="inventory-title">My Inventory</h2>
+
+            <div id="inventoryContent">
+                <p class="inventory-empty" id="inventoryEmpty">
+                    No items yet — <a href="../shopPage/index.html" class="inventory-shop-link">Go to Shop</a>
+                </p>
+
+                <!-- Profile Pictures group -->
+                <div class="inventory-group" id="groupProfilePictures" style="display:none;">
+                    <h3 class="inventory-group-title">Profile Pictures</h3>
+                    <div class="inventory-grid" id="gridProfilePictures"></div>
+                </div>
+
+                <!-- Emotes group -->
+                <div class="inventory-group" id="groupEmotes" style="display:none;">
+                    <h3 class="inventory-group-title">Emotes</h3>
+                    <div class="inventory-grid" id="gridEmotes"></div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <div id="toastContainer" class="toast-container"></div>
@@ -134,17 +165,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initMatrixBackground('matrixCanvas');
-
-            // Populate profile info from sessionStorage
-            const username = sessionStorage.getItem('username') || 'Player';
-            const elo = sessionStorage.getItem('elo') || '1000';
-            const email = sessionStorage.getItem('email') || '—';
-            const nameEl = document.getElementById('profileDisplayName');
-            const eloEl = document.getElementById('profileElo');
-            const emailEl = document.getElementById('profileEmail');
-            if (nameEl) nameEl.textContent = username;
-            if (eloEl) eloEl.textContent = elo;
-            if (emailEl) emailEl.textContent = email;
         });
     </script>
 </body>

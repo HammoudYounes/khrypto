@@ -1,5 +1,6 @@
 import { TokenManager } from "../js/tokenManager.js";
 import { notificationManager } from "../js/notificationManager.js";
+import { ProfileManager } from "../js/profileManager.js";
 
 // DOM Elements
 const backBtn = document.getElementById('backBtn');
@@ -35,18 +36,48 @@ let activeChatFriendUsername = null;
 let chatOffset = 0;
 let chatAllLoaded = false;
 let chatFetching = false;
-const currentUsername = sessionStorage.getItem('username');
 
 // ==========================================
 // INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+    if (sessionStorage.getItem('isGuest') === 'true') {
+        window.location.href = '../homePage/index.html';
+        return;
+    }
+
     let token = TokenManager.getAccessToken();
     if (!token) {
         const success = await TokenManager.refreshAccessToken();
         if (!success) window.location.href = '../index.html';
         token = TokenManager.getAccessToken();
     }
+
+    if (token) {
+        await ProfileManager.ensureProfile();
+    }
+
+    // Populate profile info from sessionStorage
+    const username = sessionStorage.getItem('username') || 'Player';
+    const elo = sessionStorage.getItem('elo') || '1000';
+    const coins = sessionStorage.getItem('coins') || '0';
+    const email = sessionStorage.getItem('email') || '—';
+    const nameEl = document.getElementById('profileDisplayName');
+    const eloEl = document.getElementById('profileElo');
+    const coinsEl = document.getElementById('profileCoins');
+    const emailEl = document.getElementById('profileEmail');
+    if (nameEl) nameEl.textContent = username;
+    if (eloEl) eloEl.textContent = elo;
+    if (coinsEl) {
+        coinsEl.textContent = coins;
+        // Format negative balance in red
+        if (parseInt(coins) < 0) {
+            coinsEl.style.color = '#e74c3c';
+        } else {
+            coinsEl.style.color = '#2ecc71';
+        }
+    }
+    if (emailEl) emailEl.textContent = email;
 
     notificationManager.init();
     initPrivateChatListeners();
@@ -55,6 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadPendingChallenges(token);
     await loadFriendsListWithChat(token);
     requestOnlineStatuses();
+    loadInventory(token);
 });
 
 // Back Navigation
@@ -716,7 +748,7 @@ async function fetchChatMessages() {
 function createMessageElement(msg) {
     const div = document.createElement('div');
     div.className = 'chat-msg';
-    if (msg.senderUsername === currentUsername) {
+    if (msg.senderUsername === sessionStorage.getItem('username')) {
         div.classList.add('chat-msg-own');
     }
 
@@ -874,6 +906,118 @@ function initPrivateChatListeners() {
             chatOnlineStatus.classList.add(status === 'online' ? 'online' : 'offline');
         }
     });
+}
+
+// ==========================================
+// INVENTORY
+// ==========================================
+
+async function loadInventory(token) {
+    try {
+        const res = await fetch('/api/market/inventory', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderInventory(data.inventory || []);
+    } catch (err) {
+        console.error('Failed to load inventory:', err);
+    }
+}
+
+function renderInventory(items) {
+    const emptyEl = document.getElementById('inventoryEmpty');
+    const groupPP = document.getElementById('groupProfilePictures');
+    const groupEm = document.getElementById('groupEmotes');
+    const gridPP = document.getElementById('gridProfilePictures');
+    const gridEm = document.getElementById('gridEmotes');
+
+    const profilePics = items.filter(i => i.type === 'profile_picture');
+    const emotes = items.filter(i => i.type === 'emote');
+
+    if (items.length === 0) {
+        emptyEl.style.display = 'block';
+        return;
+    }
+    emptyEl.style.display = 'none';
+
+    // Update avatar from equipped profile picture
+    const equippedPic = profilePics.find(i => i.equipped);
+    updateProfileAvatar(equippedPic);
+
+    if (profilePics.length > 0) {
+        groupPP.style.display = 'block';
+        gridPP.innerHTML = '';
+        profilePics.forEach(item => gridPP.appendChild(createItemCard(item, true)));
+    }
+
+    if (emotes.length > 0) {
+        groupEm.style.display = 'block';
+        gridEm.innerHTML = '';
+        emotes.forEach(item => gridEm.appendChild(createItemCard(item, false)));
+    }
+}
+
+function createItemCard(item, showEquip) {
+    const card = document.createElement('div');
+    card.className = 'inventory-item' + (item.equipped ? ' equipped' : '');
+    card.dataset.itemId = item._id;
+
+    const img = document.createElement('img');
+    img.className = 'inventory-item-img';
+    img.loading = 'lazy';
+    img.src = `/api/market/${item.assetPath}`;
+    img.alt = item.name;
+
+    const name = document.createElement('span');
+    name.className = 'inventory-item-name';
+    name.textContent = item.name;
+
+    const badge = document.createElement('span');
+    badge.className = `rarity-badge ${item.rarity}`;
+    badge.textContent = item.rarity === 'goat' ? '🐐 GOAT' : item.rarity;
+
+    card.appendChild(img);
+    card.appendChild(name);
+    card.appendChild(badge);
+
+    if (showEquip) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-equip' + (item.equipped ? ' equipped' : '');
+        btn.textContent = item.equipped ? 'Equipped' : 'Equip';
+        btn.onclick = () => equipItem(item._id);
+        card.appendChild(btn);
+    }
+
+    return card;
+}
+
+async function equipItem(itemId) {
+    try {
+        const token = TokenManager.getAccessToken();
+        const res = await fetch('/api/market/equip', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemId })
+        });
+        if (!res.ok) throw new Error('Failed to equip item');
+        loadInventory(token);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function updateProfileAvatar(equippedPic) {
+    const img = document.getElementById('profileAvatarImg');
+    const fallback = document.getElementById('profileAvatarFallback');
+    if (equippedPic && img && fallback) {
+        img.src = `/api/market/${equippedPic.assetPath}`;
+        img.style.display = 'block';
+        fallback.style.display = 'none';
+    } else if (img && fallback) {
+        img.style.display = 'none';
+        fallback.style.display = 'block';
+    }
 }
 
 // ==========================================

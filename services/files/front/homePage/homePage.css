@@ -10,21 +10,24 @@ body {
     padding: 1.5rem;
 }
 
-/* ── Profile Button ── */
+/* ── Top-right controls ── */
 .profile-button-container {
     position: fixed;
     top: 1.25rem;
     right: 1.25rem;
     z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .profile-btn {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    gap: 0.6rem;
+    padding: 0.65rem 1.2rem;
     font-family: var(--font-body);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     border: var(--border-gold);
@@ -33,6 +36,7 @@ body {
     color: var(--gold);
     border-radius: var(--radius-md);
     transition: all var(--transition-med);
+    white-space: nowrap;
 }
 
 .profile-btn:hover {
@@ -41,7 +45,98 @@ body {
 }
 
 .profile-icon {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
+}
+
+.nav-avatar-img {
+    display: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--gold-dim);
+    box-shadow: 0 0 6px var(--gold-glow);
+}
+
+.nav-avatar-img.loaded {
+    display: block;
+}
+
+.nav-avatar-img.loaded + .profile-icon {
+    display: none;
+}
+
+/* Coin display inside profile button */
+.profile-coin-sep {
+    color: var(--gold-dim);
+    font-size: 1rem;
+    margin: 0 0.1rem;
+}
+
+.profile-coin-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.profile-coin-icon {
+    font-size: 0.9rem;
+    color: var(--gold-light);
+}
+
+/* ── Home Left Links (Shop + Rules) ── */
+.home-left-links {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.shop-card,
+.rules-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    transition: all var(--transition-med);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: var(--gold);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(8px);
+    flex: 1;
+    min-width: 160px;
+    max-width: 200px;
+}
+
+.shop-card:hover,
+.rules-card:hover {
+    border-color: var(--gold);
+    box-shadow: var(--shadow-gold);
+    transform: translateY(-3px);
+    color: var(--gold-light);
+}
+
+.shop-card-icon,
+.rules-card-icon {
+    font-size: 1.5rem;
+}
+
+.shop-card-label,
+.rules-card-label {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 /* ── Profile Dropdown Panel ── */
@@ -83,16 +178,145 @@ body {
 
 /* ── Main Content ── */
 .home-container {
-    max-width: 50rem;
+    max-width: 85rem;
     width: 100%;
     margin: 0 auto;
     margin-top: 4rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2.5rem;
+    gap: 2rem;
     z-index: 1;
     position: relative;
+    padding: 0 1.5rem;
+}
+
+/* ── Three-column layout ── */
+.home-main {
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* ── Leaderboard Panel ── */
+.leaderboard-section {
+    position: fixed;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: max-content;
+    min-width: 260px;
+    height: min(680px, 82vh);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 50;
+    overflow: hidden;
+}
+
+.leaderboard-title {
+    font-family: var(--font-heading);
+    color: var(--gold);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+}
+
+.leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold-dim) transparent;
+}
+
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.leaderboard-row:hover {
+    background: rgba(212, 175, 55, 0.05);
+    border-color: rgba(212, 175, 55, 0.15);
+}
+
+.leaderboard-row.rank-1 .lb-rank { color: var(--gold); }
+.leaderboard-row.rank-2 .lb-rank { color: silver; }
+.leaderboard-row.rank-3 .lb-rank { color: #cd7f32; }
+
+.lb-rank {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    min-width: 24px;
+    color: var(--text-muted);
+}
+
+.lb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.lb-avatar-img {
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.lb-avatar-img.loaded { display: block; }
+.lb-avatar-img.loaded + .lb-avatar-fallback { display: none; }
+
+.lb-username {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    flex: 1;
+}
+
+.lb-elo {
+    font-size: 0.75rem;
+    color: var(--gold-light);
+    font-family: var(--font-heading);
+    white-space: nowrap;
+}
+
+.lb-coins {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.home-left {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
 }
 
 /* ── Game Mode Buttons ── */
@@ -108,10 +332,10 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: 1.5rem 2.5rem;
+    padding: 1.75rem 3rem;
     cursor: pointer;
     transition: all var(--transition-med);
-    min-width: 130px;
+    min-width: 155px;
     border: 1px solid rgba(164, 133, 35, 0.3);
     color: var(--text-primary);
 }
@@ -123,52 +347,59 @@ body {
 }
 
 .mode-icon {
-    font-size: 2rem;
+    font-size: 2.4rem;
 }
 
 .mode-label {
     font-family: var(--font-heading);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--gold);
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
-/* ── Chat Section ── */
+/* ── Chat Section (compact floating panel) ── */
 .chat-section {
-    width: 100%;
-    max-width: 42rem;
+    position: fixed;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 440px;
+    height: min(680px, 82vh);
     display: flex;
     flex-direction: column;
+    z-index: 50;
+    overflow: hidden;
 }
 
 .chat-header {
-    font-size: 1rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.6rem;
     border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    flex-shrink: 0;
 }
 
 .chat-icon {
-    font-size: 1.2rem;
+    font-size: 1rem;
 }
 
 .chat-messages {
-    min-height: 150px;
-    max-height: 320px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    padding: 0.75rem;
+    padding: 0.5rem;
     background: var(--bg-surface);
     border-radius: var(--radius-sm);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
     border: var(--border-subtle);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .chat-empty {
@@ -218,7 +449,7 @@ body {
 }
 
 .chat-msg-content {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-primary);
     line-height: 1.4;
     word-wrap: break-word;
@@ -249,8 +480,9 @@ body {
 }
 
 .chat-send-btn {
-    padding: 0.75rem 1.5rem;
+    padding: 0.6rem 1rem;
     white-space: nowrap;
+    font-size: 0.85rem;
 }
 
 /* ── Animations ── */
@@ -267,6 +499,17 @@ body {
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+    .home-main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .leaderboard-section {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     body {
         padding: 1rem;
@@ -275,6 +518,7 @@ body {
     .home-container {
         margin-top: 3.5rem;
         gap: 2rem;
+        padding: 0 0.75rem;
     }
 
     .game-mode-buttons {
@@ -288,6 +532,11 @@ body {
 
     .profile-panel {
         width: min(95%, 18.75rem);
+    }
+
+    .chat-section {
+        width: 360px;
+        height: min(580px, 80vh);
     }
 }
 
@@ -323,6 +572,11 @@ body {
     }
 
     .chat-section {
-        max-width: 100%;
+        width: calc(100vw - 2rem);
+        height: 280px;
+        right: 1rem;
+        top: auto;
+        bottom: 1rem;
+        transform: none;
     }
 }

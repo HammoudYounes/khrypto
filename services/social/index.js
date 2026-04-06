@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 const crypto = require('crypto');
 const db = require('./db');
 const broker = require('./broker');
+const { filterSwearWords } = require('./utils');
 
 const PORT = process.env.PORT || 8006;
 const ENGINE_URL = process.env.ENGINE_URL || 'http://127.0.0.1:8002';
@@ -118,7 +119,8 @@ const server = http.createServer(async (req, res) => {
             // Reverse so the array is chronological (oldest first)
             messages.reverse();
 
-            return sendResponse(res, 200, { messages });
+            const filtered = messages.map(m => ({ ...m, content: filterSwearWords(m.content) }));
+            return sendResponse(res, 200, { messages: filtered });
         }
 
         // ---------------------------------------------------------
@@ -515,7 +517,7 @@ const server = http.createServer(async (req, res) => {
             // Accept: create game on Engine
             try {
                 const senderUser = await users.findOne({ _id: ObjectId.createFromHexString(challenge.senderId) });
-                const engineMode = challenge.mode === 'ranked' ? 'online' : 'online';
+                const engineMode = challenge.mode === 'ranked' ? 'ranked_challenge' : 'unranked';
                 const { gameId } = await callEngine({
                     mode: engineMode,
                     player1UserId: challenge.senderId,

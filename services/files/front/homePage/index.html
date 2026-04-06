@@ -8,6 +8,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
         rel="stylesheet">
+    <link rel="preload" href="../assets/khrypto_logo.png" as="image">
     <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="homePage.css">
     <link rel="stylesheet" href="../globalNotif.css">
@@ -19,11 +20,17 @@
 <body>
     <canvas id="matrixCanvas"></canvas>
 
-    <!-- Profile button in top right corner -->
+    <!-- Top-right controls -->
     <div class="profile-button-container">
         <button id="profileBtn" class="profile-btn">
-            <span class="profile-icon">⬡</span>
+            <img id="navAvatarImg" class="nav-avatar-img" src="" alt="">
+            <span class="profile-icon" id="profileIconFallback">⬡</span>
             <span id="profileUsername">Guest</span>
+            <span class="profile-coin-sep" id="profileCoinSep" style="display:none;">|</span>
+            <span class="profile-coin-wrap" id="profileCoinWrap" style="display:none;">
+                <span class="profile-coin-icon">◈</span>
+                <span id="navCoinBalance">0</span>
+            </span>
         </button>
     </div>
 
@@ -44,35 +51,63 @@
     <div class="home-container">
         <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-lg">
 
-        <div class="game-mode-buttons">
-            <button id="localBtn" class="mode-card glass-card">
-                <span class="mode-icon">🎮</span>
-                <span class="mode-label">Local</span>
-            </button>
-            <button id="aiBtn" class="mode-card glass-card">
-                <span class="mode-icon">🤖</span>
-                <span class="mode-label">AI</span>
-            </button>
-            <button id="onlineBtn" class="mode-card glass-card">
-                <span class="mode-icon">🌐</span>
-                <span class="mode-label">Online</span>
-            </button>
-        </div>
+        <div class="home-main">
+            <!-- Left: Leaderboard -->
+            <section class="leaderboard-section glass-card">
+                <h2 class="leaderboard-title">🏆 Leaderboard</h2>
+                <ol class="leaderboard-list" id="leaderboardList">
+                </ol>
+            </section>
 
-        <!-- Chat Section -->
-        <section class="chat-section glass-card">
-            <h2 class="chat-header">
-                <span class="chat-icon">💬</span> Global Chat
-            </h2>
-            <div id="chatMessages" class="chat-messages">
-                <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
-                <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
+            <!-- Center: game buttons + shop -->
+            <div class="home-left">
+                <div class="game-mode-buttons">
+                    <button id="localBtn" class="mode-card glass-card">
+                        <span class="mode-icon">🎮</span>
+                        <span class="mode-label">Local</span>
+                    </button>
+                    <button id="aiBtn" class="mode-card glass-card">
+                        <span class="mode-icon">🤖</span>
+                        <span class="mode-label">AI</span>
+                    </button>
+                    <button id="onlineBtn" class="mode-card glass-card">
+                        <span class="mode-icon">🌐</span>
+                        <span class="mode-label">Online</span>
+                    </button>
+                    <button id="rejoinBtn" class="mode-card glass-card" style="display:none;">
+                        <span class="mode-icon">🔄</span>
+                        <span class="mode-label">Rejoin game</span>
+                        <span id="rejoinCountdown" class="mode-sublabel"></span>
+                    </button>
+                </div>
+
+                <div class="home-left-links">
+                    <a href="../shopPage/index.html" class="shop-card glass-card" id="shopNavBtn" style="display:none;">
+                        <span class="shop-card-icon">🛒</span>
+                        <span class="shop-card-label">Shop</span>
+                    </a>
+                    <a href="../rulesPage/index.html" class="rules-card glass-card" id="rulesNavBtn">
+                        <span class="rules-card-icon">📜</span>
+                        <span class="rules-card-label">How to Play</span>
+                    </a>
+                </div>
             </div>
-            <div class="chat-input-bar">
-                <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
-                <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
-            </div>
-        </section>
+
+            <!-- Right: Global Chat -->
+            <section class="chat-section glass-card">
+                <h2 class="chat-header">
+                    <span class="chat-icon">💬</span> Global Chat
+                </h2>
+                <div id="chatMessages" class="chat-messages">
+                    <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
+                    <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
+                </div>
+                <div class="chat-input-bar">
+                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
+                    <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
+                </div>
+            </section>
+        </div>
     </div>
 
     <script>

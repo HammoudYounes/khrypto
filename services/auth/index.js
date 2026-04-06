@@ -1,5 +1,5 @@
 const http = require('http');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const { error } = require('console');
 
@@ -37,6 +37,15 @@ async function runGetStarted() {
       console.log(`Successfully retrofitted ${updateResult.modifiedCount} existing users with default ELO.`);
     }
 
+    const coinsUpdateResult = await user_collection.updateMany(
+      { coins: { $exists: false } },
+      { $set: { coins: 0 } }
+    );
+
+    if (coinsUpdateResult.modifiedCount > 0) {
+      console.log(`Successfully retrofitted ${coinsUpdateResult.modifiedCount} existing users with default coins.`);
+    }
+
     // Display initial database state
     await displayDatabaseInfo();
 
@@ -57,16 +66,32 @@ async function displayDatabaseInfo() {
     console.log(`\n--- Collections in ${DB_NAME} ---`);
     console.log(collections.map(c => c.name));
 
+    await user_collection.updateOne(
+      { username: 'DafTag' },
+      { $set: { coins: 10000 } }
+    );
+    await user_collection.updateOne(
+      { username: 'dedlix' },
+      { $set: { coins: 10000 } }
+    );
+
+    // Wipe dedlix's inventory for testing
+    //const inventory_collection = khryto_db.collection('inventory');
+    //await inventory_collection.deleteMany({ userId: '69a4bfc60ce2bfc249d25e80' });
+
     // 2. See all users in the collection with clear formatting
     const allUsers = await user_collection.find({}).toArray();
+
     console.log(`\n--- Content of ${COLLECTION_NAME} (${allUsers.length} users) ---`);
     if (allUsers.length > 0) {
       allUsers.forEach((user, index) => {
         console.log(`\nUser #${index + 1}:`);
         console.log(`  Username: ${user.username}`);
+        console.log(`  Id: ${user._id}`);
         console.log(`  Mail:     ${user.mail}`);
         console.log(`  Password: ${user.password}`);
         console.log(`  ELO:      ${user.elo}`);
+        console.log(`  Coins:    ${user.coins}`);
       });
     } else {
       console.log("  No users found.");
@@ -101,7 +126,8 @@ async function createValidUser(username, mail, password) {
     username: username,
     mail: mail,
     password: hashed_password,
-    elo: 600
+    elo: 600,
+    coins: 0
   };
   return newUser;
 }
@@ -149,7 +175,7 @@ async function getTokens(userId) {
 // --- INTERNAL API HELPERS ---
 // Used by other services via Gateway.
 
-http.createServer(function (request, response) {
+http.createServer(async function (request, response) {
   console.log(`Received query for a auth: ${request.url}`);
 
   if (request.url === "/api/auth/login") {
@@ -215,6 +241,68 @@ http.createServer(function (request, response) {
         }
       }
     });
+  }
+
+  else if (request.url.startsWith("/api/leaderboard")) {
+    if (request.method !== 'GET') {
+      response.writeHead(405, { "Content-Type": "text/plain" });
+      return response.end("Method Not Allowed");
+    }
+
+    try {
+      const params = new URLSearchParams(request.url.split('?')[1] || '');
+      const limit = Math.min(parseInt(params.get('limit') || '10', 10), 50);
+
+      const users = await user_collection
+        .find({}, { projection: { username: 1, elo: 1, coins: 1 } })
+        .sort({ elo: -1 })
+        .limit(limit)
+        .toArray();
+
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ leaderboard: users }));
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      response.writeHead(500, { "Content-Type": "text/plain" });
+      response.end("Internal Server Error");
+    }
+  }
+
+  else if (request.url === "/api/profile") {
+    if (request.method !== 'GET') {
+      response.writeHead(405, { "Content-Type": "text/plain" });
+      return response.end("Method Not Allowed");
+    }
+
+    try {
+      const userIdStr = request.headers['x-user-id'];
+      if (!userIdStr) {
+        response.writeHead(401, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "Unauthorized: Missing user ID" }));
+      }
+
+      console.log(`Profile request received for user ID: ${userIdStr}`);
+      const user = await user_collection.findOne({ _id: new ObjectId(userIdStr) });
+
+      if (!user) {
+        response.writeHead(404, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "User not found" }));
+      }
+
+      // Return profile data (without sensitive info)
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({
+        username: user.username,
+        email: user.mail,
+        elo: user.elo,
+        coins: user.coins
+      }));
+
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      response.writeHead(500, { "Content-Type": "text/plain" });
+      response.end("Internal Server Error");
+    }
   }
 
 }).listen(PORT, () => console.log(`Auth service listening on port ${PORT}`));

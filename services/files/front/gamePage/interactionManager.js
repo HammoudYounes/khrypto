@@ -4,7 +4,7 @@
  */
 
 import { state } from './gameState.js';
-import { sendMoveAction, sendSwapAction, sendRotateAction } from './networkManager.js';
+import { sendMoveAction, sendSwapAction, sendRotateAction, sendPlaceAction } from './networkManager.js';
 import { updateVisualSelection, updateRotationButtons } from './boardRenderer.js';
 
 // ========== DRAG & DROP SETUP ==========
@@ -39,6 +39,9 @@ export function setupDraggableItem(img, playerId) {
             return;
         }
 
+        deselectReserve();
+
+        const actionType = img.closest('.player-info-sec') ? 'PLACE' : 'SWAP';
         event.dataTransfer.setData('actionType', 'PLACE');
         event.dataTransfer.setData('playerId', playerId.toString());
 
@@ -47,6 +50,18 @@ export function setupDraggableItem(img, playerId) {
 
         event.dataTransfer.effectAllowed = 'copy';
         console.log(`Drag started: Pyramide Joueur ${playerId + 1} (ID: ${playerId})`);
+    });
+
+    img.addEventListener('click', () => {
+        if (state.gameMode === 'online' && state.currentGameState && state.currentGameState.turn !== state.myPlayerId) {
+            return;
+        }
+        
+        if (state.selectedReservePieceId === playerId) {
+            deselectReserve();
+        } else {
+            selectReserve(playerId);
+        }
     });
 }
 
@@ -80,6 +95,15 @@ function handleCellClick(x, y) {
     const clickedPiece = state.currentGameState.board[y][x];
 
     const currentPlayerId = state.currentGameState.turn;
+
+    if (state.selectedReservePieceId !== null) {
+        if (!clickedPiece) {
+            const orientation = state.reserveOrientations[state.selectedReservePieceId];
+            sendPlaceAction(x, y, orientation, state.selectedReservePieceId);
+        }
+        deselectReserve();
+        return;
+    }
 
     if (!state.selectedPiece) {
         if (clickedPiece && clickedPiece.player === currentPlayerId) {
@@ -129,11 +153,24 @@ function handleCellClick(x, y) {
 
 export function selectPiece(x, y) {
     state.selectedPiece = { x, y };
+    state.selectedReservePieceId = null;
     updateVisualSelection();
 }
 
 export function deselect() {
     state.selectedPiece = null;
+    state.selectedReservePieceId = null;
+    updateVisualSelection();
+}
+
+export function selectReserve(playerId) {
+    state.selectedReservePieceId = playerId;
+    state.selectedPiece = null;
+    updateVisualSelection();
+}
+
+export function deselectReserve() {
+    state.selectedReservePieceId = null;
     updateVisualSelection();
 }
 

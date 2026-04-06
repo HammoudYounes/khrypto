@@ -13,6 +13,8 @@ class Game {
         this.elos = { 0: player1Elo, 1: player2Elo };
         this.restartVotes = new Set(); // Track which players voted to restart
         this.usersCollection = usersCollection;
+        this.reconnectTimers = {};           // playerId → setTimeout handle
+        this.disconnectedPlayers = new Set(); // playerIds currently in grace period
 
         // Initial State
         this.state = {
@@ -29,8 +31,8 @@ class Game {
 
     handleMove(action, playerId) {
         // Server-side turn enforcement for online games
-        if (this.mode === 'online' && this.state.turn !== playerId) {
-            throw new Error("Not your turn jhfuyf");
+        if (['online', 'ranked_challenge', 'unranked'].includes(this.mode) && this.state.turn !== playerId) {
+            throw new Error("Not your turn");
         }
 
         try {
@@ -115,8 +117,24 @@ class Game {
         return this.restartVotes.size >= 2;
     }
 
+    startReconnectTimer(playerId, onTimeout) {
+        this.disconnectedPlayers.add(playerId);
+        this.reconnectTimers[playerId] = setTimeout(() => {
+            this.disconnectedPlayers.delete(playerId);
+            onTimeout();
+        }, 60_000);
+    }
+
+    clearReconnectTimer(playerId) {
+        if (this.reconnectTimers[playerId]) {
+            clearTimeout(this.reconnectTimers[playerId]);
+            delete this.reconnectTimers[playerId];
+            this.disconnectedPlayers.delete(playerId);
+        }
+    }
+
     handleGameOver() {
-        if (this.mode !== 'online') return;
+        if (!['online', 'ranked_challenge'].includes(this.mode)) return;
 
         let p0Result = 0.5;
         let p1Result = 0.5;
@@ -133,20 +151,28 @@ class Game {
         const newElo0 = this.computeNewElo(this.elos[0], this.elos[1], p0Result);
         const newElo1 = this.computeNewElo(this.elos[1], this.elos[0], p1Result);
 
+        const deltaElo0 = newElo0 - this.elos[0];
+        const deltaElo1 = newElo1 - this.elos[1];
+
         console.log(`[Game] Online game ended. P0 Elo: ${this.elos[0]} -> ${newElo0}. P1 Elo: ${this.elos[1]} -> ${newElo1}`);
 
         // Update DB
         this.updateEloInDb(this.userIds[0], newElo0);
         this.updateEloInDb(this.userIds[1], newElo1);
+        // Only award coins in regular matchmaking, not friend challenges
+        if (this.mode === 'online') {
+            this.updateCoinsInDb(this.userIds[0], deltaElo0);
+            this.updateCoinsInDb(this.userIds[1], deltaElo1);
+        }
 
         // Update internal cache
         this.elos[0] = newElo0;
         this.elos[1] = newElo1;
 
-        // Emit new elos to players for UI update
-        this.io.to(this.id).emit('game:elo_update', {
-            0: newElo0,
-            1: newElo1
+        // Emit updated stats (elo and coins) to players for UI update
+        this.io.to(this.id).emit('game:stats_update', {
+            0: { elo: newElo0, deltaCoins: deltaElo0 },
+            1: { elo: newElo1, deltaCoins: deltaElo1 }
         });
     }
 
@@ -186,6 +212,20 @@ class Game {
             console.log(`[Game] Elo Update Result matched: ${result.matchedCount}, modified: ${result.modifiedCount}`);
         } catch (e) {
             console.error(`[Game] Error strictly committing Elo to MongoDB: ${e.message}`);
+        }
+    }
+
+    async updateCoinsInDb(userId, deltaCoins) {
+        if (!userId || !this.usersCollection || !ObjectId.isValid(userId)) return;
+
+        try {
+            const result = await this.usersCollection.updateOne(
+                { _id: ObjectId.createFromHexString(userId) },
+                { $inc: { coins: deltaCoins } }
+            );
+            console.log(`[Game] Coins Update Result matched: ${result.matchedCount}, modified: ${result.modifiedCount}`);
+        } catch (e) {
+            console.error(`[Game] Error strictly committing Coins to MongoDB: ${e.message}`);
         }
     }
 }

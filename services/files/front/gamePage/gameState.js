@@ -7,6 +7,7 @@
 export const state = {
     currentGameState: null,
     selectedPiece: null, // {x, y}
+    selectedReservePieceId: null, // null or player ID when reserve is clicked
     reserveOrientations: {
         0: 1,
         1: 1

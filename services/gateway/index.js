@@ -9,7 +9,8 @@ const PORTS = {
     AUTH: process.env.AUTH_URL || 'http://127.0.0.1:8003',
     TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004',
     MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005',
-    SOCIAL: process.env.SOCIAL_URL || 'http://127.0.0.1:8006'
+    SOCIAL: process.env.SOCIAL_URL || 'http://127.0.0.1:8006',
+    MARKET: process.env.MARKET_URL || 'http://127.0.0.1:8007'
 };
 
 const proxy = httpProxy.createProxyServer();
@@ -36,6 +37,14 @@ const server = http.createServer(function (request, response) {
                 console.log("Routing API request to Auth Service");
                 proxy.web(request, response, { target: PORTS.AUTH });
             }
+            if (filePath[2] && filePath[2].split('?')[0] === "leaderboard") {
+                console.log("Routing API request to Auth Service (Leaderboard, public)");
+                return proxy.web(request, response, { target: PORTS.AUTH });
+            }
+            if (filePath[2] === "profile") {
+                console.log("Routing API request to Auth Service (Profile)");
+                return proxyWithTokenCheck(request, response, PORTS.AUTH);
+            }
             if (filePath[2] === "refresh" || filePath[2] === "verify" || filePath[2] === "sign") {
                 console.log("Routing API request to Token Service");
                 proxy.web(request, response, { target: PORTS.TOKEN });
@@ -43,6 +52,15 @@ const server = http.createServer(function (request, response) {
             if (filePath[2] === "friend" || filePath[2] === "social" || filePath[2] === "chat") {
                 console.log("Routing API request to Friend Service");
                 return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
+            }
+            if (filePath[2] === "market") {
+                // Public endpoints (no token required)
+                if (filePath[3] === "assets" || filePath[3] === "avatar") {
+                    console.log("Routing API request to Market Service (public)");
+                    return proxy.web(request, response, { target: PORTS.MARKET });
+                }
+                console.log("Routing API request to Market Service");
+                return proxyWithTokenCheck(request, response, PORTS.MARKET);
             }
         }
         else if (filePath[1] === "matchmaking") {
@@ -55,7 +73,7 @@ const server = http.createServer(function (request, response) {
             return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
         }
         else if (filePath[1] === "socket.io") {
-            return proxyWithTokenCheck(request, response, PORTS.ENGINE);
+            return proxyWithEngineGuestSupport(request, response);
         }
         else {
             console.log("Request for a file received, transferring to the file service")
@@ -149,6 +167,42 @@ function callTokenService(path, body) {
         req.write(JSON.stringify(body));
         req.end();
     });
+}
+
+// --- ENGINE PROXY (allows unauthenticated guest connections) ---
+async function proxyWithEngineGuestSupport(req, res) {
+    let accessToken = null;
+
+    const authHeader = req.headers['authorization'];
+    if (authHeader) {
+        accessToken = authHeader.split(' ')[1];
+    } else {
+        try {
+            const urlObj = new URL(req.url, `http://${req.headers.host}`);
+            accessToken = urlObj.searchParams.get('token');
+        } catch (e) {}
+    }
+
+    if (!accessToken) {
+        // Guest: inject a random guest ID and forward to engine
+        req.headers['x-user-id'] = `guest_${Math.random().toString(36).slice(2, 10)}`;
+        return proxy.web(req, res, { target: PORTS.ENGINE });
+    }
+
+    // Authenticated user: validate token normally
+    try {
+        const check = await callTokenService('/verify', { token: accessToken });
+        if (check.valid) {
+            if (check.userId) req.headers['x-user-id'] = check.userId;
+            return proxy.web(req, res, { target: PORTS.ENGINE });
+        } else {
+            res.writeHead(401);
+            return res.end(JSON.stringify({ error: "Token expired" }));
+        }
+    } catch (err) {
+        console.error("Gateway Engine Check Error", err);
+        res.writeHead(500); res.end();
+    }
 }
 
 // --- LE "SMART PROXY" (Middleware Token) ---

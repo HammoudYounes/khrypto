@@ -8,6 +8,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
         rel="stylesheet">
+    <link rel="preload" href="../assets/khrypto_logo.png" as="image">
     <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="gamePage.css">
     <link rel="stylesheet" href="../globalNotif.css">
@@ -21,6 +22,7 @@
 
     <header>
         <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-sm">
+        <button id="emoteToggleBtn" class="btn btn-ghost emote-toggle-btn" title="Emotes">☺</button>
         <button id="leaveBtn" class="btn btn-danger">Leave Game</button>
     </header>
 
@@ -28,6 +30,7 @@
         <!-- Left: Player Info -->
         <div class="player-info-sec">
             <div class="opposing-player glass-card">
+                <img id="p2-avatar" class="player-avatar" src="" alt="">
                 <p class="player-label">Player 2 <span id="p2-elo" class="player-elo"></span></p>
                 <div id="p2-elo-potential" class="player-elo-potential"></div>
                 <div class="player-preview-cell">
@@ -45,6 +48,7 @@
             </div>
 
             <div class="current-player glass-card">
+                <img id="p1-avatar" class="player-avatar" src="" alt="">
                 <p class="player-label">Player 1 <span id="p1-elo" class="player-elo"></span></p>
                 <div id="p1-elo-potential" class="player-elo-potential"></div>
                 <div class="player-preview-cell">
@@ -79,22 +83,10 @@
             <div class="emote-chat glass-card">
                 <h3 class="emote-chat-title">Emotes</h3>
                 <div id="emoteDisplay" class="emote-display">
-                    <p class="emote-empty">No emotes yet</p>
+                    <p class="emote-empty" id="emoteEmpty">No emotes yet</p>
                 </div>
-                <div class="emote-picker">
-                    <button class="emote-btn" data-emote="😀">😀</button>
-                    <button class="emote-btn" data-emote="😎">😎</button>
-                    <button class="emote-btn" data-emote="🔥">🔥</button>
-                    <button class="emote-btn" data-emote="💀">💀</button>
-                    <button class="emote-btn" data-emote="👑">👑</button>
-                    <button class="emote-btn" data-emote="🎯">🎯</button>
-                    <button class="emote-btn" data-emote="💎">💎</button>
-                    <button class="emote-btn" data-emote="🏆">🏆</button>
-                    <button class="emote-btn" data-emote="😤">😤</button>
-                    <button class="emote-btn" data-emote="👏">👏</button>
-                    <button class="emote-btn" data-emote="🤔">🤔</button>
-                    <button class="emote-btn" data-emote="😈">😈</button>
-                </div>
+                <!-- Filled dynamically by JS from inventory -->
+                <div class="emote-picker" id="emotePicker"></div>
             </div>
         </div>
     </main>

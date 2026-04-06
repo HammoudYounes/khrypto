@@ -43,7 +43,6 @@ loginForm.addEventListener('submit', async (e) => {
     if (result && !result.error) {
         localStorage.setItem('accessToken', result.accessToken)
         localStorage.setItem('refreshToken', result.refreshToken)
-        sessionStorage.setItem('username', identifier)
         window.location.href = '../homePage/index.html';
     } else {
         alert('Login failed. Please check your credentials.');
@@ -111,3 +110,9 @@ async function auth(endpoint, data) {
         return { error: true, message: "Connection failed" };
     }
 }
+
+// Guest entry
+document.getElementById('guestBtn').addEventListener('click', () => {
+    sessionStorage.setItem('isGuest', 'true');
+    window.location.href = '../homePage/index.html';
+});

@@ -32,15 +32,16 @@ body {
 /* ── 3-Column Grid ── */
 .profile-grid {
     display: grid;
-    grid-template-columns: 260px 1fr 300px;
+    grid-template-columns: 340px 1fr 300px;
     gap: 1.25rem;
     padding: 1.25rem;
     flex: 1;
-    max-width: 1400px;
+    max-width: 100%;
     margin: 0 auto;
     width: 100%;
     z-index: 1;
     position: relative;
+    box-sizing: border-box;
 }
 
 /* ── Left Column: Profile Info ── */
@@ -296,9 +297,9 @@ button:hover {
 }
 
 /* ── Responsive ── */
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
     .profile-grid {
-        grid-template-columns: 220px 1fr 260px;
+        grid-template-columns: 290px 1fr 260px;
     }
 }
 
@@ -533,6 +534,197 @@ button:hover {
 .status-dot.offline {
     background: var(--text-muted);
     opacity: 0.5;
+}
+
+/* ══════════════════════════════════════════════════════════
+   INVENTORY PANEL
+   ══════════════════════════════════════════════════════════ */
+
+.inventory-panel {
+    grid-column: 1 / -1;
+}
+
+.inventory-title {
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.inventory-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.inventory-shop-link {
+    color: var(--gold);
+    text-decoration: underline;
+}
+
+.inventory-shop-link:hover {
+    color: var(--gold-light);
+}
+
+.inventory-group {
+    margin-bottom: 1.5rem;
+}
+
+.inventory-group:last-child {
+    margin-bottom: 0;
+}
+
+.inventory-group-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+    margin-bottom: 0.75rem;
+}
+
+.inventory-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    flex-wrap: nowrap;
+    /* custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold-dim) transparent;
+}
+
+.inventory-grid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.inventory-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.inventory-grid::-webkit-scrollbar-thumb {
+    background: var(--gold-dim);
+    border-radius: 3px;
+}
+
+.inventory-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-md);
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    transition: all var(--transition-fast);
+    position: relative;
+    flex: 0 0 160px;
+    width: 160px;
+}
+
+.inventory-item:hover {
+    background: rgba(212, 175, 55, 0.06);
+    border-color: rgba(212, 175, 55, 0.25);
+}
+
+.inventory-item.equipped {
+    border-color: var(--gold);
+    box-shadow: 0 0 10px var(--gold-glow);
+}
+
+.inventory-item-img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+}
+
+.inventory-item-name {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    text-align: center;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.rarity-badge {
+    font-size: 0.6rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 99px;
+    border: 1px solid;
+}
+
+.rarity-badge.common {
+    color: #aaa;
+    border-color: #666;
+    background: rgba(150, 150, 150, 0.08);
+}
+
+.rarity-badge.rare {
+    color: #4fc3f7;
+    border-color: #4fc3f7;
+    background: rgba(79, 195, 247, 0.08);
+}
+
+.rarity-badge.mythical {
+    color: #ce93d8;
+    border-color: #ce93d8;
+    background: rgba(206, 147, 216, 0.08);
+}
+
+.rarity-badge.goat {
+    color: #ffb300;
+    border-color: #ffb300;
+    background: rgba(255, 179, 0, 0.12);
+    box-shadow: 0 0 6px rgba(255, 179, 0, 0.4);
+    font-weight: 700;
+    animation: goatShimmer 2s ease-in-out infinite;
+}
+
+@keyframes goatShimmer {
+    0%, 100% { box-shadow: 0 0 6px rgba(255, 179, 0, 0.4); }
+    50% { box-shadow: 0 0 14px rgba(255, 179, 0, 0.6), 0 0 20px rgba(255, 179, 0, 0.2); }
+}
+
+.btn-equip {
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    padding: 0.25rem 0.65rem;
+    font-size: 0.7rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.06em;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-equip:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--gold);
+    box-shadow: 0 0 6px var(--gold-glow);
+    transform: translateY(-1px);
+}
+
+.btn-equip.equipped {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--gold);
+    color: var(--gold-light);
+}
+
+/* ── Profile Avatar Image ── */
+.profile-avatar-img {
+    display: none;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 /* ── Unread Badge ── */
