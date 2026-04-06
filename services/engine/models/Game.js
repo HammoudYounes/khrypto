@@ -12,6 +12,8 @@ class Game {
         this.elos = { 0: player1Elo, 1: player2Elo };
         this.restartVotes = new Set(); // Track which players voted to restart
         this.usersCollection = usersCollection;
+        this.reconnectTimers = {};           // playerId → setTimeout handle
+        this.disconnectedPlayers = new Set(); // playerIds currently in grace period
 
         // Initial State
         this.state = {
@@ -101,6 +103,22 @@ class Game {
     voteRestart(playerId) {
         this.restartVotes.add(playerId);
         return this.restartVotes.size >= 2;
+    }
+
+    startReconnectTimer(playerId, onTimeout) {
+        this.disconnectedPlayers.add(playerId);
+        this.reconnectTimers[playerId] = setTimeout(() => {
+            this.disconnectedPlayers.delete(playerId);
+            onTimeout();
+        }, 60_000);
+    }
+
+    clearReconnectTimer(playerId) {
+        if (this.reconnectTimers[playerId]) {
+            clearTimeout(this.reconnectTimers[playerId]);
+            delete this.reconnectTimers[playerId];
+            this.disconnectedPlayers.delete(playerId);
+        }
     }
 
     handleGameOver() {

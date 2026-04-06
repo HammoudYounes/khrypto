@@ -20,7 +20,9 @@ import {
     updateRestartVoteStatus,
     leaveGame,
     goHome,
-    initPlayerControls
+    initPlayerControls,
+    showReconnectOverlay,
+    hideReconnectOverlay
 } from './offboardUI.js';
 import {
     animateLaserSequence
@@ -37,15 +39,24 @@ import { notificationManager } from "../js/notificationManager.js";
 
 const boardElement = document.getElementById('board');
 
-export const gameId = sessionStorage.getItem("gameId");
+export const gameId = sessionStorage.getItem("gameId") || sessionStorage.getItem("activeGameId");
+
+let hasJoined = false; // Guards against re-emitting game:join on initial connect
 
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeConnection();
 
     // Read online player assignment from sessionStorage (set by matchmaking)
-    state.gameMode = sessionStorage.getItem("gameMode") || 'local';
-    const storedPlayerId = sessionStorage.getItem("playerId");
-    state.myPlayerId = storedPlayerId !== null ? parseInt(storedPlayerId, 10) : null;
+    // Fall back to activeGameId/activePlayerId when rejoining after a leave
+    const isRejoin = !sessionStorage.getItem("gameId") && !!sessionStorage.getItem("activeGameId");
+    if (isRejoin) {
+        state.gameMode = 'online';
+        state.myPlayerId = parseInt(sessionStorage.getItem("activePlayerId") || '0', 10);
+    } else {
+        state.gameMode = sessionStorage.getItem("gameMode") || 'local';
+        const storedPlayerId = sessionStorage.getItem("playerId");
+        state.myPlayerId = storedPlayerId !== null ? parseInt(storedPlayerId, 10) : null;
+    }
 
     console.log(`[GamePage] Mode: ${state.gameMode}, My Player ID: ${state.myPlayerId}`);
 
@@ -91,11 +102,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     cellClickListner(boardElement);
 
     // B. Rejoindre la partie (Une fois connecté)
-    const gameId = sessionStorage.getItem("gameId");
+    const resolvedGameId = sessionStorage.getItem("gameId") || sessionStorage.getItem("activeGameId");
 
-    if (gameId) {
-        console.log("Found Game ID in storage:", gameId);
-        socket.emit('game:join', { gameId: gameId, playerId: state.myPlayerId });
+    if (resolvedGameId) {
+        console.log(`[GamePage] ${isRejoin ? 'Rejoining' : 'Joining'} game:`, resolvedGameId);
+        socket.emit('game:join', { gameId: resolvedGameId, playerId: state.myPlayerId });
+        sessionStorage.setItem('activeGameId', resolvedGameId);
+        sessionStorage.setItem('activePlayerId', String(state.myPlayerId));
+        hasJoined = true;
     } else {
         console.error("No Game ID found. Redirecting to home...");
         window.location.href = "../index.html";
@@ -154,6 +168,10 @@ socket.on('game:action_response', (gameState) => {
 });
 
 socket.on('game:over', (winner) => {
+    sessionStorage.removeItem('activeGameId');
+    sessionStorage.removeItem('activePlayerId');
+    sessionStorage.removeItem('activeGameExpiresAt');
+    hideReconnectOverlay();
     setTimeout(() => {
         gameOverManager(winner);
     }, 3000);
@@ -175,6 +193,32 @@ socket.on('game:stats_update', (stats) => {
     }
 });
 
+socket.on('game:player_disconnected', ({ playerId, timeoutSeconds }) => {
+    if (playerId === state.myPlayerId) {
+        showReconnectOverlay('You disconnected. Reconnecting...', null);
+    } else {
+        showReconnectOverlay('Opponent disconnected', timeoutSeconds);
+    }
+});
+
+socket.on('game:player_reconnected', () => {
+    hideReconnectOverlay();
+});
+
+// Socket.IO auto-reconnect — re-join the game if we were in one
+socket.on('connect', () => {
+    if (!hasJoined) return;
+    const activeGameId = sessionStorage.getItem('activeGameId');
+    const activePlayerId = sessionStorage.getItem('activePlayerId');
+    if (activeGameId && activePlayerId !== null) {
+        console.log('[GamePage] Reconnected — rejoining game:', activeGameId);
+        socket.emit('game:join', {
+            gameId: activeGameId,
+            playerId: parseInt(activePlayerId)
+        });
+    }
+});
+
 socket.on('game:error', (data) => {
     alert(data.message);
 });
@@ -185,17 +229,10 @@ socket.on('game:restart_vote', (data) => {
     updateRestartVoteStatus(data);
 });
 
-// A player left — both go home
-socket.on('game:player_left', () => {
-    console.log('[Game] A player left the game');
-    alert('A player has left the game.');
-    goHome();
-});
-
 // Header leave button
 document.getElementById('leaveBtn').addEventListener('click', () => {
     if (state.gameMode === 'online') {
-        if (confirm('Leave the game? Both players will be returned to the homepage.')) {
+        if (confirm('Leave the game? You have 60 seconds to rejoin before your opponent wins.')) {
             leaveGame();
         }
     } else {
