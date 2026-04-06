@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     cellClickListner(boardElement);
 
     // B. Rejoindre la partie (Une fois connecté)
-    const resolvedGameId = sessionStorage.getItem("gameId") || sessionStorage.getItem("activeGameId");
+    const resolvedGameId = sessionStorage.getItem("gameId") || localStorage.getItem("activeGameId");
 
     if (resolvedGameId) {
         console.log(`[GamePage] ${isRejoin ? 'Rejoining' : 'Joining'} game:`, resolvedGameId);
