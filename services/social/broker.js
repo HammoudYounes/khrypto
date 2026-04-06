@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const { ObjectId } = require('mongodb');
 const db = require('./db');
+const { filterSwearWords } = require('./utils');
 
 const onlineUsers = new Map(); // Map<userId, socket>
 let io;
@@ -115,10 +116,11 @@ function initBroker(server) {
                 const globalMessages = db.getGlobalMessagesCollection();
                 const result = await globalMessages.insertOne(message);
 
-                // Broadcast to ALL connected users
+                // Broadcast to ALL connected users (filter swear words before sending)
                 io.emit('global-chat:receive', {
                     _id: result.insertedId,
-                    ...message
+                    ...message,
+                    content: filterSwearWords(message.content)
                 });
             } catch (err) {
                 console.error('Error handling global chat message:', err);

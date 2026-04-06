@@ -193,6 +193,7 @@ function renderEmotePicker(emotes) {
         btn.className = 'emote-btn';
         btn.title = item.name;
         const img = document.createElement('img');
+        img.loading = 'lazy';
         img.src = `/api/market/${item.assetPath}`;
         img.alt = item.name;
         btn.appendChild(img);
