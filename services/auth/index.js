@@ -67,7 +67,7 @@ async function displayDatabaseInfo() {
     console.log(collections.map(c => c.name));
 
     await user_collection.updateOne(
-      { username: 'Daftag' },
+      { username: 'DafTag' },
       { $set: { coins: 10000 } }
     );
     await user_collection.updateOne(
@@ -83,6 +83,7 @@ async function displayDatabaseInfo() {
       allUsers.forEach((user, index) => {
         console.log(`\nUser #${index + 1}:`);
         console.log(`  Username: ${user.username}`);
+        console.log(`  Id: ${user._id}`);
         console.log(`  Mail:     ${user.mail}`);
         console.log(`  Password: ${user.password}`);
         console.log(`  ELO:      ${user.elo}`);
