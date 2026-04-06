@@ -21,7 +21,7 @@ services:
     container_name: khrypto_gateway
     restart: always
     ports:
-      - "8000:8000"
+      - "443:8000"
     environment:
       - PORT=8000
       - ENGINE_URL=http://engine:8002
@@ -94,9 +94,9 @@ services:
     environment:
       - PORT=8003
       #- MONGO_URL=mongodb://mongo:27017/khrypto
-      #- GATEWAY_URL=http://gateway:8000
+      #- GATEWAY_URL=https://gateway:8000
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin 
-      - GATEWAY_URL=http://gateway:8000
+      - GATEWAY_URL=https://gateway:8000
     depends_on:
       - mongo
       - token
@@ -126,7 +126,7 @@ services:
       - "8006"
     environment:
       - PORT=8006
-      - GATEWAY_URL=http://gateway:8000
+      - GATEWAY_URL=https://gateway:8000
       - ENGINE_URL=http://engine:8002
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
     depends_on:
