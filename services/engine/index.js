@@ -73,6 +73,7 @@ const io = new Server(server, {
 });
 
 const gameManager = new GameManager(io);
+const socketToGameId = new Map(); // socketId → gameId (reverse lookup for disconnect handling)
 
 io.on('connection', (socket) => {
 
@@ -96,7 +97,15 @@ io.on('connection', (socket) => {
             // For online games: register which player this socket controls
             if (game.mode === 'online' && data.playerId !== undefined) {
                 game.players.set(socket.id, data.playerId);
+                socketToGameId.set(socket.id, data.gameId);
                 console.log(`[Engine] Registered socket ${socket.id} as Player ${data.playerId}`);
+
+                // If this is a rejoin during grace period, clear timer and notify room
+                if (game.disconnectedPlayers.has(data.playerId)) {
+                    game.clearReconnectTimer(data.playerId);
+                    io.to(data.gameId).emit('game:player_reconnected', { playerId: data.playerId });
+                    console.log(`[Engine] Player ${data.playerId} rejoined game ${data.gameId}`);
+                }
             }
 
             socket.emit('game:init', game.state);
@@ -135,14 +144,64 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 3.5 Player leaves the game — both players get kicked
+    // 3.5 Player leaves the game intentionally — start grace period (same as disconnect)
     socket.on('game:leave', (data) => {
         const game = gameManager.getGame(data.gameId);
-        if (game) {
-            console.log(`[Engine] Player left game: ${data.gameId}`);
-            io.to(data.gameId).emit('game:player_left');
-            gameManager.deleteGame(data.gameId);
-        }
+        if (!game || game.mode !== 'online') return;
+
+        const playerId = game.players.get(socket.id);
+        if (playerId === undefined) return;
+        if (game.state.winner[0] || game.state.winner[1]) return;
+
+        game.players.delete(socket.id);
+        socketToGameId.delete(socket.id);
+
+        console.log(`[Engine] Player ${playerId} left game ${data.gameId} — starting 60s grace period`);
+        io.to(data.gameId).emit('game:player_disconnected', { playerId, timeoutSeconds: 60 });
+
+        game.startReconnectTimer(playerId, () => {
+            const opponentId = playerId === 0 ? 1 : 0;
+            game.state.winner[opponentId] = true;
+            io.to(data.gameId).emit('game:over', { ...game.state.winner, forfeit: true });
+            game.handleGameOver();
+            console.log(`[Engine] Grace period expired for Player ${playerId} — Player ${opponentId} wins`);
+        });
+    });
+
+    // 3.6 Socket disconnected (network drop / tab close)
+    socket.on('disconnect', () => {
+        const gameId = socketToGameId.get(socket.id);
+        socketToGameId.delete(socket.id);
+
+        if (!gameId) return;
+        const game = gameManager.getGame(gameId);
+        if (!game || game.mode !== 'online') return;
+
+        const playerId = game.players.get(socket.id);
+        if (playerId === undefined) return;
+        if (game.state.winner[0] || game.state.winner[1]) return;
+
+        game.players.delete(socket.id);
+
+        console.log(`[Engine] Socket ${socket.id} (Player ${playerId}) disconnected from game ${gameId} — starting 60s grace period`);
+        io.to(gameId).emit('game:player_disconnected', { playerId, timeoutSeconds: 60 });
+
+        game.startReconnectTimer(playerId, () => {
+            const opponentId = playerId === 0 ? 1 : 0;
+            game.state.winner[opponentId] = true;
+            io.to(gameId).emit('game:over', game.state.winner);
+            game.handleGameOver();
+            console.log(`[Engine] Grace period expired for Player ${playerId} — Player ${opponentId} wins`);
+        });
+    });
+
+    // Emote relay: broadcast to everyone in the game room
+    socket.on('engine:emoji-send', (data) => {
+        const { gameId, assetPath, rarity, senderUsername } = data;
+        if (!gameId || !assetPath) return;
+        const game = gameManager.getGame(gameId);
+        if (!game) return;
+        io.to(gameId).emit('engine:emoji-receive', { assetPath, rarity: rarity || 'common', senderUsername: senderUsername || 'Player' });
     });
 
     // 3. Player makes a move

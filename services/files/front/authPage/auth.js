@@ -110,3 +110,9 @@ async function auth(endpoint, data) {
         return { error: true, message: "Connection failed" };
     }
 }
+
+// Guest entry
+document.getElementById('guestBtn').addEventListener('click', () => {
+    sessionStorage.setItem('isGuest', 'true');
+    window.location.href = '../homePage/index.html';
+});

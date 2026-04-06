@@ -23,6 +23,13 @@ export const socket = io({
 
 // 2. Initialization Routine (Called on page load)
 export async function initializeConnection() {
+    // Guest short-circuit: connect without token
+    if (sessionStorage.getItem('isGuest') === 'true') {
+        socket.io.opts.query = {};
+        socket.connect();
+        return;
+    }
+
     let accessToken = TokenManager.getAccessToken();
     const refreshToken = TokenManager.getRefreshToken();
 
@@ -51,6 +58,7 @@ export async function initializeConnection() {
 
 // 3. Error Handling (Safety net during gameplay)
 socket.on("connect_error", async (err) => {
+    if (sessionStorage.getItem('isGuest') === 'true') return;
     console.log(" Connection rejected by server:", err.message);
 
     // Assuming rejection is due to expired token -> Try Refresh

@@ -7,6 +7,8 @@ const API_URL = "/api";
 const localButton = document.getElementById("localBtn");
 const aiButton = document.getElementById("aiBtn");
 const onlineButton = document.getElementById("onlineBtn");
+const rejoinBtn = document.getElementById("rejoinBtn");
+const rejoinCountdown = document.getElementById("rejoinCountdown");
 
 // DOM elements - profile
 const profileBtn = document.getElementById("profileBtn");
@@ -28,8 +30,85 @@ const socket = io({
     }
 });
 
+// Guest UI: hides features unavailable without an account
+function applyGuestUI() {
+    if (onlineButton) onlineButton.style.display = 'none';
+    if (rejoinBtn) rejoinBtn.style.display = 'none';
+    const chatSection = document.querySelector('.chat-section');
+    if (chatSection) chatSection.style.display = 'none';
+    if (goToProfileBtn) goToProfileBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.textContent = 'Exit Guest Mode';
+}
+
+// ========== REJOIN GAME ==========
+
+function initRejoinButton() {
+    if (!rejoinBtn) return; // element removed from HTML on this branch
+
+    const activeGameId = localStorage.getItem('activeGameId');
+    const expiresAt = parseInt(localStorage.getItem('activeGameExpiresAt') || '0', 10);
+    const remaining = expiresAt - Date.now();
+
+    if (!activeGameId || remaining <= 0) {
+        clearRejoinState();
+        return;
+    }
+
+    // Show Rejoin, hide Online
+    onlineButton.style.display = 'none';
+    rejoinBtn.style.display = '';
+
+    // Live countdown
+    let secondsLeft = Math.ceil(remaining / 1000);
+    if (rejoinCountdown) rejoinCountdown.textContent = `${secondsLeft}s`;
+    const countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (rejoinCountdown) rejoinCountdown.textContent = `${secondsLeft}s`;
+        if (secondsLeft <= 0) {
+            clearInterval(countdownInterval);
+            clearRejoinState();
+        }
+    }, 1000);
+
+    // Auto-hide when timer expires
+    setTimeout(() => {
+        clearInterval(countdownInterval);
+        clearRejoinState();
+    }, remaining);
+
+    // Click → navigate to game page (gamePage auto-rejoins via socket connect handler)
+    rejoinBtn.addEventListener('click', () => {
+        window.location.href = '../gamePage/index.html';
+    });
+}
+
+function clearRejoinState() {
+    localStorage.removeItem('activeGameId');
+    localStorage.removeItem('activePlayerId');
+    localStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeMyUsername');
+    localStorage.removeItem('activeOpponentUsername');
+    localStorage.removeItem('activeMyElo');
+    localStorage.removeItem('activeOpponentElo');
+    // Force profileManager to refetch fresh elo/coins from server on next profile visit
+    sessionStorage.removeItem('elo');
+    sessionStorage.removeItem('coins');
+    if (rejoinBtn) rejoinBtn.style.display = 'none';
+    if (onlineButton) onlineButton.style.display = '';
+}
+
+initRejoinButton();
+
 // 3. FONCTION D'INITIALISATION (Check Session)
 async function initializeHome() {
+    // Guest short-circuit: skip auth, connect without token
+    if (sessionStorage.getItem('isGuest') === 'true') {
+        applyGuestUI();
+        socket.io.opts.query = {};
+        socket.connect();
+        return;
+    }
+
     let accessToken = TokenManager.getAccessToken();
     const refreshToken = TokenManager.getRefreshToken();
 
@@ -57,6 +136,7 @@ async function initializeHome() {
 
 // 4. GESTION DES ERREURS DE CONNEXION (Ex: Token expiré pendant l'attente)
 socket.on("connect_error", async (err) => {
+    if (sessionStorage.getItem('isGuest') === 'true') return;
     console.log("Erreur connexion socket:", err.message);
 
     // Tentative de refresh automatique
@@ -86,7 +166,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         const span = usernameDisplayEl.querySelector('span');
         if (span) span.textContent = username;
     }
+
+    // Show shop button and coin balance for logged-in users
+    if (sessionStorage.getItem('isGuest') !== 'true') {
+        const shopNavBtn = document.getElementById('shopNavBtn');
+        if (shopNavBtn) shopNavBtn.style.display = 'flex';
+        fetchAndDisplayBalance();
+        fetchAndDisplayAvatar();
+    }
 });
+
+async function fetchAndDisplayAvatar() {
+    try {
+        const username = sessionStorage.getItem('username');
+        if (!username) return;
+        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.assetPath) {
+            const img = document.getElementById('navAvatarImg');
+            if (img) {
+                img.src = `/api/market/${data.assetPath}`;
+                img.classList.add('loaded');
+            }
+        }
+    } catch (err) {
+        console.error('Failed to fetch avatar:', err);
+    }
+}
+
+async function fetchAndDisplayBalance() {
+    try {
+        const token = TokenManager.getAccessToken();
+        if (!token) return;
+        const res = await fetch('/api/market/balance', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const el = document.getElementById('navCoinBalance');
+        if (el) el.textContent = data.coins;
+        // Show coin display in profile button
+        const sep = document.getElementById('profileCoinSep');
+        const wrap = document.getElementById('profileCoinWrap');
+        if (sep) sep.style.display = 'inline';
+        if (wrap) wrap.style.display = 'flex';
+        sessionStorage.setItem('coins', data.coins);
+    } catch (err) {
+        console.error('Failed to fetch balance:', err);
+    }
+}
 
 // Toggle profile panel
 profileBtn.addEventListener('click', () => {
@@ -97,7 +226,13 @@ profileBtn.addEventListener('click', () => {
 logoutBtn.addEventListener('click', () => {
     TokenManager.clear();
     sessionStorage.clear();
-    // Redirect to auth page
+    localStorage.removeItem('activeGameId');
+    localStorage.removeItem('activePlayerId');
+    localStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeMyUsername');
+    localStorage.removeItem('activeOpponentUsername');
+    localStorage.removeItem('activeMyElo');
+    localStorage.removeItem('activeOpponentElo');
     window.location.href = '../index.html';
 });
 
@@ -122,10 +257,14 @@ function emitGame(gameMode) {
         return;
     }
 
-    // Clear any existing gameId to avoid conflicts
+    // Clear any stale game session data before starting a new game
     sessionStorage.removeItem("gameId");
     sessionStorage.removeItem("playerId");
     sessionStorage.removeItem("gameMode");
+    sessionStorage.removeItem("myUsername");
+    sessionStorage.removeItem("opponentUsername");
+    sessionStorage.removeItem("myElo");
+    sessionStorage.removeItem("opponentElo");
     socket.emit("game:create", gameMode);
 }
 

@@ -37,6 +37,15 @@ async function runGetStarted() {
       console.log(`Successfully retrofitted ${updateResult.modifiedCount} existing users with default ELO.`);
     }
 
+    const coinsUpdateResult = await user_collection.updateMany(
+      { coins: { $exists: false } },
+      { $set: { coins: 0 } }
+    );
+
+    if (coinsUpdateResult.modifiedCount > 0) {
+      console.log(`Successfully retrofitted ${coinsUpdateResult.modifiedCount} existing users with default coins.`);
+    }
+
     // Display initial database state
     await displayDatabaseInfo();
 
@@ -57,16 +66,32 @@ async function displayDatabaseInfo() {
     console.log(`\n--- Collections in ${DB_NAME} ---`);
     console.log(collections.map(c => c.name));
 
+    await user_collection.updateOne(
+      { username: 'DafTag' },
+      { $set: { coins: 10000 } }
+    );
+    await user_collection.updateOne(
+      { username: 'dedlix' },
+      { $set: { coins: 10000 } }
+    );
+
+    // Wipe dedlix's inventory for testing
+    //const inventory_collection = khryto_db.collection('inventory');
+    //await inventory_collection.deleteMany({ userId: '69a4bfc60ce2bfc249d25e80' });
+
     // 2. See all users in the collection with clear formatting
     const allUsers = await user_collection.find({}).toArray();
+
     console.log(`\n--- Content of ${COLLECTION_NAME} (${allUsers.length} users) ---`);
     if (allUsers.length > 0) {
       allUsers.forEach((user, index) => {
         console.log(`\nUser #${index + 1}:`);
         console.log(`  Username: ${user.username}`);
+        console.log(`  Id: ${user._id}`);
         console.log(`  Mail:     ${user.mail}`);
         console.log(`  Password: ${user.password}`);
         console.log(`  ELO:      ${user.elo}`);
+        console.log(`  Coins:    ${user.coins}`);
       });
     } else {
       console.log("  No users found.");
@@ -101,7 +126,8 @@ async function createValidUser(username, mail, password) {
     username: username,
     mail: mail,
     password: hashed_password,
-    elo: 600
+    elo: 600,
+    coins: 0
   };
   return newUser;
 }
@@ -243,7 +269,8 @@ http.createServer(async function (request, response) {
       response.end(JSON.stringify({
         username: user.username,
         email: user.mail,
-        elo: user.elo
+        elo: user.elo,
+        coins: user.coins
       }));
 
     } catch (error) {
