@@ -174,6 +174,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAndDisplayBalance();
         fetchAndDisplayAvatar();
     }
+
+    loadLeaderboard();
 });
 
 async function fetchAndDisplayAvatar() {
@@ -214,6 +216,47 @@ async function fetchAndDisplayBalance() {
         sessionStorage.setItem('coins', data.coins);
     } catch (err) {
         console.error('Failed to fetch balance:', err);
+    }
+}
+
+async function loadLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/leaderboard?limit=10');
+        if (!res.ok) return;
+        const { leaderboard } = await res.json();
+
+        list.innerHTML = '';
+        leaderboard.forEach((user, index) => {
+            const rank = index + 1;
+            const li = document.createElement('li');
+            li.className = `leaderboard-row rank-${rank}`;
+            li.innerHTML = `
+                <span class="lb-rank">#${rank}</span>
+                <div class="lb-avatar">
+                    <img class="lb-avatar-img" alt="" />
+                    <span class="lb-avatar-fallback">⬡</span>
+                </div>
+                <span class="lb-username">${user.username}</span>
+                <span class="lb-elo">${user.elo} ELO</span>
+                <span class="lb-coins">◈ ${user.coins}</span>
+            `;
+            list.appendChild(li);
+
+            const img = li.querySelector('.lb-avatar-img');
+            fetch(`/api/market/avatar/${encodeURIComponent(user.username)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.assetPath) {
+                        img.src = `/api/market/${data.assetPath}`;
+                        img.classList.add('loaded');
+                    }
+                })
+                .catch(() => {});
+        });
+    } catch (e) {
+        console.error('[Leaderboard] Failed to load', e);
     }
 }
 

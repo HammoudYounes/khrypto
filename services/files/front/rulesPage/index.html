@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Play — Khrypto</title>
+    <meta name="description" content="Learn how to play Khet 2.0 — master the pieces, laser mechanics, and board setup.">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
+    <link rel="stylesheet" href="rulesPage.css">
+    <script src="../js/matrixBackground.js"></script>
+</head>
+
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- ── Header ── -->
+    <header class="rules-header">
+        <button id="backBtn" class="btn btn-ghost back-btn">&#8592; Back</button>
+        <h1 class="rules-title">How to Play</h1>
+        <div class="header-spacer"></div>
+    </header>
+
+    <!-- ── Main Layout ── -->
+    <main class="rules-layout">
+
+        <!-- ── Sticky Table of Contents ── -->
+        <aside class="rules-toc glass-card" id="rulesToc">
+            <nav>
+                <h3 class="toc-heading">Contents</h3>
+                <ul class="toc-list">
+                    <li><a href="#introduction" class="toc-link active" data-section="introduction">⚡ Introduction</a></li>
+                    <li><a href="#pieces" class="toc-link" data-section="pieces">♟️ The Pieces</a></li>
+                    <li><a href="#setup" class="toc-link" data-section="setup">📐 Initial Setup</a></li>
+                    <li><a href="#how-to-play" class="toc-link" data-section="how-to-play">🎯 How to Play</a></li>
+                    <li><a href="#additional-rules" class="toc-link" data-section="additional-rules">📋 Additional Rules</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- ── Content ── -->
+        <div class="rules-content">
+
+            <!-- ══════════════════════════════════════
+                 SECTION 1: INTRODUCTION
+                 ══════════════════════════════════════ -->
+            <section id="introduction" class="rules-section">
+                <div class="section-header">
+                    <span class="section-icon">⚡</span>
+                    <h2 class="section-title">Introduction</h2>
+                </div>
+                <div class="intro-card glass-card">
+                    <p class="intro-text">
+                        <strong>Khet 2.0</strong> is a strategic 1v1 board game played on a <span class="highlight">10×10 grid</span>.
+                        Each player commands an army of Egyptian-themed pieces with reflective mirrors, shields, and a deadly laser.
+                    </p>
+                    <p class="intro-text">
+                        At the end of every turn, your <span class="highlight">Sphinx</span> fires its laser. The beam bounces off mirrors,
+                        passes through empty cells, and <strong>destroys</strong> any piece it hits on a vulnerable face.
+                        Your ultimate goal: <span class="highlight-danger">destroy the opponent's Pharaoh</span>.
+                    </p>
+                    <div class="intro-highlights">
+                        <div class="intro-highlight-item">
+                            <span class="intro-highlight-icon">👥</span>
+                            <span>2 Players</span>
+                        </div>
+                        <div class="intro-highlight-item">
+                            <span class="intro-highlight-icon">🏁</span>
+                            <span>10×10 Grid</span>
+                        </div>
+                        <div class="intro-highlight-item">
+                            <span class="intro-highlight-icon">🔫</span>
+                            <span>Laser Combat</span>
+                        </div>
+                        <div class="intro-highlight-item">
+                            <span class="intro-highlight-icon">🏆</span>
+                            <span>Destroy the Pharaoh</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════
+                 SECTION 2: THE PIECES
+                 ══════════════════════════════════════ -->
+            <section id="pieces" class="rules-section">
+                <div class="section-header">
+                    <span class="section-icon">♟️</span>
+                    <h2 class="section-title">The Pieces</h2>
+                </div>
+                <p class="section-subtitle">Each piece occupies 1 cell on the grid. Learn their abilities to master the battlefield.</p>
+
+                <!-- Sphinx -->
+                <div class="piece-card glass-card" id="piece-sphinx">
+                    <div class="piece-img-wrap piece-img-green">
+                        <img src="../gamePage/assets/green_sphinx.png" alt="Sphinx piece" class="piece-img">
+                    </div>
+                    <div class="piece-info">
+                        <div class="piece-name-row">
+                            <h3 class="piece-name">Sphinx</h3>
+                            <span class="piece-badge badge-offense">⚔️ Offensive</span>
+                        </div>
+                        <p class="piece-desc">
+                            The <strong>main offensive piece</strong>. The Sphinx has a laser on one of its faces that
+                            fires automatically at the end of every turn.
+                        </p>
+                        <ul class="piece-traits">
+                            <li><span class="trait-icon">🛡️</span> <strong>Indestructible</strong> — Shields on all 4 sides</li>
+                            <li><span class="trait-icon">🔫</span> <strong>Laser</strong> — 1 face has a laser that fires each turn</li>
+                            <li><span class="trait-icon">🚫</span> <strong>Cannot move</strong> — Only rotates or swaps</li>
+                            <li><span class="trait-icon">🔄</span> <strong>Rotatable</strong> — Can be rotated 90° to redirect the laser</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pharaoh -->
+                <div class="piece-card glass-card" id="piece-pharaoh">
+                    <div class="piece-img-wrap piece-img-red">
+                        <img src="../gamePage/assets/red_pharaoh.png" alt="Pharaoh piece" class="piece-img">
+                    </div>
+                    <div class="piece-info">
+                        <div class="piece-name-row">
+                            <h3 class="piece-name">Pharaoh</h3>
+                            <span class="piece-badge badge-king">👑 King</span>
+                        </div>
+                        <p class="piece-desc">
+                            The <strong>most important piece</strong> on the board.
+                            Losing your Pharaoh means <span class="highlight-danger">losing the game</span>.
+                        </p>
+                        <ul class="piece-traits">
+                            <li><span class="trait-icon">💀</span> <strong>4 vulnerable faces</strong> — No shields, no mirrors</li>
+                            <li><span class="trait-icon">🚫</span> <strong>Cannot move</strong> — Only swaps with Scarab</li>
+                            <li><span class="trait-icon">🚫</span> <strong>Cannot rotate</strong> — Orientation doesn't matter</li>
+                            <li><span class="trait-icon">⚠️</span> <strong>Protect at all costs!</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Anubis -->
+                <div class="piece-card glass-card" id="piece-anubis">
+                    <div class="piece-img-wrap piece-img-green">
+                        <img src="../gamePage/assets/green_anubis.png" alt="Anubis piece" class="piece-img">
+                    </div>
+                    <div class="piece-info">
+                        <div class="piece-name-row">
+                            <h3 class="piece-name">Anubis</h3>
+                            <span class="piece-badge badge-defense">🛡️ Protector</span>
+                        </div>
+                        <p class="piece-desc">
+                            The <strong>protector</strong>. Position the shield face toward the enemy laser
+                            to block it. But beware — the other 3 faces are exposed.
+                        </p>
+                        <ul class="piece-traits">
+                            <li><span class="trait-icon">🛡️</span> <strong>1 shield face</strong> — Blocks and stops the laser</li>
+                            <li><span class="trait-icon">💀</span> <strong>3 vulnerable faces</strong> — Destroyed if hit</li>
+                            <li><span class="trait-icon">↕️</span> <strong>Can move</strong> — 1 cell orthogonally (up/down/left/right)</li>
+                            <li><span class="trait-icon">🔄</span> <strong>Rotatable</strong> — Rotate to redirect the shield</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pyramid -->
+                <div class="piece-card glass-card" id="piece-pyramid">
+                    <div class="piece-img-wrap piece-img-red">
+                        <img src="../gamePage/assets/red_pyramid.png" alt="Pyramid piece" class="piece-img">
+                    </div>
+                    <div class="piece-info">
+                        <div class="piece-name-row">
+                            <h3 class="piece-name">Pyramid</h3>
+                            <span class="piece-badge badge-mirror">🪞 Mirror</span>
+                        </div>
+                        <p class="piece-desc">
+                            The <strong>core piece</strong>. Features a diagonal mirror that reflects the laser 90°.
+                            Position and rotate carefully to build laser paths — or disrupt your opponent's.
+                        </p>
+                        <ul class="piece-traits">
+                            <li><span class="trait-icon">🪞</span> <strong>Diagonal mirror</strong> — Reflects laser on 2 faces</li>
+                            <li><span class="trait-icon">💀</span> <strong>2 vulnerable faces</strong> — The non-mirror sides</li>
+                            <li><span class="trait-icon">↕️</span> <strong>Can move</strong> — 1 cell orthogonally</li>
+                            <li><span class="trait-icon">📦</span> <strong>Reserve</strong> — Each player has 7 extra Pyramids to place</li>
+                        </ul>
+                        <div class="piece-screenshot">
+                            <img src="assets/pyramid_laser_bounce.png" alt="Pyramid reflecting a laser beam" class="screenshot-img">
+                            <span class="screenshot-caption">A Pyramid reflecting the laser beam 90°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scarab -->
+                <div class="piece-card glass-card" id="piece-scarab">
+                    <div class="piece-img-wrap piece-img-green">
+                        <img src="../gamePage/assets/green_scarab.png" alt="Scarab piece" class="piece-img">
+                    </div>
+                    <div class="piece-info">
+                        <div class="piece-name-row">
+                            <h3 class="piece-name">Scarab</h3>
+                            <span class="piece-badge badge-special">✨ Special</span>
+                        </div>
+                        <p class="piece-desc">
+                            A powerful piece with a <strong>double-sided diagonal mirror</strong>.
+                            It reflects lasers from both sides and is completely indestructible.
+                            It can also <strong>swap positions</strong> with your Sphinx or Pharaoh.
+                        </p>
+                        <ul class="piece-traits">
+                            <li><span class="trait-icon">🪞</span> <strong>Double mirror</strong> — Reflects laser from BOTH sides</li>
+                            <li><span class="trait-icon">🛡️</span> <strong>Indestructible</strong> — Always redirects, never destroyed</li>
+                            <li><span class="trait-icon">↕️</span> <strong>Can move</strong> — 1 cell orthogonally</li>
+                            <li><span class="trait-icon">🔀</span> <strong>Swap</strong> — Can swap with Sphinx or Pharaoh (cooldown of 4 turns applies for each swap type)</li>
+                        </ul>
+                        <div class="piece-screenshots-row">
+                            <div class="piece-screenshot">
+                                <img src="assets/scarab_bouce_laser1.png" alt="Scarab reflecting laser from left" class="screenshot-img">
+                                <span class="screenshot-caption">Scarab reflecting from one side</span>
+                            </div>
+                            <div class="piece-screenshot">
+                                <img src="assets/scarab_bouce_laser2.png" alt="Scarab reflecting laser from right" class="screenshot-img">
+                                <span class="screenshot-caption">Scarab reflecting from the other side</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════
+                 SECTION 3: INITIAL SETUP
+                 ══════════════════════════════════════ -->
+            <section id="setup" class="rules-section">
+                <div class="section-header">
+                    <span class="section-icon">📐</span>
+                    <h2 class="section-title">Initial Setup</h2>
+                </div>
+                <p class="section-subtitle">The board is set up randomly following specific placement rules. Player 2's pieces are centrally symmetrical to Player 1.</p>
+
+                <div class="setup-grid">
+                    <div class="setup-card glass-card">
+                        <h4 class="setup-card-title">Player 1 Placement</h4>
+                        <ol class="setup-steps">
+                            <li>
+                                <strong>Sphinx</strong> — Placed on a random column of the <span class="highlight">1st row</span>.
+                                Laser faces horizontally toward the side with the most available cells.
+                            </li>
+                            <li>
+                                <strong>Pharaoh</strong> — Placed on a random cell on the <span class="highlight">3rd row</span>.
+                                <em>Excluded: Columns 1, 10, own Sphinx column, opponent's Sphinx column.</em>
+                            </li>
+                            <li>
+                                <strong>Anubis 1</strong> — Placed on the <span class="highlight">5th row</span>,
+                                same column as the Pharaoh, facing the opponent.
+                            </li>
+                            <li>
+                                <strong>Anubis 2</strong> — Placed on the <span class="highlight">3rd row</span>,
+                                in the opponent's Sphinx column, facing the opponent.
+                            </li>
+                            <li>
+                                <strong>Scarab</strong> — Random position on the <span class="highlight">4th row</span>,
+                                random orientation.
+                            </li>
+                            <li>
+                                <strong>Reserve</strong> — Each player receives a box outside the grid containing
+                                <span class="highlight">7 Pyramids</span> for later placement.
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="setup-card glass-card">
+                        <h4 class="setup-card-title">Player 2 — Symmetry</h4>
+                        <div class="setup-symmetry-info">
+                            <div class="symmetry-icon-wrap">
+                                <span class="symmetry-icon">🔄</span>
+                            </div>
+                            <p>
+                                Player 2's pieces are placed with <strong>central symmetry</strong>
+                                (180° rotation of the board). This ensures a fair and balanced starting position.
+                            </p>
+                        </div>
+                        <div class="setup-note">
+                            <span class="note-icon">💡</span>
+                            <p>Because placement is randomized, every game starts with a unique board configuration!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════
+                 SECTION 4: HOW TO PLAY
+                 ══════════════════════════════════════ -->
+            <section id="how-to-play" class="rules-section">
+                <div class="section-header">
+                    <span class="section-icon">🎯</span>
+                    <h2 class="section-title">How to Play</h2>
+                </div>
+                <p class="section-subtitle">
+                    Players take turns. Each turn, you perform <strong>exactly 1 action</strong>, then your Sphinx fires automatically.
+                </p>
+
+                <!-- Action 1: Rotate -->
+                <div class="action-card glass-card">
+                    <div class="action-header">
+                        <span class="action-number">1</span>
+                        <div>
+                            <h3 class="action-name">Rotate 90°</h3>
+                            <p class="action-pieces">Sphinx · Anubis · Scarab · Pyramid</p>
+                        </div>
+                    </div>
+                    <p class="action-desc">
+                        Rotate any of these pieces <strong>90° clockwise or counter-clockwise</strong>.
+                        This changes which direction the piece's shield, mirror, or laser faces.
+                        Rotating is key to setting up laser paths and defending your Pharaoh.
+                    </p>
+                </div>
+
+                <!-- Action 2: Move -->
+                <div class="action-card glass-card">
+                    <div class="action-header">
+                        <span class="action-number">2</span>
+                        <div>
+                            <h3 class="action-name">Move (Orthogonal)</h3>
+                            <p class="action-pieces">Anubis · Pyramid · Scarab</p>
+                        </div>
+                    </div>
+                    <p class="action-desc">
+                        Move a piece <strong>1 cell</strong> in any orthogonal direction (up, down, left, right).
+                        The target cell must be empty — you cannot move onto an occupied cell.
+                    </p>
+                    <div class="action-note">
+                        <span class="note-icon">⚠️</span>
+                        <p><strong>Sphinx and Pharaoh cannot move</strong> — they stay fixed on the board.</p>
+                    </div>
+                    <div class="action-screenshot">
+                        <img src="assets/valid_moves.png" alt="Valid movement cells highlighted in green" class="screenshot-img">
+                        <span class="screenshot-caption">Valid movement cells are highlighted in green</span>
+                    </div>
+                </div>
+
+                <!-- Action 3: Place a Pyramid -->
+                <div class="action-card glass-card">
+                    <div class="action-header">
+                        <span class="action-number">3</span>
+                        <div>
+                            <h3 class="action-name">Place a Pyramid</h3>
+                            <p class="action-pieces">From reserve → grid</p>
+                        </div>
+                    </div>
+                    <p class="action-desc">
+                        Take a Pyramid from your <strong>reserve box</strong> and place it on any empty cell on the grid.
+                        You can <strong>click</strong> a pyramid in your reserve and then click an empty cell, or <strong>drag and drop</strong> it. You can freely choose its orientation when placing it.
+                    </p>
+                    <div class="action-note">
+                        <span class="note-icon">🚫</span>
+                        <p>
+                            <strong>Placement restriction:</strong> Cannot place a Pyramid orthogonally adjacent
+                            (up/down/left/right) to your own Pharaoh or <em>any</em> Sphinx.
+                        </p>
+                    </div>
+                    <div class="action-screenshot">
+                        <img src="assets/reserve_box.png" alt="Reserve box showing available pyramids" class="screenshot-img">
+                        <span class="screenshot-caption">The reserve box — click or drag a Pyramid onto the board</span>
+                    </div>
+                </div>
+
+                <!-- Action 4: Swap -->
+                <div class="action-card glass-card">
+                    <div class="action-header">
+                        <span class="action-number">4</span>
+                        <div>
+                            <h3 class="action-name">Swap (Scarab)</h3>
+                            <p class="action-pieces">Scarab ↔ Sphinx or Pharaoh</p>
+                        </div>
+                    </div>
+                    <p class="action-desc">
+                        Swap the <strong>Scarab's position</strong> with your own Sphinx or Pharaoh.
+                        This is a powerful defensive/offensive maneuver to reposition key pieces.
+                    </p>
+                    <div class="action-note">
+                        <span class="note-icon">⏱️</span>
+                        <p>
+                            <strong>Cooldown:</strong> Each swap target (Sphinx/Pharaoh) has a <strong>4-turn cooldown</strong>
+                            after being swapped. You cannot swap with the same target until the cooldown expires.
+                        </p>
+                    </div>
+                    <div class="action-note">
+                        <span class="note-icon">💡</span>
+                        <p>
+                            <strong>Special rule:</strong> A swapped Sphinx keeps its orientation but
+                            <strong>does NOT fire its laser</strong> on the turn it was swapped.
+                        </p>
+                    </div>
+                    <div class="action-screenshot">
+                        <img src="assets/swap_target.png" alt="Swap targets highlighted with dashed borders" class="screenshot-img">
+                        <span class="screenshot-caption">Swap targets are highlighted when selecting a Scarab</span>
+                    </div>
+                </div>
+
+                <!-- Action 5: End of Turn - Laser Fires -->
+                <div class="action-card glass-card action-card-laser">
+                    <div class="action-header">
+                        <span class="action-number action-number-laser">⚡</span>
+                        <div>
+                            <h3 class="action-name">End of Turn — Laser Fires</h3>
+                            <p class="action-pieces">Automatic · Every turn</p>
+                        </div>
+                    </div>
+                    <p class="action-desc">
+                        After your action, your <strong>Sphinx fires its laser</strong> automatically.
+                        The laser beam travels in a straight line from the Sphinx's laser face.
+                    </p>
+                    <div class="laser-rules">
+                        <div class="laser-rule">
+                            <span class="laser-rule-icon">🪞</span>
+                            <p><strong>Mirrors:</strong> The laser bounces 90° off Pyramid and Scarab mirror faces</p>
+                        </div>
+                        <div class="laser-rule">
+                            <span class="laser-rule-icon">💥</span>
+                            <p><strong>Destroys:</strong> Hits a non-reflective face → piece is destroyed, laser continues</p>
+                        </div>
+                        <div class="laser-rule">
+                            <span class="laser-rule-icon">🛡️</span>
+                            <p><strong>Shields:</strong> Hits a shield face (Anubis/Sphinx) → laser stops completely</p>
+                        </div>
+                        <div class="laser-rule">
+                            <span class="laser-rule-icon">🚫</span>
+                            <p><strong>Off-grid:</strong> Laser exits the board → it stops</p>
+                        </div>
+                    </div>
+                    <div class="action-note">
+                        <span class="note-icon">💡</span>
+                        <p>
+                            <strong>Cannonball style:</strong> The laser acts as a single particle. If it destroys a piece
+                            mid-path, the path does <em>not</em> recompute — it continues as if the piece was never there.
+                        </p>
+                    </div>
+                    <div class="action-screenshots-row">
+                        <div class="action-screenshot">
+                            <img src="assets/laser_destroy.png" alt="Laser destroying a piece" class="screenshot-img">
+                            <span class="screenshot-caption">Laser destroying a piece</span>
+                        </div>
+                        <div class="action-screenshot">
+                            <img src="assets/laser_shield.png" alt="Laser stopped by shield" class="screenshot-img">
+                            <span class="screenshot-caption">Laser stopped by an Anubis shield</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════
+                 SECTION 5: ADDITIONAL RULES
+                 ══════════════════════════════════════ -->
+            <section id="additional-rules" class="rules-section">
+                <div class="section-header">
+                    <span class="section-icon">📋</span>
+                    <h2 class="section-title">Additional Rules</h2>
+                </div>
+
+                <div class="additional-rules-grid">
+
+                    <div class="rule-item glass-card">
+                        <span class="rule-icon">🏆</span>
+                        <h4 class="rule-name">Win Condition</h4>
+                        <p class="rule-desc">Destroy your opponent's <strong>Pharaoh</strong> with your laser. The game ends immediately.</p>
+                    </div>
+
+                    <div class="rule-item glass-card">
+                        <span class="rule-icon">🤝</span>
+                        <h4 class="rule-name">Draw</h4>
+                        <p class="rule-desc">
+                            The game is a draw if <strong>both Pharaohs are destroyed</strong> on the same turn,
+                            or if <strong>no winner emerges after 100 turns</strong>.
+                        </p>
+                    </div>
+
+                    <div class="rule-item glass-card">
+                        <span class="rule-icon">💥</span>
+                        <h4 class="rule-name">Destroying a Piece</h4>
+                        <p class="rule-desc">
+                            A laser hitting a <strong>non-reflective side of a Pyramid</strong> or a
+                            <strong>non-shield face of an Anubis</strong> destroys the piece.
+                            The laser <em>continues</em> through as if the piece was never there.
+                        </p>
+                    </div>
+
+                    <div class="rule-item glass-card">
+                        <span class="rule-icon">🚧</span>
+                        <h4 class="rule-name">Collision</h4>
+                        <p class="rule-desc">
+                            You <strong>cannot move or place</strong> a piece onto an already occupied cell.
+                            The target cell must be empty.
+                        </p>
+                    </div>
+
+                    <div class="rule-item glass-card">
+                        <span class="rule-icon">♻️</span>
+                        <h4 class="rule-name">Recycling</h4>
+                        <p class="rule-desc">
+                            When a Pyramid is destroyed, it goes to the <strong>opponent's reserve box</strong>
+                            after a <strong>1-turn delay</strong>. This means destroyed pyramids can come back
+                            to fight for the other side!
+                        </p>
+                    </div>
+
+                    <div class="rule-item glass-card">
+                        <span class="rule-icon">⏳</span>
+                        <h4 class="rule-name">Turn Limit</h4>
+                        <p class="rule-desc">
+                            The game has a maximum of <strong>100 turns</strong>. If neither Pharaoh is destroyed
+                            by then, the game ends in a <strong>draw</strong>.
+                        </p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ── Back to home CTA ── -->
+            <div class="rules-cta">
+                <a href="../homePage/index.html" class="btn btn-gold cta-btn">
+                    🎮 Start Playing
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initMatrixBackground('matrixCanvas');
+        });
+    </script>
+    <script src="rulesPage.js"></script>
+</body>
+
+</html>

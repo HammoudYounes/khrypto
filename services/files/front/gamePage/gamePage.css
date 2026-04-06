@@ -88,6 +88,15 @@ main {
     justify-content: center;
     align-items: center;
     position: relative;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.player-preview-cell.selected-reserve {
+    border: 3px solid var(--gold-light);
+    background-color: rgba(212, 175, 55, 0.15);
+    box-shadow: 0 0 15px var(--gold-glow);
 }
 
 .piece-image {
@@ -243,6 +252,17 @@ main {
 
 .valid-move:hover {
     background-color: rgba(212, 175, 55, 0.4);
+}
+
+.valid-place-move {
+    background-color: rgba(212, 175, 55, 0.15);
+    box-shadow: inset 0 0 10px rgba(212, 175, 55, 0.2);
+    cursor: pointer;
+    border: 2px dashed rgba(212, 175, 55, 0.4);
+}
+
+.valid-place-move:hover {
+    background-color: rgba(212, 175, 55, 0.3);
 }
 
 .swap-target {

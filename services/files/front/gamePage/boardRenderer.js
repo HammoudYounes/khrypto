@@ -21,6 +21,28 @@ function getBoardElement() {
     return document.getElementById('board');
 }
 
+// Helper to check placement constraints rule for the pyramid
+function canPlacePiece(gameState, x, y, playerId) {
+    const orthogonalDirs = [
+        { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+    ];
+
+    for (const dir of orthogonalDirs) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+
+        if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10) {
+            const neighbor = gameState.board[ny][nx];
+            if (neighbor) {
+                if (neighbor.type === 'Sphinx') return false;
+                if (neighbor.type === 'Pharaoh' && neighbor.player === playerId) return false;
+            }
+        }
+    }
+    return true;
+}
+
 // ========== BOARD INITIALIZATION ==========
 
 export function initBoard() {
@@ -198,8 +220,31 @@ export function updateVisualSelection() {
     allCases.forEach(c => {
         c.classList.remove('selected');
         c.classList.remove('valid-move');
+        c.classList.remove('valid-place-move');
         c.classList.remove('swap-target');
     });
+
+    const p1Cell = document.querySelector('.current-player .player-preview-cell');
+    const p2Cell = document.querySelector('.opposing-player .player-preview-cell');
+    if (p1Cell) p1Cell.classList.remove('selected-reserve');
+    if (p2Cell) p2Cell.classList.remove('selected-reserve');
+
+    if (state.selectedReservePieceId !== null) {
+        let bottomPlayerId = (state.gameMode === 'online' && state.myPlayerId === 1) ? 1 : 0;
+        const selectedCell = (state.selectedReservePieceId === bottomPlayerId) ? p1Cell : p2Cell;
+        if (selectedCell) selectedCell.classList.add('selected-reserve');
+
+        // Show all empty cases as valid moves so player knows they can place here
+        allCases.forEach(c => {
+            const x = parseInt(c.dataset.col, 10);
+            const y = parseInt(c.dataset.row, 10);
+            if (state.currentGameState && state.currentGameState.board && !state.currentGameState.board[y][x]) {
+                if (canPlacePiece(state.currentGameState, x, y, state.selectedReservePieceId)) {
+                    c.classList.add('valid-place-move');
+                }
+            }
+        });
+    }
 
     if (!state.selectedPiece) {
         updateRotationButtons(null);

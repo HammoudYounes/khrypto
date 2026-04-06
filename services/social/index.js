@@ -517,7 +517,7 @@ const server = http.createServer(async (req, res) => {
             // Accept: create game on Engine
             try {
                 const senderUser = await users.findOne({ _id: ObjectId.createFromHexString(challenge.senderId) });
-                const engineMode = challenge.mode === 'ranked' ? 'online' : 'online';
+                const engineMode = challenge.mode === 'ranked' ? 'ranked_challenge' : 'unranked';
                 const { gameId } = await callEngine({
                     mode: engineMode,
                     player1UserId: challenge.senderId,

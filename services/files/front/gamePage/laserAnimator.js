@@ -46,7 +46,7 @@ export async function animateLaserSequence(laserResult, color) {
         ctx.lineTo(endPos.px, endPos.py);
         ctx.stroke();
 
-        await sleep(100);
+        await sleep(25);
 
         if (destroyedSet.has(`${end.x},${end.y}`)) {
             drawExplosion(ctx, endPos.px, endPos.py);
@@ -57,7 +57,7 @@ export async function animateLaserSequence(laserResult, color) {
         }
     }
 
-    await sleep(500);
+    await sleep(550);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 

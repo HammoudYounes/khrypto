@@ -29,7 +29,7 @@ class Game {
 
     handleMove(action, playerId) {
         // Server-side turn enforcement for online games
-        if (this.mode === 'online' && this.state.turn !== playerId) {
+        if (['online', 'ranked_challenge', 'unranked'].includes(this.mode) && this.state.turn !== playerId) {
             throw new Error("Not your turn");
         }
 
@@ -122,7 +122,7 @@ class Game {
     }
 
     handleGameOver() {
-        if (this.mode !== 'online') return;
+        if (!['online', 'ranked_challenge'].includes(this.mode)) return;
 
         let p0Result = 0.5;
         let p1Result = 0.5;
@@ -147,8 +147,11 @@ class Game {
         // Update DB
         this.updateEloInDb(this.userIds[0], newElo0);
         this.updateEloInDb(this.userIds[1], newElo1);
-        this.updateCoinsInDb(this.userIds[0], deltaElo0);
-        this.updateCoinsInDb(this.userIds[1], deltaElo1);
+        // Only award coins in regular matchmaking, not friend challenges
+        if (this.mode === 'online') {
+            this.updateCoinsInDb(this.userIds[0], deltaElo0);
+            this.updateCoinsInDb(this.userIds[1], deltaElo1);
+        }
 
         // Update internal cache
         this.elos[0] = newElo0;
