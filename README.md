@@ -193,7 +193,6 @@ Khet 2.0 is a turn-based, two-player strategy game played on a 10 × 10 board. E
 
 ### Profile Page
 
-- Displays your username, email, ELO, coin balance, and total games played.
-- Shows your win/loss record.
+- Displays your username, email, ELO, coin balance.    
 - Manage your friends list, pending requests, and active conversations.
 - Equip cosmetics from your inventory.
