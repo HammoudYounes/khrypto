@@ -12,7 +12,7 @@ const swearWords = [
     'pussy', 'tits', 'tit', 'boobs', 'boob',
     'moron', 'idiot', 'imbecile', 'retard',
     'douche', 'douchebag', 'scumbag', 'loser',
-    'jerk', 'jerkoff', 'nutjob', 'weirdo',
+    'jerk', 'jerkoff', 'nutjob', 'weirdo', 'nigger','nigga','nig',
 
     // French (expanded slang + variants)
     'putain', 'merde', 'bordel', 'putaincon',
