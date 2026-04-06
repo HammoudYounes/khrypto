@@ -88,12 +88,23 @@ body {
     color: var(--gold-light);
 }
 
-/* ── Shop Card (below game buttons) ── */
-.shop-card {
+/* ── Home Left Links (Shop + Rules) ── */
+.home-left-links {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.shop-card,
+.rules-card {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
-    padding: 1rem 3rem;
+    padding: 1rem 2rem;
     cursor: pointer;
     transition: all var(--transition-med);
     border: 1px solid rgba(212, 175, 55, 0.4);
@@ -101,20 +112,26 @@ body {
     text-decoration: none;
     border-radius: var(--radius-md);
     backdrop-filter: blur(8px);
+    flex: 1;
+    min-width: 160px;
+    max-width: 200px;
 }
 
-.shop-card:hover {
+.shop-card:hover,
+.rules-card:hover {
     border-color: var(--gold);
     box-shadow: var(--shadow-gold);
     transform: translateY(-3px);
     color: var(--gold-light);
 }
 
-.shop-card-icon {
+.shop-card-icon,
+.rules-card-icon {
     font-size: 1.5rem;
 }
 
-.shop-card-label {
+.shop-card-label,
+.rules-card-label {
     font-family: var(--font-heading);
     font-size: 1rem;
     font-weight: 700;
