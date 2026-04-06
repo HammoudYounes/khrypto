@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop — Khrypto</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
+    <link rel="stylesheet" href="shopPage.css">
+    <script src="../js/matrixBackground.js"></script>
+    <script type="module" src="shopPage.js" defer></script>
+</head>
+
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- Top bar -->
+    <header class="shop-header">
+        <button id="backBtn" class="btn btn-ghost back-btn">&#8592; Back</button>
+        <h1 class="shop-title">Shop</h1>
+        <div class="balance-chip">
+            <span class="coin-icon">&#9670;</span>
+            <span id="coinBalance">—</span>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="shop-container">
+
+        <!-- Lootbox card -->
+        <div class="lootbox-card glass-card">
+            <div class="lootbox-visual" id="lootboxVisual">
+                <div class="lootbox-box">
+                    <div class="lootbox-lid"></div>
+                    <div class="lootbox-body">
+                        <span class="lootbox-question">?</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lootbox-info">
+                <h2 class="lootbox-name">Mystery Lootbox</h2>
+                <p class="lootbox-desc">Open to reveal a random item. Each box contains exactly one item.</p>
+
+                <div class="rarity-preview">
+                    <div class="rarity-row">
+                        <span class="rarity-badge common">Common</span>
+                        <span class="rarity-chance">70%</span>
+                    </div>
+                    <div class="rarity-row">
+                        <span class="rarity-badge rare">Rare</span>
+                        <span class="rarity-chance">24%</span>
+                    </div>
+                    <div class="rarity-row">
+                        <span class="rarity-badge mythical">Mythical</span>
+                        <span class="rarity-chance">5%</span>
+                    </div>
+                    <div class="rarity-row">
+                        <span class="rarity-badge goat">🐐 Surprise</span>
+                        <span class="rarity-chance">1%</span>
+                    </div>
+                </div>
+
+                <button id="buyBtn" class="btn btn-gold buy-btn">
+                    <span class="coin-icon">&#9670;</span>
+                    <span>Open for 50 coins</span>
+                </button>
+
+                <p id="errorMsg" class="error-msg" style="display:none;"></p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Lootbox opening modal -->
+    <div id="lootboxModal" class="modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="modal-content glass-card">
+
+            <!-- Phase 1: animation -->
+            <div id="animPhase" class="anim-phase">
+                <div class="anim-box-wrap">
+                    <div id="animBox" class="anim-box">
+                        <div class="anim-lid"></div>
+                        <div class="anim-body">
+                            <span class="lootbox-question">?</span>
+                        </div>
+                    </div>
+                    <div id="particles" class="particles"></div>
+                </div>
+                <p class="anim-label">Opening...</p>
+            </div>
+
+            <!-- Phase 2: result -->
+            <div id="resultPhase" class="result-phase" style="display:none;">
+                <p id="resultHeadline" class="result-headline"></p>
+                <div class="result-item-wrap">
+                    <img id="resultImg" class="result-img" src="" alt="">
+                    <div class="result-info">
+                        <span id="resultRarity" class="rarity-badge"></span>
+                        <p id="resultName" class="result-name"></p>
+                    </div>
+                </div>
+                <p id="compensationMsg" class="compensation-msg" style="display:none;"></p>
+                <div class="modal-actions">
+                    <button id="buyAgainBtn" class="btn btn-gold">Open Another</button>
+                    <button id="closeModalBtn" class="btn btn-ghost">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initMatrixBackground('matrixCanvas');
+        });
+    </script>
+</body>
+
+</html>
