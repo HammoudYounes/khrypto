@@ -282,6 +282,15 @@ class NotificationManager {
         const opponent = myPlayerId === 0 ? data.responder : data.challenger;
         const me = myPlayerId === 0 ? data.challenger : data.responder;
 
+        // Clear any stale active game state from a previous session
+        localStorage.removeItem('activeGameId');
+        localStorage.removeItem('activePlayerId');
+        localStorage.removeItem('activeGameExpiresAt');
+        localStorage.removeItem('activeMyUsername');
+        localStorage.removeItem('activeOpponentUsername');
+        localStorage.removeItem('activeMyElo');
+        localStorage.removeItem('activeOpponentElo');
+
         sessionStorage.setItem('gameId', data.gameId);
         sessionStorage.setItem('gameMode', 'online');
         sessionStorage.setItem('playerId', String(myPlayerId));

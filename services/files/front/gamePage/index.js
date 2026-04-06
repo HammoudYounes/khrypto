@@ -319,8 +319,6 @@ socket.on('game:over', (winner) => {
     sessionStorage.removeItem('opponentUsername');
     sessionStorage.removeItem('myElo');
     sessionStorage.removeItem('opponentElo');
-    sessionStorage.removeItem('myCoins');
-    sessionStorage.removeItem('opponentCoins');
     // Clear cached profile stats so profileManager refetches fresh data from server
     sessionStorage.removeItem('elo');
     sessionStorage.removeItem('coins');
@@ -336,15 +334,11 @@ socket.on('game:stats_update', (stats) => {
     if (state.myPlayerId === 0) {
         sessionStorage.setItem("myElo", stats[0].elo);
         sessionStorage.setItem("opponentElo", stats[1].elo);
-        sessionStorage.setItem("myCoins", stats[0].deltaCoins);
-        sessionStorage.setItem("opponentCoins", stats[1].deltaCoins);
         localStorage.setItem("activeMyElo", stats[0].elo);
         localStorage.setItem("activeOpponentElo", stats[1].elo);
     } else if (state.myPlayerId === 1) {
         sessionStorage.setItem("myElo", stats[1].elo);
         sessionStorage.setItem("opponentElo", stats[0].elo);
-        sessionStorage.setItem("myCoins", stats[1].deltaCoins);
-        sessionStorage.setItem("opponentCoins", stats[0].deltaCoins);
         localStorage.setItem("activeMyElo", stats[1].elo);
         localStorage.setItem("activeOpponentElo", stats[0].elo);
     }

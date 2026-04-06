@@ -86,6 +86,10 @@ function clearRejoinState() {
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');
     localStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeMyUsername');
+    localStorage.removeItem('activeOpponentUsername');
+    localStorage.removeItem('activeMyElo');
+    localStorage.removeItem('activeOpponentElo');
     // Force profileManager to refetch fresh elo/coins from server on next profile visit
     sessionStorage.removeItem('elo');
     sessionStorage.removeItem('coins');
@@ -225,6 +229,10 @@ logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');
     localStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeMyUsername');
+    localStorage.removeItem('activeOpponentUsername');
+    localStorage.removeItem('activeMyElo');
+    localStorage.removeItem('activeOpponentElo');
     window.location.href = '../index.html';
 });
 
@@ -249,10 +257,14 @@ function emitGame(gameMode) {
         return;
     }
 
-    // Clear any existing gameId to avoid conflicts
+    // Clear any stale game session data before starting a new game
     sessionStorage.removeItem("gameId");
     sessionStorage.removeItem("playerId");
     sessionStorage.removeItem("gameMode");
+    sessionStorage.removeItem("myUsername");
+    sessionStorage.removeItem("opponentUsername");
+    sessionStorage.removeItem("myElo");
+    sessionStorage.removeItem("opponentElo");
     socket.emit("game:create", gameMode);
 }
 
