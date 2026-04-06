@@ -13,80 +13,80 @@ async function seedItems() {
     }
 
     const items = [
-      // Common items (5)
+      // Common emotes (5)
       {
-        name: 'Golden Frame',
-        type: 'profile_picture',
-        rarity: 'common',
-        assetPath: 'assets/items/golden_frame.png',
-        description: 'A simple golden frame for your profile picture'
-      },
-      {
-        name: 'Silver Border',
-        type: 'profile_picture',
-        rarity: 'common',
-        assetPath: 'assets/items/silver_border.png',
-        description: 'An elegant silver border'
-      },
-      {
-        name: 'Laugh Emote',
+        name: 'Flamed Scarab',
         type: 'emote',
         rarity: 'common',
-        assetPath: 'assets/items/emote_laugh.png',
-        description: 'A simple laugh emote'
+        assetPath: 'assets/emotes/flamed_scarab_common.png',
+        description: 'A flaming scarab emote to intimidate your opponent'
       },
       {
-        name: 'Thumbs Up Emote',
+        name: 'GG',
         type: 'emote',
         rarity: 'common',
-        assetPath: 'assets/items/emote_thumbsup.png',
-        description: 'Thumbs up emote'
+        assetPath: 'assets/emotes/gg_common.png',
+        description: 'The classic good game emote'
       },
       {
-        name: 'Wave Emote',
+        name: 'Haha',
         type: 'emote',
         rarity: 'common',
-        assetPath: 'assets/items/emote_wave.png',
-        description: 'A friendly wave emote'
+        assetPath: 'assets/emotes/haha_common.png',
+        description: 'Laugh at your opponent with this emote'
+      },
+      {
+        name: 'Question Marks',
+        type: 'emote',
+        rarity: 'common',
+        assetPath: 'assets/emotes/question_marks_common.png',
+        description: 'Express total confusion with this emote'
+      },
+      {
+        name: 'Shield',
+        type: 'emote',
+        rarity: 'common',
+        assetPath: 'assets/emotes/shield_common.png',
+        description: 'Show off your defensive playstyle'
       },
 
-      // Rare items (3)
+      // Rare emotes (3)
       {
-        name: 'Neon Glow Frame',
-        type: 'profile_picture',
-        rarity: 'rare',
-        assetPath: 'assets/items/neon_frame.png',
-        description: 'A futuristic neon glowing frame'
-      },
-      {
-        name: 'Crystal Border',
-        type: 'profile_picture',
-        rarity: 'rare',
-        assetPath: 'assets/items/crystal_border.png',
-        description: 'A shimmering crystal border'
-      },
-      {
-        name: 'Fire Emote',
+        name: 'EZ',
         type: 'emote',
         rarity: 'rare',
-        assetPath: 'assets/items/emote_fire.png',
-        description: 'A burning fire emote'
+        assetPath: 'assets/emotes/ez_rare.png',
+        description: 'For when the game was just too easy'
+      },
+      {
+        name: 'MVP',
+        type: 'emote',
+        rarity: 'rare',
+        assetPath: 'assets/emotes/mvp_rare.png',
+        description: 'Claim your MVP status after a dominant performance'
+      },
+      {
+        name: 'Sad',
+        type: 'emote',
+        rarity: 'rare',
+        assetPath: 'assets/emotes/sad_rare.png',
+        description: 'A sad emote for those heartbreaking losses'
       },
 
-      // Mythical items (2)
+      // Mythical emotes (2)
       {
-        name: 'Diamond Crown Frame',
-        type: 'profile_picture',
-        rarity: 'mythical',
-        assetPath: 'assets/items/diamond_crown_frame.png',
-        description: 'The legendary diamond crown frame'
-      },
-      {
-        name: 'Legendary Star Emote',
+        name: 'FF',
         type: 'emote',
         rarity: 'mythical',
-        assetPath: 'assets/items/emote_legendary_star.png',
-        description: 'A legendary star that shines with power'
+        assetPath: 'assets/emotes/ff_mythical.png',
+        description: 'The ultimate surrender emote — make them forfeit'
+      },
+      {
+        name: 'What A Move',
+        type: 'emote',
+        rarity: 'mythical',
+        assetPath: 'assets/emotes/what_a_move_mythical.png',
+        description: 'Celebrate an incredible play with this legendary emote'
       }
     ];
 
