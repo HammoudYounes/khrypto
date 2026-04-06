@@ -43,8 +43,8 @@ function applyGuestUI() {
 // ========== REJOIN GAME ==========
 
 function initRejoinButton() {
-    const activeGameId = sessionStorage.getItem('activeGameId');
-    const expiresAt = parseInt(sessionStorage.getItem('activeGameExpiresAt') || '0', 10);
+    const activeGameId = localStorage.getItem('activeGameId');
+    const expiresAt = parseInt(localStorage.getItem('activeGameExpiresAt') || '0', 10);
     const remaining = expiresAt - Date.now();
 
     if (!activeGameId || remaining <= 0) {
@@ -81,9 +81,12 @@ function initRejoinButton() {
 }
 
 function clearRejoinState() {
-    sessionStorage.removeItem('activeGameId');
-    sessionStorage.removeItem('activePlayerId');
-    sessionStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeGameId');
+    localStorage.removeItem('activePlayerId');
+    localStorage.removeItem('activeGameExpiresAt');
+    // Force profileManager to refetch fresh elo/coins from server on next profile visit
+    sessionStorage.removeItem('elo');
+    sessionStorage.removeItem('coins');
     rejoinBtn.style.display = 'none';
     onlineButton.style.display = '';
 }
@@ -168,7 +171,9 @@ profileBtn.addEventListener('click', () => {
 logoutBtn.addEventListener('click', () => {
     TokenManager.clear();
     sessionStorage.clear();
-    // Redirect to auth page
+    localStorage.removeItem('activeGameId');
+    localStorage.removeItem('activePlayerId');
+    localStorage.removeItem('activeGameExpiresAt');
     window.location.href = '../index.html';
 });
 

@@ -183,7 +183,7 @@ export function updateRestartVoteStatus(data) {
  * Leave the game — kicks both players
  */
 export function leaveGame() {
-    sessionStorage.setItem('activeGameExpiresAt', String(Date.now() + 60000));
+    localStorage.setItem('activeGameExpiresAt', String(Date.now() + 60000));
     socket.emit("game:leave", { gameId: gameId });
     goHome();
 }

@@ -39,7 +39,7 @@ import { notificationManager } from "../js/notificationManager.js";
 
 const boardElement = document.getElementById('board');
 
-export const gameId = sessionStorage.getItem("gameId") || sessionStorage.getItem("activeGameId");
+export const gameId = sessionStorage.getItem("gameId") || localStorage.getItem("activeGameId");
 
 let hasJoined = false; // Guards against re-emitting game:join on initial connect
 
@@ -48,10 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Read online player assignment from sessionStorage (set by matchmaking)
     // Fall back to activeGameId/activePlayerId when rejoining after a leave
-    const isRejoin = !sessionStorage.getItem("gameId") && !!sessionStorage.getItem("activeGameId");
+    const isRejoin = !sessionStorage.getItem("gameId") && !!localStorage.getItem("activeGameId");
     if (isRejoin) {
         state.gameMode = 'online';
-        state.myPlayerId = parseInt(sessionStorage.getItem("activePlayerId") || '0', 10);
+        state.myPlayerId = parseInt(localStorage.getItem("activePlayerId") || '0', 10);
     } else {
         state.gameMode = sessionStorage.getItem("gameMode") || 'local';
         const storedPlayerId = sessionStorage.getItem("playerId");
@@ -107,8 +107,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (resolvedGameId) {
         console.log(`[GamePage] ${isRejoin ? 'Rejoining' : 'Joining'} game:`, resolvedGameId);
         socket.emit('game:join', { gameId: resolvedGameId, playerId: state.myPlayerId });
-        sessionStorage.setItem('activeGameId', resolvedGameId);
-        sessionStorage.setItem('activePlayerId', String(state.myPlayerId));
+        localStorage.setItem('activeGameId', resolvedGameId);
+        localStorage.setItem('activePlayerId', String(state.myPlayerId));
         hasJoined = true;
     } else {
         console.error("No Game ID found. Redirecting to home...");
@@ -168,9 +168,9 @@ socket.on('game:action_response', (gameState) => {
 });
 
 socket.on('game:over', (winner) => {
-    sessionStorage.removeItem('activeGameId');
-    sessionStorage.removeItem('activePlayerId');
-    sessionStorage.removeItem('activeGameExpiresAt');
+    localStorage.removeItem('activeGameId');
+    localStorage.removeItem('activePlayerId');
+    localStorage.removeItem('activeGameExpiresAt');
     // Clear game session keys
     sessionStorage.removeItem('myUsername');
     sessionStorage.removeItem('opponentUsername');
@@ -218,8 +218,8 @@ socket.on('game:player_reconnected', () => {
 // Socket.IO auto-reconnect — re-join the game if we were in one
 socket.on('connect', () => {
     if (!hasJoined) return;
-    const activeGameId = sessionStorage.getItem('activeGameId');
-    const activePlayerId = sessionStorage.getItem('activePlayerId');
+    const activeGameId = localStorage.getItem('activeGameId');
+    const activePlayerId = localStorage.getItem('activePlayerId');
     if (activeGameId && activePlayerId !== null) {
         console.log('[GamePage] Reconnected — rejoining game:', activeGameId);
         socket.emit('game:join', {
