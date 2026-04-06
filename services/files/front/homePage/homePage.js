@@ -104,7 +104,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         const span = usernameDisplayEl.querySelector('span');
         if (span) span.textContent = username;
     }
+
+    // Show shop button and coin balance for logged-in users
+    if (sessionStorage.getItem('isGuest') !== 'true') {
+        const shopNavBtn = document.getElementById('shopNavBtn');
+        if (shopNavBtn) shopNavBtn.style.display = 'flex';
+        fetchAndDisplayBalance();
+        fetchAndDisplayAvatar();
+    }
 });
+
+async function fetchAndDisplayAvatar() {
+    try {
+        const username = sessionStorage.getItem('username');
+        if (!username) return;
+        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.assetPath) {
+            const img = document.getElementById('navAvatarImg');
+            if (img) {
+                img.src = `/api/market/${data.assetPath}`;
+                img.classList.add('loaded');
+            }
+        }
+    } catch (err) {
+        console.error('Failed to fetch avatar:', err);
+    }
+}
+
+async function fetchAndDisplayBalance() {
+    try {
+        const token = TokenManager.getAccessToken();
+        if (!token) return;
+        const res = await fetch('/api/market/balance', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const el = document.getElementById('navCoinBalance');
+        if (el) el.textContent = data.coins;
+        // Show coin display in profile button
+        const sep = document.getElementById('profileCoinSep');
+        const wrap = document.getElementById('profileCoinWrap');
+        if (sep) sep.style.display = 'inline';
+        if (wrap) wrap.style.display = 'flex';
+        sessionStorage.setItem('coins', data.coins);
+    } catch (err) {
+        console.error('Failed to fetch balance:', err);
+    }
+}
 
 // Toggle profile panel
 profileBtn.addEventListener('click', () => {
