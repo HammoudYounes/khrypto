@@ -97,6 +97,7 @@ services:
       #- GATEWAY_URL=https://gateway:8000
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin 
       - GATEWAY_URL=https://gateway:8000
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
     depends_on:
       - mongo
       - token
