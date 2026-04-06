@@ -69,24 +69,24 @@ body {
 /* ── Main ── */
 .shop-container {
     width: 100%;
-    max-width: 60rem;
+    max-width: 80rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 3rem;
+    margin-top: 2rem;
     flex: 1;
 }
 
 /* ── Lootbox Card ── */
 .lootbox-card {
     display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
+    flex-direction: row;
+    gap: 4rem;
     align-items: center;
     text-align: center;
-    padding: 3rem 3.5rem;
+    padding: 4rem 5rem;
     width: 100%;
-    max-width: 52rem;
+    max-width: 76rem;
 }
 
 /* ── Lootbox visual (idle) ── */
@@ -98,11 +98,11 @@ body {
 }
 
 .lootbox-box {
-    width: 180px;
-    height: 180px;
+    width: 300px;
+    height: 300px;
     position: relative;
     animation: lootbox-idle 3s ease-in-out infinite;
-    filter: drop-shadow(0 0 24px var(--gold-glow));
+    filter: drop-shadow(0 0 36px var(--gold-glow));
 }
 
 .lootbox-lid {
@@ -136,7 +136,7 @@ body {
 
 .lootbox-question {
     font-family: var(--font-heading);
-    font-size: 3.5rem;
+    font-size: 6rem;
     color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
     user-select: none;
@@ -159,14 +159,14 @@ body {
 }
 
 .lootbox-name {
-    font-size: 1.6rem;
+    font-size: 2.2rem;
 }
 
 .lootbox-desc {
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.6;
-    max-width: 32rem;
+    max-width: 36rem;
 }
 
 /* ── Rarity preview ── */
@@ -235,10 +235,10 @@ body {
 
 /* ── Buy button ── */
 .buy-btn {
-    padding: 1rem 2.5rem;
-    font-size: 1.15rem;
+    padding: 1.25rem 3.5rem;
+    font-size: 1.35rem;
     align-self: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
 }
 
 .error-msg {
@@ -263,12 +263,12 @@ body {
 }
 
 .modal-content {
-    width: min(92%, 36rem);
+    width: min(92%, 50rem);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2rem;
-    padding: 3rem;
+    padding: 3.5rem;
     animation: scaleIn 0.25s ease-out;
 }
 
@@ -286,8 +286,8 @@ body {
 
 .anim-box-wrap {
     position: relative;
-    width: 200px;
-    height: 200px;
+    width: 320px;
+    height: 320px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -383,7 +383,7 @@ body {
 
 .result-headline {
     font-family: var(--font-heading);
-    font-size: 1.4rem;
+    font-size: 1.8rem;
     color: var(--gold);
     text-align: center;
 }
@@ -396,12 +396,12 @@ body {
 }
 
 .result-img {
-    width: 128px;
-    height: 128px;
+    width: 200px;
+    height: 200px;
     object-fit: contain;
     border-radius: var(--radius-md);
     background: var(--bg-surface);
-    padding: 0.75rem;
+    padding: 1rem;
 }
 
 .result-info {
@@ -413,7 +413,7 @@ body {
 
 .result-name {
     font-weight: 600;
-    font-size: 1.15rem;
+    font-size: 1.4rem;
     color: var(--text-primary);
     text-align: center;
 }
@@ -432,6 +432,14 @@ body {
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+    .lootbox-card {
+        flex-direction: column;
+        padding: 2.5rem 2rem;
+        gap: 2rem;
+    }
+}
+
 @media (max-width: 640px) {
     .lootbox-card {
         padding: 1.75rem;
@@ -439,8 +447,8 @@ body {
     }
 
     .lootbox-box {
-        width: 140px;
-        height: 140px;
+        width: 200px;
+        height: 200px;
     }
 
     .buy-btn {
@@ -449,12 +457,12 @@ body {
     }
 
     .anim-box-wrap {
-        width: 160px;
-        height: 160px;
+        width: 220px;
+        height: 220px;
     }
 
     .result-img {
-        width: 100px;
-        height: 100px;
+        width: 150px;
+        height: 150px;
     }
 }

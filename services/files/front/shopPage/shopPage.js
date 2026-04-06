@@ -1,4 +1,5 @@
 import { TokenManager } from "../js/tokenManager.js";
+import { notificationManager } from "../js/notificationManager.js";
 
 const RARITY_COLORS = {
     common:   { color: '#8a8a8a', glow: 'rgba(138, 138, 138, 0.6)' },
@@ -162,7 +163,10 @@ function showResult(result) {
         compensationMsg.textContent = `+${result.compensation} coins compensation`;
         compensationMsg.style.display = 'block';
     } else {
-        headline.textContent = 'New item!';
+        const typeLabel = item?.type === 'emote' ? 'New Emote!'
+            : item?.type === 'profile_picture' ? 'New Profile Picture!'
+            : 'New Item!';
+        headline.textContent = typeLabel;
         compensationMsg.style.display = 'none';
     }
 
@@ -191,6 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const token = await ensureAuth();
     if (!token) return;
 
+    notificationManager.init();
     await fetchBalance();
 
     document.getElementById('backBtn').addEventListener('click', () => {
