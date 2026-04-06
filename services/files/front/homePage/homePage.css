@@ -50,8 +50,8 @@ body {
 
 .nav-avatar-img {
     display: none;
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--gold-dim);
@@ -204,10 +204,10 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: 1.5rem 2.5rem;
+    padding: 1.75rem 3rem;
     cursor: pointer;
     transition: all var(--transition-med);
-    min-width: 130px;
+    min-width: 155px;
     border: 1px solid rgba(164, 133, 35, 0.3);
     color: var(--text-primary);
 }
@@ -219,12 +219,12 @@ body {
 }
 
 .mode-icon {
-    font-size: 2rem;
+    font-size: 2.4rem;
 }
 
 .mode-label {
     font-family: var(--font-heading);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--gold);
     letter-spacing: 0.1em;
@@ -237,8 +237,8 @@ body {
     right: 1.25rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 300px;
-    height: min(600px, 80vh);
+    width: 440px;
+    height: min(680px, 82vh);
     display: flex;
     flex-direction: column;
     z-index: 50;
@@ -403,8 +403,8 @@ body {
     }
 
     .chat-section {
-        width: 260px;
-        height: min(520px, 80vh);
+        width: 360px;
+        height: min(580px, 80vh);
     }
 }
 

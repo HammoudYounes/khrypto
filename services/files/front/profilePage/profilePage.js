@@ -965,6 +965,7 @@ function createItemCard(item, showEquip) {
 
     const img = document.createElement('img');
     img.className = 'inventory-item-img';
+    img.loading = 'lazy';
     img.src = `/api/market/${item.assetPath}`;
     img.alt = item.name;
 

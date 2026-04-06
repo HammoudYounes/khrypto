@@ -49,6 +49,11 @@
     --transition-med: 0.3s ease;
 }
 
+/* ── Root font size — scales all rem/em values proportionally ── */
+html {
+    font-size: 20px;
+}
+
 /* ── Reset ── */
 *,
 *::before,
@@ -130,7 +135,7 @@ a:hover {
 }
 
 .khrypto-logo.logo-lg {
-    height: 160px;
+    height: 210px;
 }
 
 /* ── Glass Card ── */
