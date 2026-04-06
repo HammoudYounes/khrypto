@@ -43,6 +43,8 @@ function applyGuestUI() {
 // ========== REJOIN GAME ==========
 
 function initRejoinButton() {
+    if (!rejoinBtn) return; // element removed from HTML on this branch
+
     const activeGameId = localStorage.getItem('activeGameId');
     const expiresAt = parseInt(localStorage.getItem('activeGameExpiresAt') || '0', 10);
     const remaining = expiresAt - Date.now();
@@ -58,10 +60,10 @@ function initRejoinButton() {
 
     // Live countdown
     let secondsLeft = Math.ceil(remaining / 1000);
-    rejoinCountdown.textContent = `${secondsLeft}s`;
+    if (rejoinCountdown) rejoinCountdown.textContent = `${secondsLeft}s`;
     const countdownInterval = setInterval(() => {
         secondsLeft--;
-        rejoinCountdown.textContent = `${secondsLeft}s`;
+        if (rejoinCountdown) rejoinCountdown.textContent = `${secondsLeft}s`;
         if (secondsLeft <= 0) {
             clearInterval(countdownInterval);
             clearRejoinState();
@@ -87,8 +89,8 @@ function clearRejoinState() {
     // Force profileManager to refetch fresh elo/coins from server on next profile visit
     sessionStorage.removeItem('elo');
     sessionStorage.removeItem('coins');
-    rejoinBtn.style.display = 'none';
-    onlineButton.style.display = '';
+    if (rejoinBtn) rejoinBtn.style.display = 'none';
+    if (onlineButton) onlineButton.style.display = '';
 }
 
 initRejoinButton();
