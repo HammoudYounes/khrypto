@@ -1,4 +1,4 @@
-const { connectDB, getItemsCollection } = require('./db');
+const { connectDB, getItemsCollection, getInventoryCollection } = require('./db');
 
 async function seedItems() {
   try {
@@ -164,6 +164,18 @@ async function seedItems() {
       );
     }
     console.log(`Seeded ${items.length} items (upsert — existing _ids preserved)`);
+
+    // Remove inventory entries that reference item _ids no longer in the items collection.
+    // This cleans up stale references left by previous delete+reinsert seed runs.
+    const inventoryCollection = getInventoryCollection();
+    const validItems = await itemsCollection.find({}, { projection: { _id: 1 } }).toArray();
+    const validIds = validItems.map(i => i._id.toString());
+    const staleResult = await inventoryCollection.deleteMany({
+      $expr: { $not: { $in: [{ $toString: '$itemId' }, validIds] } }
+    });
+    if (staleResult.deletedCount > 0) {
+      console.log(`Cleaned up ${staleResult.deletedCount} stale inventory entries with missing item references`);
+    }
 
   } catch (error) {
     console.error("Error seeding items:", error);
