@@ -386,20 +386,10 @@ socket.on('game:restart_vote', (data) => {
     updateRestartVoteStatus(data);
 });
 
-// A player left
+// A player left — always go home
 socket.on('game:player_left', () => {
     console.log('[Game] A player left the game');
-    const modal = document.getElementById('gameOverModal');
-    if (modal && modal.style.display === 'flex') {
-        // Game already over — opponent left the results screen, just disable restart
-        const restartBtn = document.getElementById('restartBtn');
-        const voteStatus = document.getElementById('voteStatus');
-        if (restartBtn) restartBtn.style.display = 'none';
-        if (voteStatus) { voteStatus.style.display = 'block'; voteStatus.textContent = 'Opponent left.'; }
-    } else {
-        alert('A player has left the game.');
-        goHome();
-    }
+    goHome();
 });
 
 // Emote panel burger toggle (small screens)
