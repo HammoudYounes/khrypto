@@ -243,6 +243,31 @@ http.createServer(async function (request, response) {
     });
   }
 
+  else if (request.url.startsWith("/api/leaderboard")) {
+    if (request.method !== 'GET') {
+      response.writeHead(405, { "Content-Type": "text/plain" });
+      return response.end("Method Not Allowed");
+    }
+
+    try {
+      const params = new URLSearchParams(request.url.split('?')[1] || '');
+      const limit = Math.min(parseInt(params.get('limit') || '10', 10), 50);
+
+      const users = await user_collection
+        .find({}, { projection: { username: 1, elo: 1, coins: 1 } })
+        .sort({ elo: -1 })
+        .limit(limit)
+        .toArray();
+
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ leaderboard: users }));
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      response.writeHead(500, { "Content-Type": "text/plain" });
+      response.end("Internal Server Error");
+    }
+  }
+
   else if (request.url === "/api/profile") {
     if (request.method !== 'GET') {
       response.writeHead(405, { "Content-Type": "text/plain" });

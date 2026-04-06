@@ -37,6 +37,10 @@ const server = http.createServer(function (request, response) {
                 console.log("Routing API request to Auth Service");
                 proxy.web(request, response, { target: PORTS.AUTH });
             }
+            if (filePath[2] && filePath[2].split('?')[0] === "leaderboard") {
+                console.log("Routing API request to Auth Service (Leaderboard, public)");
+                return proxy.web(request, response, { target: PORTS.AUTH });
+            }
             if (filePath[2] === "profile") {
                 console.log("Routing API request to Auth Service (Profile)");
                 return proxyWithTokenCheck(request, response, PORTS.AUTH);
