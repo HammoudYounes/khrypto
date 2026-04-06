@@ -67,6 +67,8 @@ function manageRequest(request, response) {
                 // Prevent browser caching for code files (JS, CSS, HTML)
                 if (['.js', '.css', '.html'].includes(extension)) {
                     response.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                } else if (['.png', '.jpg', '.svg', '.gif', '.ico'].includes(extension)) {
+                    response.setHeader('Cache-Control', 'public, max-age=86400');
                 }
                 response.end(data);
             }

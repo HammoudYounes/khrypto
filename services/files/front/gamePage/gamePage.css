@@ -192,7 +192,28 @@ main {
 
 .rot-buttons button:disabled {
     cursor: not-allowed;
-    opacity: 0.3;
+    opacity: 0.5;
+}
+
+/* ── Ghost button overrides for game page visibility ── */
+.btn.btn-ghost {
+    background: rgba(212, 175, 55, 0.07);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--text-primary);
+}
+
+.btn.btn-ghost:hover:not(:disabled) {
+    background: rgba(212, 175, 55, 0.18);
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* Rotation buttons — slightly larger than other ghost buttons */
+.rot-buttons .action-btn {
+    padding: 0.75rem 2rem;
+    font-size: 1.3rem;
+    letter-spacing: 0.02em;
 }
 
 /* ── Board States ── */
@@ -382,17 +403,19 @@ main {
 }
 
 .emote-msg-img {
-    width: 110px;
-    height: 110px;
+    width: calc(100% - 0.5rem);
+    height: auto;
+    max-height: 130px;
     object-fit: contain;
     border-radius: 6px;
 }
 
 .emote-msg-sender {
-    font-size: 0.65rem;
-    color: var(--gold-dim);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--gold);
     font-family: var(--font-heading);
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
 }
 
 /* Rarity borders on received emotes */
