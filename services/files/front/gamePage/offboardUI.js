@@ -208,6 +208,9 @@ export function goHome() {
     sessionStorage.removeItem("gameMode");
     // Keep myUsername, opponentUsername, myElo, opponentElo, myCoins, opponentCoins
     // so the game page can restore them on rejoin. They get overwritten by the next matchmaking session.
+    // Clear cached profile stats so profileManager refetches fresh data from server
+    sessionStorage.removeItem('elo');
+    sessionStorage.removeItem('coins');
     window.location.href = '../homePage/index.html';
 }
 
