@@ -171,6 +171,16 @@ socket.on('game:over', (winner) => {
     sessionStorage.removeItem('activeGameId');
     sessionStorage.removeItem('activePlayerId');
     sessionStorage.removeItem('activeGameExpiresAt');
+    // Clear game session keys
+    sessionStorage.removeItem('myUsername');
+    sessionStorage.removeItem('opponentUsername');
+    sessionStorage.removeItem('myElo');
+    sessionStorage.removeItem('opponentElo');
+    sessionStorage.removeItem('myCoins');
+    sessionStorage.removeItem('opponentCoins');
+    // Clear cached profile stats so profileManager refetches fresh data from server
+    sessionStorage.removeItem('elo');
+    sessionStorage.removeItem('coins');
     hideReconnectOverlay();
     setTimeout(() => {
         gameOverManager(winner);

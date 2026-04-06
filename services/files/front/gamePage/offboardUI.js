@@ -197,12 +197,8 @@ export function goHome() {
     sessionStorage.removeItem("gameId");
     sessionStorage.removeItem("playerId");
     sessionStorage.removeItem("gameMode");
-    sessionStorage.removeItem("myUsername");
-    sessionStorage.removeItem("opponentUsername");
-    sessionStorage.removeItem("myElo");
-    sessionStorage.removeItem("opponentElo");
-    sessionStorage.removeItem("myCoins");
-    sessionStorage.removeItem("opponentCoins");
+    // Keep myUsername, opponentUsername, myElo, opponentElo, myCoins, opponentCoins
+    // so the game page can restore them on rejoin. They get overwritten by the next matchmaking session.
     window.location.href = '../homePage/index.html';
 }
 
