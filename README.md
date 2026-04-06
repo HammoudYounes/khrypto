@@ -1,80 +1,201 @@
-# PS8
+# Khrypto — Khet 2.0 Online
 
-## Requirements
+## Team
 
-Node.js is the only requirement.
+**PS8 — Khrypto**
 
-## Install
-
-- Clone the repository
-- In each project inside `services/` run `npm install` to download all the dependencies.
-
-Note: this command should be run again every time you install/delete a package (which should not happen a lot)
-
-## Run
-
-In each project, run `node index.js` so the server will start listening to requests.
+- Youssef Ben Mzoughia
+- Fares Kobbi
+- Hammoud Younes
 
 ---
 
-## Architecture
+## Live Demo
 
-In the `services/` folder you will find all the projects that makes your website. Each subfolder is a node.js project
-that contains:
-- A `package.json` (and potentially some `node_modules`)
-- An `index.js` file which is an HTTP server able to received requests
-- Some logic used for the service to work correctly
-
+The application is hosted on AWS and publicly accessible at:
+**https://khrypto.ps8.pns.academy/**
 
 ---
 
-At the start of your project, there are 2 services:
-- `gateway` which is the clients' entry point. It receives all the requests and then redirect them to the correct service.
-- `files` which is used to serve files. It is where your front files will go
+## Installation
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (any recent LTS version)
+- [Docker](https://www.docker.com/) and Docker Compose
+
+### Setup
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/PolytechNS/ps8-26-khrypto.git
+cd ps8-26-khrypto
+
+# 2. Install dependencies for every service
+for dir in services/*/; do (cd "$dir" && npm install); done
+```
+
+### Run with Docker (recommended)
+
+```bash
+docker-compose up -d
+```
+
+The application is then accessible at **http://localhost:443**.
+
+### Run manually (development)
+
+Start each service in a separate terminal, in any order:
+
+```bash
+cd services/gateway      && node index.js
+cd services/files        && node index.js
+cd services/auth         && node index.js
+cd services/token        && node index.js
+cd services/engine       && node index.js
+cd services/matchmaking  && node index.js
+cd services/social       && node index.js
+cd services/market       && node index.js
+```
 
 ---
 
-To create a new service:
-- Create a new folder inside `services/`
-- Run `npm init -y` inside the created folder
-- Create an `index.js` containing an HTTP server (and listening to a new port)
-- Add any logic you want
+## Features
+
+### Accounts & Authentication
+
+- **Registration** — create an account with a username, email address, and password.
+- **Login** — log in with either your username or your email address.
+- **Guest mode** — play local or AI games without creating an account (online features are unavailable).
+- **Session persistence** — you stay logged in across page refreshes; sessions are automatically renewed.
+- **Forgot password** — enter your email address on the login page to receive a password-reset link by email. The link expires after a short period for security.
 
 ---
 
-To call a service:
+### The Game — Khet 2.0
 
-2 external packages are allowed to transfer a request:
-- `http-proxy` allows you to easily transfer a request "as-is" to another HTTP Server (you have an example in the gateway service)
-- `axios` to perform specific REST requests.
+Khet 2.0 is a turn-based, two-player strategy game played on a 10 × 10 board. Each turn a player moves or rotates one of their pieces, then a laser fires from their Sphinx. The goal is to hit the opponent's **Pharaoh** with the laser.
+
+#### Pieces
+
+| Piece | Description |
+|-------|-------------|
+| **Sphinx** | Fixed in place; fires the laser at the end of every turn. |
+| **Pharaoh** | The piece to protect — if hit by the laser, the game is over. |
+| **Scarab** | Can swap positions with adjacent pieces; reflects the laser in both diagonal directions. |
+| **Anubis** | Blocks the laser from the front; destroyed if hit from the side or back. |
+| **Pyramid** | Reflects the laser in one diagonal direction; each player starts with 7 in reserve and places them during the game. |
+
+#### Game Modes
+
+- **Local** — two players share the same device.
+- **vs AI** — play against a bot that evaluates board state and plays strategically.
+- **Online Ranked** — matched against another player via the matchmaking queue; result affects your ELO rating.
+- **Online Unranked (Friend Challenge)** — challenge a friend directly; no ELO impact.
+- **Rejoin** — if you leave an ongoing online game, you have 60 seconds to reconnect from the home page before the game is forfeited.
 
 ---
 
-## Git WorkFlow & Commit Convention
+### ELO & Leaderboard
 
-### Git WorkFlow
+- Every account starts at **600 ELO**.
+- ELO changes only in **ranked online games** — local, AI, and unranked games have no effect.
+- The gain or loss depends on the difference between your rating and your opponent's.
+- The **leaderboard** on the home page shows the top 10 players by ELO.
+- During a game, both players can see each other's current ELO and the estimated gain/loss before the result is confirmed.
 
-- **main**: Main branch, must always be stable.
-- **dev**: Development branch for the next milestone, branched from `main`.
-- **feature/[TX.Y]text**: Branch for a new feature, branched from `dev`.
-    - `TX.Y` is the task number associated with the feature on GitHub.
-    - `text` is a short and indicative name for the feature.
+---
 
-**Workflow:**
-1. To implement a new feature, create a branch `feature/TX.Y/text` from `dev`.
-2. Once implementation is finished, merge the feature into `dev` via a **Pull Request**.
-3. When a milestone is finished, merge `dev` into `main` via a **Pull Request**.
+### Matchmaking
 
-### Commit Messages
+- Join the ranked queue from the home page.
+- The system pairs players with similar ELO; the acceptable range widens over time if no match is found.
+- You can cancel the search at any time.
 
-Format: `type: commit message #n`
+---
 
-**Types:**
-- `feat`: For adding a new feature
-- `fix`: For a bug fix
-- `style`: For CSS changes or any site style changes
-- `refactor`: For code improvements without changing behavior
-- `test`: For adding or updating tests
-- `other`: For any other change that cannot be classified
+### Social Features
 
-**#n**: Corresponds to the associated task ID on GitHub.
+#### Friends
+
+- Search for any registered user by username and send them a friend request.
+- Manage pending sent and received requests from your profile page.
+- Accept or decline incoming requests; you are notified in real time.
+- Remove a friend at any time from your profile.
+
+#### Friend Challenges
+
+- Challenge any friend to a game directly from your profile page.
+- Choose **Ranked** (ELO affected) or **Unranked** (no ELO impact).
+- The challenged player receives a real-time notification and can accept or decline.
+- Challenges expire automatically after 2 minutes if not answered.
+
+---
+
+### Chat Systems
+
+#### Global Chat
+
+- Visible to all connected users on the home page.
+- Real-time delivery; message history is available on load.
+- **Restriction:** messages containing profanity (English and French word lists) are blocked.
+
+#### Private Messaging
+
+- Available from the profile page with any accepted friend.
+- Real-time delivery; full message history is preserved.
+- **Restriction:** only mutual friends can exchange private messages. Removing a friend deletes the conversation.
+
+#### In-Game Emotes
+
+- During an online game, players can send cosmetic emotes to each other.
+- Emotes are displayed in a side panel in real time.
+- **Restriction:** only emotes owned in your inventory can be sent.
+
+---
+
+### Shop & Cosmetics
+
+#### Lootbox
+
+- Costs **50 coins** per opening.
+- Drops one cosmetic item at random:
+  - **Common** — 70 % chance
+  - **Rare** — 24 % chance
+  - **Mythical** — 5 % chance
+  - **Goat** (ultra-rare) — 1 % chance
+- If the item is already owned, you receive **10 coins** as compensation.
+
+#### Items
+
+**Emotes (10 total)**
+
+| Rarity | Emotes |
+|--------|--------|
+| Common | Flamed Scarab, GG, Haha, Question Marks, Shield |
+| Rare | EZ, MVP, Sad |
+| Mythical | FF, What A Move |
+
+**Profile Pictures (10 total)**
+
+| Rarity | Avatars |
+|--------|---------|
+| Common | Ankh, Anubis, Sphinx, Pyramid |
+| Rare | Egyptian Magician, Solana Boat, Horus |
+| Mythical | Bitcoin Temple, Shiba |
+| Goat | Goat Trader |
+
+#### Inventory & Equipping
+
+- View all owned items from the shop page.
+- Equip one profile picture and use any owned emotes in game.
+- Your equipped profile picture is visible to other players.
+
+---
+
+### Profile Page
+
+- Displays your username, email, ELO, coin balance, and total games played.
+- Shows your win/loss record.
+- Manage your friends list, pending requests, and active conversations.
+- Equip cosmetics from your inventory.
