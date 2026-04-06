@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadPendingChallenges(token);
     await loadFriendsListWithChat(token);
     requestOnlineStatuses();
+    loadInventory(token);
 });
 
 // Back Navigation
@@ -905,6 +906,117 @@ function initPrivateChatListeners() {
             chatOnlineStatus.classList.add(status === 'online' ? 'online' : 'offline');
         }
     });
+}
+
+// ==========================================
+// INVENTORY
+// ==========================================
+
+async function loadInventory(token) {
+    try {
+        const res = await fetch('/api/market/inventory', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderInventory(data.inventory || []);
+    } catch (err) {
+        console.error('Failed to load inventory:', err);
+    }
+}
+
+function renderInventory(items) {
+    const emptyEl = document.getElementById('inventoryEmpty');
+    const groupPP = document.getElementById('groupProfilePictures');
+    const groupEm = document.getElementById('groupEmotes');
+    const gridPP = document.getElementById('gridProfilePictures');
+    const gridEm = document.getElementById('gridEmotes');
+
+    const profilePics = items.filter(i => i.type === 'profile_picture');
+    const emotes = items.filter(i => i.type === 'emote');
+
+    if (items.length === 0) {
+        emptyEl.style.display = 'block';
+        return;
+    }
+    emptyEl.style.display = 'none';
+
+    // Update avatar from equipped profile picture
+    const equippedPic = profilePics.find(i => i.equipped);
+    updateProfileAvatar(equippedPic);
+
+    if (profilePics.length > 0) {
+        groupPP.style.display = 'block';
+        gridPP.innerHTML = '';
+        profilePics.forEach(item => gridPP.appendChild(createItemCard(item, true)));
+    }
+
+    if (emotes.length > 0) {
+        groupEm.style.display = 'block';
+        gridEm.innerHTML = '';
+        emotes.forEach(item => gridEm.appendChild(createItemCard(item, false)));
+    }
+}
+
+function createItemCard(item, showEquip) {
+    const card = document.createElement('div');
+    card.className = 'inventory-item' + (item.equipped ? ' equipped' : '');
+    card.dataset.itemId = item._id;
+
+    const img = document.createElement('img');
+    img.className = 'inventory-item-img';
+    img.src = `/api/market/${item.assetPath}`;
+    img.alt = item.name;
+
+    const name = document.createElement('span');
+    name.className = 'inventory-item-name';
+    name.textContent = item.name;
+
+    const badge = document.createElement('span');
+    badge.className = `rarity-badge ${item.rarity}`;
+    badge.textContent = item.rarity === 'goat' ? '🐐 GOAT' : item.rarity;
+
+    card.appendChild(img);
+    card.appendChild(name);
+    card.appendChild(badge);
+
+    if (showEquip) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-equip' + (item.equipped ? ' equipped' : '');
+        btn.textContent = item.equipped ? 'Equipped' : 'Equip';
+        btn.onclick = () => equipItem(item._id);
+        card.appendChild(btn);
+    }
+
+    return card;
+}
+
+async function equipItem(itemId) {
+    try {
+        const token = TokenManager.getAccessToken();
+        const res = await fetch('/api/market/equip', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemId })
+        });
+        if (!res.ok) throw new Error('Failed to equip item');
+        loadInventory(token);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function updateProfileAvatar(equippedPic) {
+    const img = document.getElementById('profileAvatarImg');
+    const fallback = document.getElementById('profileAvatarFallback');
+    if (equippedPic && img && fallback) {
+        img.src = `/api/market/${equippedPic.assetPath}`;
+        img.style.display = 'block';
+        fallback.style.display = 'none';
+    } else if (img && fallback) {
+        img.style.display = 'none';
+        fallback.style.display = 'block';
+    }
 }
 
 // ==========================================
