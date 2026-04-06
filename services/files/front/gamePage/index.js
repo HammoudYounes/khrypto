@@ -419,6 +419,8 @@ document.getElementById('leaveBtn').addEventListener('click', () => {
 
 function finalizeTurn(gameState) {
     state.currentGameState = gameState;
+    state.selectedPiece = null;
+    state.selectedReservePieceId = null;
     updatePieces(gameState.board);
     updatePyramidReserve(gameState.reserves);
     updateCooldownDisplay(gameState);

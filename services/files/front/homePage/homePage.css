@@ -92,7 +92,7 @@ body {
 .home-left-links {
     display: flex;
     gap: 1rem;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     flex-wrap: wrap;
     width: 100%;
