@@ -5,11 +5,9 @@ async function seedItems() {
     await connectDB();
     const itemsCollection = getItemsCollection();
 
-    // Always wipe and re-seed so changes to this file take effect immediately
-    await itemsCollection.deleteMany({});
-    console.log('Cleared items collection — re-seeding...');
-
-    await itemsCollection.insertMany([
+    // Upsert each item by assetPath (stable key) so existing _ids are preserved.
+    // Deleting and re-inserting would break all inventory references after a restart.
+    const items = [
         // Common emotes (5)
         {
           name: 'Flamed Scarab',
@@ -156,8 +154,16 @@ async function seedItems() {
           assetPath: 'assets/profiles/goat_trader_goat.png',
           description: 'The Greatest Of All Time trader — an ultra-rare legend'
         }
-      ]);
-    console.log('Re-seeded all items (20 total)');
+    ];
+
+    for (const item of items) {
+      await itemsCollection.updateOne(
+        { assetPath: item.assetPath },
+        { $set: item },
+        { upsert: true }
+      );
+    }
+    console.log(`Seeded ${items.length} items (upsert — existing _ids preserved)`);
 
   } catch (error) {
     console.error("Error seeding items:", error);
