@@ -75,6 +75,10 @@ async function displayDatabaseInfo() {
       { $set: { coins: 10000 } }
     );
 
+    // Wipe dedlix's inventory for testing
+    const inventory_collection = khryto_db.collection('inventory');
+    await inventory_collection.deleteMany({ userId: '69a4bfc60ce2bfc249d25e80' });
+
     // 2. See all users in the collection with clear formatting
     const allUsers = await user_collection.find({}).toArray();
 
