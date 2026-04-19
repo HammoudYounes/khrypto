@@ -6,7 +6,7 @@ const ACCESS_SECRET = '0638586715';
 const REFRESH_SECRET = '0745565215';
 const ACCESS_LIFE = '75m';
 const REFRESH_LIFE = '30d';
-const RENEW_WINDOW = 50; // 7 jours
+const RENEW_WINDOW = 604800; // 7 days
 
 // Helper body parser
 const getBody = (req) => new Promise(resolve => {
