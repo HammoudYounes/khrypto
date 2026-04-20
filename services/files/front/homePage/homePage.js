@@ -17,7 +17,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 const goToProfileBtn = document.getElementById("goToProfileBtn");
 
 
-const socket = io({
+const socket = io(ApiHost.getHost(), {
     path: '/socket.io',
 
     autoConnect: false, // IMPORTANT : On attend d'avoir vérifié le token
@@ -345,7 +345,7 @@ onlineButton.addEventListener('click', () => {
     }
 
     // Connect to the matchmaking service via its own Socket.IO path
-    matchmakingSocket = io({
+    matchmakingSocket = io(ApiHost.getHost(), {
         path: '/matchmaking/socket.io',
         autoConnect: false,
         auth: (cb) => {
@@ -444,7 +444,7 @@ let chatAllLoaded = false;
 let chatFetching = false;
 
 function initSocialSocket() {
-    socialSocket = io({
+    socialSocket = io(ApiHost.getHost(), {
         path: '/social/socket.io',
         autoConnect: false,
         query: { token: TokenManager.getAccessToken() }

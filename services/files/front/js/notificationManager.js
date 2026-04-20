@@ -44,7 +44,7 @@ class NotificationManager {
         this.debug("Toast container setup complete");
 
         // Initialize Socket
-        this.socket = io({
+        this.socket = io(ApiHost.getHost(), {
             path: '/social/socket.io',
             auth: { token },
             query: { token },

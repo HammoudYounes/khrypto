@@ -5,10 +5,10 @@
 
 import { state } from './gameState.js';
 import { gameId } from './index.js';
-import { TokenManager } from "../js/tokenManager.js";
+import { TokenManager, ApiHost } from "../js/tokenManager.js";
 
 // 1. Socket Configuration (Manual Connect)
-export const socket = io({
+export const socket = io(ApiHost.getHost(), {
     autoConnect: false,
 
     auth: (cb) => {
