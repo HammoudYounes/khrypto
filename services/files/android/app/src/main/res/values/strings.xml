@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Khrypto</string>
+    <string name="title_activity_main">Khrypto</string>
+    <string name="package_name">academy.pns.ps8.khrypto</string>
+    <string name="custom_url_scheme">academy.pns.ps8.khrypto</string>
+</resources>
