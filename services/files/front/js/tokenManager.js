@@ -1,4 +1,11 @@
-const GATEWAY_URL = '';
+export const ApiHost = {
+    getHost: () => {
+        if (window.Capacitor && window.Capacitor.getPlatform() !== 'web') {
+            return 'https://khrypto.ps8.pns.academy';
+        }
+        return window.location.origin;
+    }
+};
 
 export const TokenManager = {
     getAccessToken: () => localStorage.getItem('accessToken'),
@@ -19,7 +26,7 @@ export const TokenManager = {
         if (!refreshToken) return false;
 
         try {
-            const response = await fetch(`${GATEWAY_URL}/api/refresh`, {
+            const response = await fetch(`${ApiHost.getHost()}/api/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refreshToken })

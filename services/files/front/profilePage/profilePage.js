@@ -1,4 +1,4 @@
-import { TokenManager } from "../js/tokenManager.js";
+import { TokenManager, ApiHost } from "../js/tokenManager.js";
 import { notificationManager } from "../js/notificationManager.js";
 import { ProfileManager } from "../js/profileManager.js";
 
@@ -175,7 +175,7 @@ searchInput.addEventListener('input', (e) => {
     searchTimeout = setTimeout(async () => {
         try {
             const token = TokenManager.getAccessToken();
-            const res = await fetch(`/api/friend/search?username=${encodeURIComponent(query)}`, {
+            const res = await fetch(`${ApiHost.getHost()}/api/friend/search?username=${encodeURIComponent(query)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Search failed");
@@ -209,7 +209,7 @@ function renderSearchResults(users) {
 async function sendInvitation(username) {
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch('/api/friend/invite', {
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/invite`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ username })
@@ -228,7 +228,7 @@ async function sendInvitation(username) {
 // ==========================================
 async function loadPendingInvitations(token) {
     try {
-        const res = await fetch('/api/friend/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/pending`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error("Could not load pending invites.");
         const data = await res.json();
         renderPending(data.pending);
@@ -270,7 +270,7 @@ function renderPending(invites) {
 // ==========================================
 async function loadSentRequests(token) {
     try {
-        const res = await fetch('/api/friend/sent', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/sent`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error("Could not load sent requests.");
         const data = await res.json();
         renderSentRequests(data.sent);
@@ -301,7 +301,7 @@ function renderSentRequests(requests) {
 async function cancelSentRequest(friendshipId, liElement) {
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch(`/api/friend/${friendshipId}`, {
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/${friendshipId}`, {
             method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("Could not cancel request.");
@@ -321,7 +321,7 @@ async function cancelSentRequest(friendshipId, liElement) {
 async function respondToInvite(friendshipId, accept) {
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch('/api/friend/respond', {
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/respond`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ friendshipId, action: accept ? "accept" : "decline" })
@@ -344,7 +344,7 @@ async function respondToInvite(friendshipId, accept) {
 // ==========================================
 async function loadFriendsList(token) {
     try {
-        const res = await fetch('/api/friend/list', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/list`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) return;
         const data = await res.json();
         const friends = data.friends;
@@ -424,7 +424,7 @@ async function loadFriendsList(token) {
 // ==========================================
 async function loadPendingChallenges(token) {
     try {
-        const res = await fetch('/api/friend/challenge/pending', {
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/challenge/pending`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) return;
@@ -447,7 +447,7 @@ async function loadPendingChallenges(token) {
 async function sendChallenge(receiverId, mode) {
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch('/api/friend/challenge', {
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/challenge`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ receiverId, mode })
@@ -487,7 +487,7 @@ function addReceivedChallenge(payload) {
     acceptBtn.onclick = async () => {
         try {
             const token = TokenManager.getAccessToken();
-            const res = await fetch('/api/friend/challenge/respond', {
+            const res = await fetch(`${ApiHost.getHost()}/api/friend/challenge/respond`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ challengeId: payload.challengeId, action: 'accept' })
@@ -505,7 +505,7 @@ function addReceivedChallenge(payload) {
     declineBtn.onclick = async () => {
         try {
             const token = TokenManager.getAccessToken();
-            await fetch('/api/friend/challenge/respond', {
+            await fetch(`${ApiHost.getHost()}/api/friend/challenge/respond`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ challengeId: payload.challengeId, action: 'decline' })
@@ -554,7 +554,7 @@ function refreshSentChallengesUI() {
 async function removeFriend(friendshipId, liElement) {
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch(`/api/friend/${friendshipId}`, {
+        const res = await fetch(`${ApiHost.getHost()}/api/friend/${friendshipId}`, {
             method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("Could not remove friend.");
@@ -614,7 +614,7 @@ async function loadFriendsListWithChat(token) {
 
     // Fetch unread counts and add badges
     try {
-        const unreadRes = await fetch('/api/chat/private/unread/count', {
+        const unreadRes = await fetch(`${ApiHost.getHost()}/api/chat/private/unread/count`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (unreadRes.ok) {
@@ -696,7 +696,7 @@ async function fetchChatMessages() {
 
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch(`/api/chat/private/${activeChatFriendshipId}?limit=15&offset=${chatOffset}`, {
+        const res = await fetch(`${ApiHost.getHost()}/api/chat/private/${activeChatFriendshipId}?limit=15&offset=${chatOffset}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -849,7 +849,7 @@ function initPrivateChatListeners() {
             if (confirmed) {
                 try {
                     const token = TokenManager.getAccessToken();
-                    const res = await fetch(`/api/friend/${activeChatFriendshipId}`, {
+                    const res = await fetch(`${ApiHost.getHost()}/api/friend/${activeChatFriendshipId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -914,7 +914,7 @@ function initPrivateChatListeners() {
 
 async function loadInventory(token) {
     try {
-        const res = await fetch('/api/market/inventory', {
+        const res = await fetch(`${ApiHost.getHost()}/api/market/inventory`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) return;
@@ -966,7 +966,7 @@ function createItemCard(item, showEquip) {
     const img = document.createElement('img');
     img.className = 'inventory-item-img';
     img.loading = 'lazy';
-    img.src = `/api/market/${item.assetPath}`;
+    img.src = `${ApiHost.getHost()}/api/market/${item.assetPath}`;
     img.alt = item.name;
 
     const name = document.createElement('span');
@@ -995,7 +995,7 @@ function createItemCard(item, showEquip) {
 async function equipItem(itemId) {
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch('/api/market/equip', {
+        const res = await fetch(`${ApiHost.getHost()}/api/market/equip`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ itemId })
@@ -1011,7 +1011,7 @@ function updateProfileAvatar(equippedPic) {
     const img = document.getElementById('profileAvatarImg');
     const fallback = document.getElementById('profileAvatarFallback');
     if (equippedPic && img && fallback) {
-        img.src = `/api/market/${equippedPic.assetPath}`;
+        img.src = `${ApiHost.getHost()}/api/market/${equippedPic.assetPath}`;
         img.style.display = 'block';
         fallback.style.display = 'none';
     } else if (img && fallback) {

@@ -26,12 +26,30 @@ proxy.on('error', (err, req, res) => {
     }
 });
 
+// Add CORS headers for Capacitor app support
+proxy.on('proxyRes', (proxyRes, req) => {
+    const origin = req.headers['origin'] || '';
+    proxyRes.headers['Access-Control-Allow-Origin'] = origin || '*';
+    proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+});
+
 const tlsConfig = {
     cert: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/fullchain.pem'),
     key: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/privkey.pem')
 };
 
 const server = https.createServer(tlsConfig, function (request, response) {
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+        const origin = request.headers['origin'] || '*';
+        response.writeHead(204, {
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Credentials': 'true',
+        });
+        return response.end();
+    }
 
     let filePath = request.url.split("/").filter(function (elem) {
         return elem !== "..";

@@ -1,4 +1,4 @@
-import { TokenManager } from "../js/tokenManager.js";
+import { TokenManager, ApiHost } from "../js/tokenManager.js";
 import { notificationManager } from "../js/notificationManager.js";
 
 const RARITY_COLORS = {
@@ -24,7 +24,7 @@ async function fetchBalance() {
     const token = await ensureAuth();
     if (!token) return;
     try {
-        const res = await fetch('/api/market/balance', {
+        const res = await fetch(`${ApiHost.getHost()}/api/market/balance`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error();
@@ -52,7 +52,7 @@ async function buyLootbox() {
     errorMsg.style.display = 'none';
 
     try {
-        const res = await fetch('/api/market/buy-lootbox', {
+        const res = await fetch(`${ApiHost.getHost()}/api/market/buy-lootbox`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -171,7 +171,7 @@ function showResult(result) {
     }
 
     if (item) {
-        img.src = `/api/market/${item.assetPath}`;
+        img.src = `${ApiHost.getHost()}/api/market/${item.assetPath}`;
         img.alt = item.name;
         img.style.boxShadow = `0 0 20px ${glow}`;
         rarityEl.textContent = item.rarity === 'goat' ? '🐐 GOAT' : item.rarity;

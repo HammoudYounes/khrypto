@@ -1,4 +1,9 @@
-const AUTH_API_URL = "/api/auth";
+// Import ApiHost for Capacitor support
+const { ApiHost } = await import('../js/tokenManager.js');
+
+const getAuthApiUrl = () => {
+    return `${ApiHost.getHost()}/api/auth`;
+};
 
 // DOM elements
 const loginBtn = document.getElementById("loginBtn");
@@ -88,7 +93,7 @@ registerForm.addEventListener('submit', async (e) => {
 // Auth API call
 async function auth(endpoint, data) {
     try {
-        const response = await fetch(AUTH_API_URL + endpoint, {
+        const response = await fetch(getAuthApiUrl() + endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

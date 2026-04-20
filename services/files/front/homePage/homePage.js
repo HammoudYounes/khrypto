@@ -1,7 +1,7 @@
-import { TokenManager } from "../js/tokenManager.js";
+import { TokenManager, ApiHost } from "../js/tokenManager.js";
 import { notificationManager } from "../js/notificationManager.js";
 import { ProfileManager } from "../js/profileManager.js";
-const API_URL = "/api";
+const getApiUrl = () => `${ApiHost.getHost()}/api`;
 
 // DOM elements - game buttons
 const localButton = document.getElementById("localBtn");
@@ -201,7 +201,7 @@ async function fetchAndDisplayBalance() {
     try {
         const token = TokenManager.getAccessToken();
         if (!token) return;
-        const res = await fetch('/api/market/balance', {
+        const res = await fetch(`${ApiHost.getHost()}/api/market/balance`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) return;
@@ -223,7 +223,7 @@ async function loadLeaderboard() {
     const list = document.getElementById('leaderboardList');
     if (!list) return;
     try {
-        const res = await fetch('/api/leaderboard?limit=10');
+        const res = await fetch(`${ApiHost.getHost()}/api/leaderboard?limit=10`);
         if (!res.ok) return;
         const { leaderboard } = await res.json();
 

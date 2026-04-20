@@ -1,4 +1,4 @@
-import { TokenManager } from './tokenManager.js';
+import { TokenManager, ApiHost } from './tokenManager.js';
 
 class NotificationManager {
     constructor() {
@@ -220,7 +220,7 @@ class NotificationManager {
     async _respondToFriendRequest(friendshipId, action, toastElement) {
         try {
             const token = TokenManager.getAccessToken();
-            const res = await fetch('/api/friend/respond', {
+            const res = await fetch(`${ApiHost.getHost()}/api/friend/respond`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -247,7 +247,7 @@ class NotificationManager {
     async _respondToChallenge(challengeId, action, toastElement) {
         try {
             const token = TokenManager.getAccessToken();
-            const res = await fetch('/api/friend/challenge/respond', {
+            const res = await fetch(`${ApiHost.getHost()}/api/friend/challenge/respond`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
