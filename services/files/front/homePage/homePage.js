@@ -150,6 +150,7 @@ socket.on("connect_error", async (err) => {
         // Si le refresh échoue, on déconnecte tout
         console.log("Session impossible à récupérer.");
         TokenManager.clear();
+        ProfileManager.clearProfile();
         window.location.href = '../index.html';
     }
 });
@@ -268,6 +269,7 @@ profileBtn.addEventListener('click', () => {
 // Logout button click
 logoutBtn.addEventListener('click', () => {
     TokenManager.clear();
+    ProfileManager.clearProfile();
     sessionStorage.clear();
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');

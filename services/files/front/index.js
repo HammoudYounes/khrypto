@@ -60,9 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (refreshResponse.ok) {
             const refreshResult = await refreshResponse.json();
-            if (refreshResult.success && refreshResult.accessToken) {
+            if (refreshResult.accessToken) {
                 localStorage.setItem('accessToken', refreshResult.accessToken);
-                localStorage.setItem('refreshToken', refreshResult.refreshToken);
+                if (refreshResult.refreshToken) localStorage.setItem('refreshToken', refreshResult.refreshToken);
                 await redirectWithMinDelay('./homePage/index.html');
                 return;
             }
