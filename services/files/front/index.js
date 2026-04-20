@@ -1,5 +1,7 @@
 // Auto-login logic on page load
 document.addEventListener('DOMContentLoaded', async () => {
+    const { ApiHost } = await import('./js/tokenManager.js');
+    const apiHost = ApiHost.getHost();
     const startTime = Date.now();
     const MIN_LOADING_TIME = 1000; // 3 secondes minimum
 
@@ -32,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Si tokens présents, vérifier avec le backend
     try {
-        const response = await fetch('/api/verify', {
+        const response = await fetch(`${apiHost}/api/verify`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -50,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Token invalide, essayer de refresh
-        const refreshResponse = await fetch('/api/refresh', {
+        const refreshResponse = await fetch(`${apiHost}/api/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken })

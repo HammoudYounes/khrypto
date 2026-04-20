@@ -1,4 +1,4 @@
-import { TokenManager } from './tokenManager.js';
+import { TokenManager, ApiHost } from './tokenManager.js';
 
 export const ProfileManager = {
     // Auto-load profile if tokens exist but sessionStorage is missing full data
@@ -12,14 +12,14 @@ export const ProfileManager = {
             await this.loadProfile();
         }
     },
-    
+
     // Fetch from /api/profile and store
     async loadProfile() {
         const token = TokenManager.getAccessToken();
         if (!token) return false;
 
         try {
-            const res = await fetch('/api/profile', {
+            const res = await fetch(`${ApiHost.getHost()}/api/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 

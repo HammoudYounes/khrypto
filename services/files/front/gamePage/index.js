@@ -34,7 +34,7 @@ import {
 } from './interactionManager.js';
 
 import { notificationManager } from "../js/notificationManager.js";
-import { TokenManager } from "../js/tokenManager.js";
+import { TokenManager, ApiHost } from "../js/tokenManager.js";
 
 // ========== INITIALIZATION ==========
 
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadInventoryForGame(token) {
     try {
-        const res = await fetch('/api/market/inventory', {
+        const res = await fetch(`${ApiHost.getHost()}/api/market/inventory`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) { renderBrokie(); return; }
@@ -163,13 +163,13 @@ async function loadInventoryForGame(token) {
 
 async function loadOpponentAvatar(username) {
     try {
-        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        const res = await fetch(`${ApiHost.getHost()}/api/market/avatar/${encodeURIComponent(username)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.assetPath) {
             const avatar = document.getElementById('p2-avatar');
             if (avatar) {
-                avatar.src = `/api/market/${data.assetPath}`;
+                avatar.src = `${ApiHost.getHost()}/api/market/${data.assetPath}`;
                 avatar.classList.add('loaded');
             }
         }
@@ -194,7 +194,7 @@ function renderEmotePicker(emotes) {
         btn.title = item.name;
         const img = document.createElement('img');
         img.loading = 'lazy';
-        img.src = `/api/market/${item.assetPath}`;
+        img.src = `${ApiHost.getHost()}/api/market/${item.assetPath}`;
         img.alt = item.name;
         btn.appendChild(img);
         btn.addEventListener('click', () => sendEmote(item));
