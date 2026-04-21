@@ -16,6 +16,10 @@ const profilePanel = document.getElementById("profilePanel");
 const logoutBtn = document.getElementById("logoutBtn");
 const goToProfileBtn = document.getElementById("goToProfileBtn");
 
+// DOM elements - mobile header
+const chatToggleBtn = document.getElementById("chatToggleBtn");
+const chatCloseBtn = document.getElementById("chatCloseBtn");
+
 
 const socket = io(ApiHost.getHost(), {
     path: '/socket.io',
@@ -36,6 +40,7 @@ function applyGuestUI() {
     if (rejoinBtn) rejoinBtn.style.display = 'none';
     const chatSection = document.querySelector('.chat-section');
     if (chatSection) chatSection.style.display = 'none';
+    if (chatToggleBtn) chatToggleBtn.style.display = 'none';
     if (goToProfileBtn) goToProfileBtn.style.display = 'none';
     if (logoutBtn) logoutBtn.textContent = 'Exit Guest Mode';
 }
@@ -168,12 +173,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (span) span.textContent = username;
     }
 
-    // Show shop button and coin balance for logged-in users
+    // Show shop button, load balance/avatar, and init social socket for logged-in users
     if (sessionStorage.getItem('isGuest') !== 'true') {
         const shopNavBtn = document.getElementById('shopNavBtn');
         if (shopNavBtn) shopNavBtn.style.display = 'flex';
         fetchAndDisplayBalance();
         fetchAndDisplayAvatar();
+        // Init social socket here so auth is guaranteed ready (no timing race)
+        if (TokenManager.getAccessToken()) {
+            initSocialSocket();
+        }
     }
 
     loadLeaderboard();
@@ -207,13 +216,18 @@ async function fetchAndDisplayBalance() {
         });
         if (!res.ok) return;
         const data = await res.json();
+        // Header button coin display
         const el = document.getElementById('navCoinBalance');
         if (el) el.textContent = data.coins;
-        // Show coin display in profile button
         const sep = document.getElementById('profileCoinSep');
         const wrap = document.getElementById('profileCoinWrap');
         if (sep) sep.style.display = 'inline';
         if (wrap) wrap.style.display = 'flex';
+        // Profile panel balance
+        const panelCoinBalance = document.getElementById('panelCoinBalance');
+        const panelBalanceRow = document.getElementById('panelBalanceRow');
+        if (panelCoinBalance) panelCoinBalance.textContent = data.coins;
+        if (panelBalanceRow) panelBalanceRow.style.display = 'flex';
         sessionStorage.setItem('coins', data.coins);
     } catch (err) {
         console.error('Failed to fetch balance:', err);
@@ -264,7 +278,32 @@ async function loadLeaderboard() {
 // Toggle profile panel
 profileBtn.addEventListener('click', () => {
     profilePanel.classList.toggle('active');
+    // Close chat overlay when opening profile
+    const chatSection = document.querySelector('.chat-section');
+    if (chatSection) chatSection.classList.remove('chat-open');
+    if (chatToggleBtn) chatToggleBtn.classList.remove('chat-active');
 });
+
+// Chat toggle button (mobile)
+if (chatToggleBtn) {
+    chatToggleBtn.addEventListener('click', () => {
+        const chatSection = document.querySelector('.chat-section');
+        if (!chatSection) return;
+        const isOpen = chatSection.classList.toggle('chat-open');
+        chatToggleBtn.classList.toggle('chat-active', isOpen);
+        // Close profile panel when opening chat
+        if (isOpen) profilePanel.classList.remove('active');
+    });
+}
+
+// Chat close button (mobile)
+if (chatCloseBtn) {
+    chatCloseBtn.addEventListener('click', () => {
+        const chatSection = document.querySelector('.chat-section');
+        if (chatSection) chatSection.classList.remove('chat-open');
+        if (chatToggleBtn) chatToggleBtn.classList.remove('chat-active');
+    });
+}
 
 // Logout button click
 logoutBtn.addEventListener('click', () => {
@@ -288,10 +327,16 @@ if (goToProfileBtn) {
     });
 }
 
-// Close profile panel when clicking outside
+// Close panels when clicking outside
 document.addEventListener('click', (e) => {
     if (!profilePanel.contains(e.target) && !profileBtn.contains(e.target)) {
         profilePanel.classList.remove('active');
+    }
+    const chatSection = document.querySelector('.chat-section');
+    if (chatSection && chatToggleBtn &&
+        !chatSection.contains(e.target) && !chatToggleBtn.contains(e.target)) {
+        chatSection.classList.remove('chat-open');
+        chatToggleBtn.classList.remove('chat-active');
     }
 });
 
@@ -605,12 +650,3 @@ chatMessages.addEventListener('scroll', () => {
     }
 });
 
-// Initialize social socket when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Small delay to ensure auth is ready
-    setTimeout(() => {
-        if (TokenManager.getAccessToken()) {
-            initSocialSocket();
-        }
-    }, 500);
-});
