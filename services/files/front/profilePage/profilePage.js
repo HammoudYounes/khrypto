@@ -87,6 +87,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadFriendsListWithChat(token);
     requestOnlineStatuses();
     loadInventory(token);
+
+    const _p = new URLSearchParams(window.location.search);
+    if (_p.get('openChat') === 'true' && _p.get('friendshipId')) {
+        openPrivateChat(_p.get('friendshipId'), _p.get('friendId'), _p.get('friendUsername') || 'Friend');
+    }
 });
 
 // Back Navigation
