@@ -192,13 +192,13 @@ async function fetchAndDisplayAvatar() {
     try {
         const username = sessionStorage.getItem('username');
         if (!username) return;
-        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        const res = await fetch(`${ApiHost.getHost()}/api/market/avatar/${encodeURIComponent(username)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.assetPath) {
             const img = document.getElementById('navAvatarImg');
             if (img) {
-                img.src = `/api/market/${data.assetPath}`;
+                img.src = `${ApiHost.getHost()}/api/market/${data.assetPath}`;
                 img.classList.add('loaded');
             }
         }
@@ -260,11 +260,11 @@ async function loadLeaderboard() {
             list.appendChild(li);
 
             const img = li.querySelector('.lb-avatar-img');
-            fetch(`/api/market/avatar/${encodeURIComponent(user.username)}`)
+            fetch(`${ApiHost.getHost()}/api/market/avatar/${encodeURIComponent(user.username)}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.assetPath) {
-                        img.src = `/api/market/${data.assetPath}`;
+                        img.src = `${ApiHost.getHost()}/api/market/${data.assetPath}`;
                         img.classList.add('loaded');
                     }
                 })
@@ -534,7 +534,7 @@ async function fetchChatMessages() {
 
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch(`/api/chat/global?limit=15&offset=${chatOffset}`, {
+        const res = await fetch(`${ApiHost.getHost()}/api/chat/global?limit=15&offset=${chatOffset}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
