@@ -152,8 +152,8 @@ export function gameOverManager(winners) {
         restartBtn.style.display = 'none';
         leaveModalBtn.style.display = 'inline-block';
     } else {
-        restartBtn.textContent = 'Rejouer';
-        leaveModalBtn.style.display = 'none';
+        restartBtn.textContent = 'Play again';
+        leaveModalBtn.style.display = 'inline-block';
     }
 
     restartBtn.onclick = function () {
