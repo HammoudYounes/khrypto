@@ -66,6 +66,10 @@ body {
     display: none;
 }
 
+.embedded .shop-title {
+    display: none;
+}
+
 .embedded .balance-chip {
     order: -1;
 }

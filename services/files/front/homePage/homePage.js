@@ -173,8 +173,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (span) span.textContent = username;
     }
 
+    // Show shop card (desktop only — mobile uses the bottom nav tab instead)
     // Load balance/avatar, and init social socket for logged-in users
     if (sessionStorage.getItem('isGuest') !== 'true') {
+        const shopNavBtn = document.getElementById('shopNavBtn');
+        if (shopNavBtn && !isMobileLayout()) shopNavBtn.style.display = 'flex';
         fetchAndDisplayBalance();
         fetchAndDisplayAvatar();
         // Init social socket here so auth is guaranteed ready (no timing race)
@@ -424,10 +427,14 @@ function initMobileSwipe() {
 
         shopEdge.addEventListener('touchend', (e) => {
             if (!isMobileLayout()) return;
-            const dx = e.changedTouches[0].clientX - edgeStartX;
+            const dx = Math.abs(e.changedTouches[0].clientX - edgeStartX);
             const dy = Math.abs(e.changedTouches[0].clientY - edgeStartY);
-            // Right swipe with clear horizontal intent
-            if (dx > 40 && dx > dy) setActivePanel(2);
+            if (dx > 40 && dx > dy) {
+                // Stop propagation so the parent slider doesn't also handle this
+                // swipe and call setActivePanel a second time (which would overshoot).
+                e.stopPropagation();
+                setActivePanel(2);
+            }
         }, { passive: true });
     }
 }

@@ -580,6 +580,11 @@ body {
     display: none;
 }
 
+/* ── Shop iframe panel: mobile-only, never shown on desktop ── */
+.shop-panel {
+    display: none;
+}
+
 /* ── Responsive: Tablet ── */
 @media (max-width: 900px) {
     .home-main {
@@ -790,7 +795,17 @@ body {
         letter-spacing: 0.05em;
     }
 
-    /* ─ Rules row (shop removed from home panel) ─ */
+    /* ─ Shop card replaced by bottom nav tab on mobile ─ */
+    #shopNavBtn {
+        display: none !important;
+    }
+
+    /* ─ Shop panel visible on mobile ─ */
+    .shop-panel {
+        display: block;
+    }
+
+    /* ─ Rules row ─ */
     .home-left-links {
         flex-wrap: nowrap;
         gap: 0.5rem;
