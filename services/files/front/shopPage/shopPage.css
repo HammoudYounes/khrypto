@@ -61,6 +61,15 @@ body {
     backdrop-filter: blur(8px);
 }
 
+/* ── Embedded mode (rendered inside home page iframe panel) ── */
+.embedded .back-btn {
+    display: none;
+}
+
+.embedded .balance-chip {
+    order: -1;
+}
+
 .coin-icon {
     color: var(--gold);
     font-size: 0.9rem;

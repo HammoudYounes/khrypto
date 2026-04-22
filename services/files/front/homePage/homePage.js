@@ -409,6 +409,27 @@ function initMobileSwipe() {
             if (activePanel > 0) setActivePanel(activePanel - 1);
         }
     }, { passive: true });
+
+    // The shop iframe captures all touches, so we overlay a thin edge strip
+    // on the left side of the shop panel and listen for swipe-right on it.
+    const shopEdge = document.getElementById('shopSwipeEdge');
+    if (shopEdge) {
+        let edgeStartX = 0;
+        let edgeStartY = 0;
+
+        shopEdge.addEventListener('touchstart', (e) => {
+            edgeStartX = e.touches[0].clientX;
+            edgeStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        shopEdge.addEventListener('touchend', (e) => {
+            if (!isMobileLayout()) return;
+            const dx = e.changedTouches[0].clientX - edgeStartX;
+            const dy = Math.abs(e.changedTouches[0].clientY - edgeStartY);
+            // Right swipe with clear horizontal intent
+            if (dx > 40 && dx > dy) setActivePanel(2);
+        }, { passive: true });
+    }
 }
 
 // ========== GAME MODE FUNCTIONS ==========

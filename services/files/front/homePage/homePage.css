@@ -629,8 +629,8 @@ body {
         height: 26px;
     }
 
-    .profile-coin-sep,
-    .profile-coin-wrap {
+    .profile-btn .profile-coin-sep,
+    .profile-btn .profile-coin-wrap {
         display: none !important;
     }
 
@@ -730,6 +730,8 @@ body {
         order: 3;
         padding: 0;
         overflow: hidden;
+        /* override static so the swipe-edge overlay can be absolutely placed */
+        position: relative !important;
     }
 
     /* ─ Shop iframe fills the panel ─ */
@@ -738,6 +740,17 @@ body {
         height: 100%;
         border: none;
         display: block;
+    }
+
+    /* ─ Left-edge strip for swipe-right-to-exit the shop panel ─ */
+    .shop-swipe-edge {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 28px;
+        z-index: 10;
+        /* transparent but captures touch events above the iframe */
     }
 
     /* Chat close button: navigates back to home panel */

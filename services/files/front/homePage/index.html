@@ -109,6 +109,8 @@
 
             <!-- Panel 3 (mobile): Shop embedded -->
             <div class="shop-panel" id="panelShop">
+                <!-- Thin overlay captures swipe-right to exit the panel (touches inside iframe don't bubble) -->
+                <div class="shop-swipe-edge" id="shopSwipeEdge"></div>
                 <iframe id="shopIframe" class="shop-iframe" title="Shop"></iframe>
             </div>
         </div>

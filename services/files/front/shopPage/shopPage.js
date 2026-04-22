@@ -198,6 +198,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     notificationManager.init();
     await fetchBalance();
 
+    if (window !== window.top) {
+        document.body.classList.add('embedded');
+    }
+
     document.getElementById('backBtn').addEventListener('click', () => {
         if (window !== window.top) {
             window.parent.postMessage({ action: 'goHome' }, '*');
