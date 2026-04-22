@@ -27,6 +27,24 @@ class NotificationManager {
                 visibility: 1,
                 vibration: true,
             });
+            await LocalNotifications.registerActionTypes({
+                types: [
+                    {
+                        id: 'FRIEND_REQUEST',
+                        actions: [
+                            { id: 'accept_friend',  title: 'Accept',  foreground: true },
+                            { id: 'decline_friend', title: 'Decline', foreground: true },
+                        ]
+                    },
+                    {
+                        id: 'CHALLENGE',
+                        actions: [
+                            { id: 'accept_challenge',  title: 'Accept',  foreground: true },
+                            { id: 'decline_challenge', title: 'Decline', foreground: true },
+                        ]
+                    }
+                ]
+            });
             this._setupNotificationTapListener();
         } catch (e) {
             console.warn('[NotifMgr] Could not request notification permission', e);
@@ -36,9 +54,29 @@ class NotificationManager {
     _setupNotificationTapListener() {
         if (!this._isNative()) return;
         const { LocalNotifications } = window.Capacitor.Plugins;
-        LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-            const extra = event.notification.extra || {};
-            this.debug('Notification tapped', extra);
+        LocalNotifications.addListener('localNotificationActionPerformed', async (event) => {
+            const { actionId, notification } = event;
+            const extra = notification.extra || {};
+            this.debug('Notification action performed', { actionId, extra });
+
+            if (actionId === 'accept_friend' && extra.referenceId) {
+                await this._respondToFriendRequest(extra.referenceId, 'accept', null);
+                return;
+            }
+            if (actionId === 'decline_friend' && extra.referenceId) {
+                await this._respondToFriendRequest(extra.referenceId, 'decline', null);
+                return;
+            }
+            if (actionId === 'accept_challenge' && extra.challengeId) {
+                await this._respondToChallenge(extra.challengeId, 'accept', null);
+                return;
+            }
+            if (actionId === 'decline_challenge' && extra.challengeId) {
+                await this._respondToChallenge(extra.challengeId, 'decline', null);
+                return;
+            }
+
+            // Plain tap — navigate
             if (extra.type === 'message' && extra.friendshipId) {
                 const params = new URLSearchParams({
                     openChat: 'true',
@@ -53,20 +91,20 @@ class NotificationManager {
         });
     }
 
-    async _sendNativeNotification(title, body, extra = {}) {
+    async _sendNativeNotification(title, body, extra = {}, actionTypeId = null) {
         if (!this._isNative()) return;
         try {
             const { LocalNotifications } = window.Capacitor.Plugins;
-            await LocalNotifications.schedule({
-                notifications: [{
-                    id: Math.floor(Math.random() * 100000),
-                    title,
-                    body,
-                    channelId: 'khrypto_default',
-                    smallIcon: 'ic_stat_icon_config_sample',
-                    extra,
-                }]
-            });
+            const notification = {
+                id: Math.floor(Math.random() * 100000),
+                title,
+                body,
+                channelId: 'khrypto_default',
+                smallIcon: 'ic_stat_icon_config_sample',
+                extra,
+            };
+            if (actionTypeId) notification.actionTypeId = actionTypeId;
+            await LocalNotifications.schedule({ notifications: [notification] });
         } catch (e) {
             console.warn('[NotifMgr] Native notification failed', e);
         }
@@ -169,7 +207,12 @@ class NotificationManager {
 
         this.socket.on('friend:invitation', (payload) => {
             this.debug("Friend invitation received", payload);
-            this._sendNativeNotification('Friend Request', `${payload.senderUsername || 'Someone'} sent you a friend request`);
+            this._sendNativeNotification(
+                'Friend Request',
+                `${payload.senderUsername || 'Someone'} sent you a friend request`,
+                { type: 'friend_request', referenceId: payload.referenceId },
+                'FRIEND_REQUEST'
+            );
             this.showInteractiveToast(
                 `Friend request from ${payload.senderUsername || 'someone'}`,
                 'info',
@@ -246,7 +289,12 @@ class NotificationManager {
         this.socket.on('challenge:received', (payload) => {
             this.debug("Challenge received", payload);
             const modeLabel = payload.mode === 'ranked' ? 'Ranked' : 'Unranked';
-            this._sendNativeNotification('Challenge Received', `${payload.senderUsername} challenges you! (${modeLabel})`);
+            this._sendNativeNotification(
+                'Challenge Received',
+                `${payload.senderUsername} challenges you! (${modeLabel})`,
+                { type: 'challenge', challengeId: payload.challengeId },
+                'CHALLENGE'
+            );
             this.showInteractiveToast(
                 `${payload.senderUsername} challenges you! (${modeLabel})`,
                 'info',
@@ -411,6 +459,7 @@ class NotificationManager {
     }
 
     showToast(message, type = 'info') {
+
         // Ensure toast container exists and is in DOM
         if (!this.toastContainer || !this.toastContainer.parentNode) {
             this.debug("Toast container missing, recreating...");
@@ -448,6 +497,8 @@ class NotificationManager {
      * @param {number|null} countdownMs - Optional countdown in ms
      */
     showInteractiveToast(message, type, actions = [], countdownMs = null) {
+        if (this._isNative()) return;
+
         // Ensure toast container exists and is in DOM
         if (!this.toastContainer || !this.toastContainer.parentNode) {
             this.debug("Toast container missing, recreating...");
