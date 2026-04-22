@@ -122,3 +122,29 @@
         transform: scaleX(0);
     }
 }
+
+@keyframes slideInMobile {
+    from {
+        transform: translateY(0.75rem);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        right: 1rem;
+        left: 1rem;
+        bottom: 1rem;
+    }
+
+    .toast {
+        min-width: unset;
+        max-width: 100%;
+        animation: slideInMobile 0.25s ease-out forwards;
+    }
+}

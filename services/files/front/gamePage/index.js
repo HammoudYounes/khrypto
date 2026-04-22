@@ -216,7 +216,7 @@ function renderMyAvatar(assetPath) {
     // Current player is always p1-avatar (bottom panel)
     const avatar = document.getElementById('p1-avatar');
     if (!avatar) return;
-    avatar.src = `/api/market/${assetPath}`;
+    avatar.src = `${ApiHost.getHost()}/api/market/${assetPath}`;
     avatar.classList.add('loaded');
 }
 
@@ -242,7 +242,7 @@ function appendEmoteMessage(assetPath, senderUsername, rarity) {
 
     const img = document.createElement('img');
     img.className = 'emote-msg-img';
-    img.src = `/api/market/${assetPath}`;
+    img.src = `${ApiHost.getHost()}/api/market/${assetPath}`;
     img.alt = senderUsername;
 
     const sender = document.createElement('span');

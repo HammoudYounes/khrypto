@@ -296,6 +296,16 @@ button:hover {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+/* ── Mobile Tab Nav (hidden on desktop) ── */
+.mobile-tab-nav {
+    display: none;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Responsive ── */
 @media (max-width: 1200px) {
     .profile-grid {
@@ -333,29 +343,253 @@ button:hover {
     }
 }
 
+/* ════════════════════════════════════════════════
+   MOBILE — Full redesign (≤ 640px)
+   ════════════════════════════════════════════════ */
 @media (max-width: 640px) {
+    body {
+        overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    .profile-header {
+        padding: 0.6rem 1rem;
+    }
+
+    .profile-header .khrypto-logo {
+        padding-right: 2rem;
+    }
+
+    /* ── Grid → flat column ── */
     .profile-grid {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        gap: 0;
+        position: static;  /* removes stacking context so fixed chat panel covers sticky header */
+        z-index: auto;
+    }
+
+    /* ── Profile card: compact horizontal bar ── */
+    .profile-col-left {
+        gap: 0;
+    }
+
+    .profile-info-panel {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        position: static;
+    }
+
+    .profile-avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .profile-avatar-img {
+        width: 52px;
+        height: 52px;
+    }
+
+    .profile-username {
+        font-size: 0.9rem;
+        margin: 0 0 0.3rem 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .profile-stats {
+        flex: 1;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.2rem 0.5rem;
+    }
+
+    .stat-item {
+        flex-direction: column;
+        border-bottom: none;
+        gap: 0;
+        padding: 0;
+        align-items: flex-start;
+    }
+
+    .stat-item:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+
+    .stat-label {
+        font-size: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 0.75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    /* ── Tab Nav ── */
+    .mobile-tab-nav {
+        display: flex;
+        background: var(--bg-surface);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        position: sticky;
+        top: 3rem;
+        z-index: 50;
+    }
+
+    .tab-btn {
+        flex: 1;
+        background: transparent;
+        color: var(--text-muted);
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.75rem 0.25rem;
+        font-family: var(--font-heading);
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: color var(--transition-fast), border-color var(--transition-fast);
+        border-radius: 0;
+        transform: none;
+    }
+
+    .tab-btn:hover {
+        color: var(--text-secondary);
+        transform: none;
+        opacity: 1;
+    }
+
+    .tab-btn.tab-active {
+        color: var(--gold);
+        border-bottom-color: var(--gold);
+    }
+
+    /* ── Tab Panels: hidden unless active ── */
+    [data-tab] {
+        display: none;
         padding: 0.75rem;
         gap: 0.75rem;
     }
 
-    .profile-header {
-        padding: 0.5rem 1rem;
-    }
-
-    .profile-info-panel {
+    [data-tab].tab-active {
+        display: flex;
         flex-direction: column;
-        text-align: center;
+        animation: tabFadeIn 0.2s ease;
     }
 
-    .profile-stats {
-        flex-direction: column;
+    /* ── Inventory panel: no extra wrapper needed ── */
+    [data-tab="inventory"].tab-active {
+        padding: 0.75rem;
     }
 
-    .stat-item {
-        flex-direction: row;
-        border-bottom: var(--border-subtle);
+    /* ── Touch-friendly list items ── */
+    .user-list li {
+        padding: 0.75rem;
+        min-height: 48px;
+    }
+
+    /* ── Touch-friendly buttons ── */
+    .btn-invite, .btn-accept, .btn-decline,
+    .btn-challenge, .btn-chat, .btn-remove, .btn-cancel {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.75rem;
+        min-height: 36px;
+    }
+
+    /* ── Friend list: hide challenge/remove (they're inside the chat) ── */
+    #friendsList .btn-challenge,
+    #friendsList .btn-remove {
+        display: none;
+    }
+
+    #friendsList .btn-chat {
+        background: transparent;
+        color: var(--gold-dim);
+        border: none;
+        font-size: 1.1rem;
+        padding: 0.25rem 0.5rem;
+        min-height: unset;
+    }
+
+    #friendsList .btn-chat::after {
+        content: '›';
+        font-size: 1.3rem;
+        line-height: 1;
+    }
+
+    #friendsList .btn-chat:hover {
+        color: var(--gold);
+        transform: none;
+    }
+
+    #friendsList li {
+        cursor: pointer;
+    }
+
+    /* ── Private Chat: full-screen slide-up overlay ── */
+    .private-chat-panel {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 300;
+        border-radius: 0 !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        transform: translateY(110%);
+        transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+        display: flex !important;
+        padding: 0 !important;
+    }
+
+    .private-chat-panel.chat-open {
+        transform: translateY(0);
+    }
+
+    .chat-header {
+        padding: 0.85rem 1rem 0.75rem;
+        background: var(--bg-surface);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        margin-bottom: 0;
+    }
+
+    .chat-actions {
+        padding: 0.6rem 1rem;
+        margin-bottom: 0;
+        border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        background: rgba(0, 0, 0, 0.15);
+    }
+
+    .chat-messages {
+        border-radius: 0;
+        margin: 0;
+        padding: 0.75rem 1rem;
+    }
+
+    .chat-input-container {
+        padding: 0.75rem 1rem;
+        background: var(--bg-surface);
+        border-top: 1px solid rgba(212, 175, 55, 0.15);
+    }
+
+    .chat-input-container .input-dark {
+        font-size: 1rem;
+    }
+
+    .btn-send {
+        padding: 0.6rem 1rem;
     }
 }
 

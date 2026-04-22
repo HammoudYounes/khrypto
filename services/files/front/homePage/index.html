@@ -20,7 +20,7 @@
 <body>
     <canvas id="matrixCanvas"></canvas>
 
-    <!-- Top-right controls -->
+    <!-- Profile button (desktop: fixed top-right; mobile: compact fixed top-right) -->
     <div class="profile-button-container">
         <button id="profileBtn" class="profile-btn">
             <img id="navAvatarImg" class="nav-avatar-img" src="" alt="">
@@ -40,6 +40,9 @@
             <h2>Profile</h2>
             <div class="profile-info">
                 <p id="usernameDisplay">Username: <span>Guest</span></p>
+                <p id="panelBalanceRow" class="panel-balance-row">
+                    Balance: <span class="profile-coin-wrap"><span class="profile-coin-icon">◈</span><span id="panelCoinBalance">0</span></span>
+                </p>
             </div>
             <button id="goToProfileBtn" class="btn btn-gold" style="margin-bottom: 10px; width: 100%;">My Profile &
                 Friends</button>
@@ -49,18 +52,33 @@
 
     <!-- Main content -->
     <div class="home-container">
-        <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-lg">
-
         <div class="home-main">
-            <!-- Left: Leaderboard -->
+            <!-- Panel 0 (mobile) / Fixed left (desktop): Leaderboard -->
             <section class="leaderboard-section glass-card">
                 <h2 class="leaderboard-title">🏆 Leaderboard</h2>
                 <ol class="leaderboard-list" id="leaderboardList">
                 </ol>
             </section>
 
-            <!-- Center: game buttons + shop -->
+            <!-- Panel 1 (mobile) / Fixed right (desktop): Global Chat -->
+            <section class="chat-section glass-card">
+                <h2 class="chat-header">
+                    <span class="chat-icon">💬</span> Global Chat
+                    <button id="chatCloseBtn" class="chat-close-btn" aria-label="Go back">✕</button>
+                </h2>
+                <div id="chatMessages" class="chat-messages">
+                    <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
+                    <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
+                </div>
+                <div class="chat-input-bar">
+                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
+                    <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
+                </div>
+            </section>
+
+            <!-- Panel 2 (mobile) / Center (desktop): game buttons + shop/rules -->
             <div class="home-left">
+                <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-lg">
                 <div class="game-mode-buttons">
                     <button id="localBtn" class="mode-card glass-card">
                         <span class="mode-icon">🎮</span>
@@ -93,22 +111,34 @@
                 </div>
             </div>
 
-            <!-- Right: Global Chat -->
-            <section class="chat-section glass-card">
-                <h2 class="chat-header">
-                    <span class="chat-icon">💬</span> Global Chat
-                </h2>
-                <div id="chatMessages" class="chat-messages">
-                    <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
-                    <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
-                </div>
-                <div class="chat-input-bar">
-                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
-                    <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
-                </div>
-            </section>
+            <!-- Panel 3 (mobile): Shop embedded -->
+            <div class="shop-panel" id="panelShop">
+                <!-- Thin overlay captures swipe-right to exit the panel (touches inside iframe don't bubble) -->
+                <div class="shop-swipe-edge" id="shopSwipeEdge"></div>
+                <iframe id="shopIframe" class="shop-iframe" title="Shop"></iframe>
+            </div>
         </div>
     </div>
+
+    <!-- Mobile bottom navigation bar (hidden on desktop via CSS) -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+        <button class="nav-tab" id="navLeaderboardBtn">
+            <span class="nav-tab-icon">🏆</span>
+            <span class="nav-tab-label">Leaderboard</span>
+        </button>
+        <button class="nav-tab" id="navChatBtn">
+            <span class="nav-tab-icon">💬</span>
+            <span class="nav-tab-label">Chat</span>
+        </button>
+        <button class="nav-tab nav-tab-home active" id="navHomeBtn">
+            <span class="nav-tab-icon">🏠</span>
+            <span class="nav-tab-label">Home</span>
+        </button>
+        <button class="nav-tab" id="navShopBtn">
+            <span class="nav-tab-icon">🛒</span>
+            <span class="nav-tab-label">Shop</span>
+        </button>
+    </nav>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

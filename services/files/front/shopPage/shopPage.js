@@ -190,6 +190,35 @@ function closeModal() {
     document.getElementById('buyBtn').disabled = false;
 }
 
+// ── Embedded swipe-to-exit (used when rendered inside home page iframe panel) ──
+function initEmbeddedSwipe() {
+    let startX = 0;
+    let startY = 0;
+    let isHorizontal = false;
+
+    document.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isHorizontal = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (isHorizontal) return;
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 8 && dx > dy * 1.2) isHorizontal = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (!isHorizontal) return;
+        const dx = Math.abs(e.changedTouches[0].clientX - startX);
+        const dy = Math.abs(e.changedTouches[0].clientY - startY);
+        if (dx > 50 && dx > dy) {
+            window.parent.postMessage({ action: 'goHome' }, '*');
+        }
+    }, { passive: true });
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     const token = await ensureAuth();
@@ -198,8 +227,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     notificationManager.init();
     await fetchBalance();
 
+    if (window !== window.top) {
+        document.body.classList.add('embedded');
+        initEmbeddedSwipe();
+    }
+
     document.getElementById('backBtn').addEventListener('click', () => {
-        window.location.href = '../homePage/index.html';
+        if (window !== window.top) {
+            window.parent.postMessage({ action: 'goHome' }, '*');
+        } else {
+            window.location.href = '../homePage/index.html';
+        }
     });
 
     document.getElementById('buyBtn').addEventListener('click', buyLootbox);

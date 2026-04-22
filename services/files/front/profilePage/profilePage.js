@@ -87,12 +87,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadFriendsListWithChat(token);
     requestOnlineStatuses();
     loadInventory(token);
+
+    const _p = new URLSearchParams(window.location.search);
+    if (_p.get('openChat') === 'true' && _p.get('friendshipId')) {
+        openPrivateChat(_p.get('friendshipId'), _p.get('friendId'), _p.get('friendUsername') || 'Friend');
+    }
 });
 
 // Back Navigation
 backBtn.addEventListener('click', () => {
     window.location.href = '../homePage/index.html';
 });
+
+// ── Mobile Tab Switching ──
+const isMobile = () => window.matchMedia('(max-width: 640px)').matches;
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+        document.querySelectorAll('[data-tab]').forEach(el => el.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+        const panel = document.querySelector(`[data-tab="${target}"]`);
+        if (panel) panel.classList.add('tab-active');
+    });
+});
+
+// Activate friends tab by default on mobile
+if (isMobile()) {
+    const friendsTab = document.querySelector('[data-tab="friends"]');
+    if (friendsTab) friendsTab.classList.add('tab-active');
+}
 
 // ==========================================
 // REAL-TIME EVENT LISTENERS (WebSocket via DOM events)
@@ -666,9 +691,14 @@ function openPrivateChat(friendshipId, friendId, friendUsername) {
         if (badge) badge.remove();
     }
 
-    // Show chat panel, hide friends list
-    document.querySelector('.friends-panel').style.display = 'none';
-    privateChatPanel.style.display = 'flex';
+    // Show chat panel
+    if (isMobile()) {
+        privateChatPanel.style.display = 'flex';
+        requestAnimationFrame(() => privateChatPanel.classList.add('chat-open'));
+    } else {
+        document.querySelector('.friends-panel').style.display = 'none';
+        privateChatPanel.style.display = 'flex';
+    }
 
     // Fetch initial messages
     fetchChatMessages();
@@ -684,8 +714,13 @@ function closePrivateChat() {
     chatOffset = 0;
     chatAllLoaded = false;
 
-    privateChatPanel.style.display = 'none';
-    document.querySelector('.friends-panel').style.display = 'block';
+    if (isMobile()) {
+        privateChatPanel.classList.remove('chat-open');
+        setTimeout(() => { privateChatPanel.style.display = 'none'; }, 320);
+    } else {
+        privateChatPanel.style.display = 'none';
+        document.querySelector('.friends-panel').style.display = 'block';
+    }
 }
 
 async function fetchChatMessages() {

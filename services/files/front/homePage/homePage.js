@@ -16,6 +16,9 @@ const profilePanel = document.getElementById("profilePanel");
 const logoutBtn = document.getElementById("logoutBtn");
 const goToProfileBtn = document.getElementById("goToProfileBtn");
 
+// DOM elements - mobile
+const chatCloseBtn = document.getElementById("chatCloseBtn");
+
 
 const socket = io(ApiHost.getHost(), {
     path: '/socket.io',
@@ -36,6 +39,8 @@ function applyGuestUI() {
     if (rejoinBtn) rejoinBtn.style.display = 'none';
     const chatSection = document.querySelector('.chat-section');
     if (chatSection) chatSection.style.display = 'none';
+    const navChatBtn = document.getElementById('navChatBtn');
+    if (navChatBtn) navChatBtn.style.display = 'none';
     if (goToProfileBtn) goToProfileBtn.style.display = 'none';
     if (logoutBtn) logoutBtn.textContent = 'Exit Guest Mode';
 }
@@ -168,28 +173,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (span) span.textContent = username;
     }
 
-    // Show shop button and coin balance for logged-in users
+    // Show shop card (desktop only — mobile uses the bottom nav tab instead)
+    // Load balance/avatar, and init social socket for logged-in users
     if (sessionStorage.getItem('isGuest') !== 'true') {
         const shopNavBtn = document.getElementById('shopNavBtn');
-        if (shopNavBtn) shopNavBtn.style.display = 'flex';
+        if (shopNavBtn && !isMobileLayout()) shopNavBtn.style.display = 'flex';
         fetchAndDisplayBalance();
         fetchAndDisplayAvatar();
+        // Init social socket here so auth is guaranteed ready (no timing race)
+        if (TokenManager.getAccessToken()) {
+            initSocialSocket();
+        }
     }
 
     loadLeaderboard();
+
+    // Mobile navigation
+    initMobileNav();
+    initMobileSwipe();
+    // Ensure correct panel is shown on load
+    if (isMobileLayout()) setActivePanel(2);
 });
 
 async function fetchAndDisplayAvatar() {
     try {
         const username = sessionStorage.getItem('username');
         if (!username) return;
-        const res = await fetch(`/api/market/avatar/${encodeURIComponent(username)}`);
+        const res = await fetch(`${ApiHost.getHost()}/api/market/avatar/${encodeURIComponent(username)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.assetPath) {
             const img = document.getElementById('navAvatarImg');
             if (img) {
-                img.src = `/api/market/${data.assetPath}`;
+                img.src = `${ApiHost.getHost()}/api/market/${data.assetPath}`;
                 img.classList.add('loaded');
             }
         }
@@ -207,13 +223,18 @@ async function fetchAndDisplayBalance() {
         });
         if (!res.ok) return;
         const data = await res.json();
+        // Header button coin display
         const el = document.getElementById('navCoinBalance');
         if (el) el.textContent = data.coins;
-        // Show coin display in profile button
         const sep = document.getElementById('profileCoinSep');
         const wrap = document.getElementById('profileCoinWrap');
         if (sep) sep.style.display = 'inline';
         if (wrap) wrap.style.display = 'flex';
+        // Profile panel balance
+        const panelCoinBalance = document.getElementById('panelCoinBalance');
+        const panelBalanceRow = document.getElementById('panelBalanceRow');
+        if (panelCoinBalance) panelCoinBalance.textContent = data.coins;
+        if (panelBalanceRow) panelBalanceRow.style.display = 'flex';
         sessionStorage.setItem('coins', data.coins);
     } catch (err) {
         console.error('Failed to fetch balance:', err);
@@ -246,11 +267,11 @@ async function loadLeaderboard() {
             list.appendChild(li);
 
             const img = li.querySelector('.lb-avatar-img');
-            fetch(`/api/market/avatar/${encodeURIComponent(user.username)}`)
+            fetch(`${ApiHost.getHost()}/api/market/avatar/${encodeURIComponent(user.username)}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.assetPath) {
-                        img.src = `/api/market/${data.assetPath}`;
+                        img.src = `${ApiHost.getHost()}/api/market/${data.assetPath}`;
                         img.classList.add('loaded');
                     }
                 })
@@ -265,6 +286,13 @@ async function loadLeaderboard() {
 profileBtn.addEventListener('click', () => {
     profilePanel.classList.toggle('active');
 });
+
+// Chat close button — navigates back to home panel on mobile
+if (chatCloseBtn) {
+    chatCloseBtn.addEventListener('click', () => {
+        setActivePanel(2);
+    });
+}
 
 // Logout button click
 logoutBtn.addEventListener('click', () => {
@@ -294,6 +322,124 @@ document.addEventListener('click', (e) => {
         profilePanel.classList.remove('active');
     }
 });
+
+// ========== MOBILE PANEL NAVIGATION ==========
+
+// Panel indices: 0=leaderboard, 1=chat, 2=home (default)
+let activePanel = 2;
+
+function isMobileLayout() {
+    return window.innerWidth <= 768;
+}
+
+function setActivePanel(index) {
+    if (!isMobileLayout()) return;
+    activePanel = index;
+
+    const slider = document.querySelector('.home-main');
+    if (slider) {
+        slider.style.transform = `translateX(-${index * 100}vw)`;
+    }
+
+    // Sync bottom nav active state (tab order: 0=leaderboard, 1=chat, 2=home, 3=shop)
+    document.querySelectorAll('.nav-tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+    });
+
+    // Lazy-load shop iframe on first visit
+    if (index === 3) {
+        const iframe = document.getElementById('shopIframe');
+        if (iframe && !iframe.src) {
+            iframe.src = '../shopPage/index.html';
+        }
+    }
+
+    // Close profile panel when switching away
+    profilePanel.classList.remove('active');
+}
+
+function initMobileNav() {
+    const navLeaderboardBtn = document.getElementById('navLeaderboardBtn');
+    const navChatBtn = document.getElementById('navChatBtn');
+    const navHomeBtn = document.getElementById('navHomeBtn');
+    const navShopBtn = document.getElementById('navShopBtn');
+
+    if (navLeaderboardBtn) navLeaderboardBtn.addEventListener('click', () => setActivePanel(0));
+    if (navChatBtn) navChatBtn.addEventListener('click', () => setActivePanel(1));
+    if (navHomeBtn) navHomeBtn.addEventListener('click', () => setActivePanel(2));
+    if (navShopBtn) navShopBtn.addEventListener('click', () => setActivePanel(3));
+
+    // Handle "Back" button from the embedded shop iframe
+    window.addEventListener('message', (e) => {
+        if (e.data?.action === 'goHome') setActivePanel(2);
+    });
+}
+
+function initMobileSwipe() {
+    const slider = document.querySelector('.home-main');
+    if (!slider) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isHorizontalSwipe = false;
+
+    slider.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isHorizontalSwipe = false;
+    }, { passive: true });
+
+    slider.addEventListener('touchmove', (e) => {
+        if (isHorizontalSwipe) return;
+        const dx = Math.abs(e.touches[0].clientX - touchStartX);
+        const dy = Math.abs(e.touches[0].clientY - touchStartY);
+        // Classify as horizontal only after a clear directional intent
+        if (dx > 8 && dx > dy * 1.2) {
+            isHorizontalSwipe = true;
+        }
+    }, { passive: true });
+
+    slider.addEventListener('touchend', (e) => {
+        if (!isHorizontalSwipe || !isMobileLayout()) return;
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(deltaX) < 45) return;
+
+        if (deltaX < 0) {
+            // Swipe left → next panel (higher index, max 3)
+            if (activePanel < 3) setActivePanel(activePanel + 1);
+        } else {
+            // Swipe right → previous panel (lower index)
+            if (activePanel > 0) setActivePanel(activePanel - 1);
+        }
+    }, { passive: true });
+
+    // The shop iframe captures all touches, so we overlay a thin edge strip
+    // on the left side of the shop panel and listen for swipe-right on it.
+    const shopEdge = document.getElementById('shopSwipeEdge');
+    if (shopEdge) {
+        let edgeStartX = 0;
+        let edgeStartY = 0;
+
+        shopEdge.addEventListener('touchstart', (e) => {
+            edgeStartX = e.touches[0].clientX;
+            edgeStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        shopEdge.addEventListener('touchend', (e) => {
+            if (!isMobileLayout()) return;
+            const dx = Math.abs(e.changedTouches[0].clientX - edgeStartX);
+            const dy = Math.abs(e.changedTouches[0].clientY - edgeStartY);
+            if (dx > 40 && dx > dy) {
+                // Stop propagation so the parent slider doesn't also handle this
+                // swipe and call setActivePanel a second time (which would overshoot).
+                e.stopPropagation();
+                setActivePanel(2);
+            }
+        }, { passive: true });
+    }
+}
+
+// ========== GAME MODE FUNCTIONS ==========
 
 // Game mode functions
 function emitGame(gameMode) {
@@ -489,7 +635,7 @@ async function fetchChatMessages() {
 
     try {
         const token = TokenManager.getAccessToken();
-        const res = await fetch(`/api/chat/global?limit=15&offset=${chatOffset}`, {
+        const res = await fetch(`${ApiHost.getHost()}/api/chat/global?limit=15&offset=${chatOffset}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -605,12 +751,3 @@ chatMessages.addEventListener('scroll', () => {
     }
 });
 
-// Initialize social socket when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Small delay to ensure auth is ready
-    setTimeout(() => {
-        if (TokenManager.getAccessToken()) {
-            initSocialSocket();
-        }
-    }, 500);
-});
