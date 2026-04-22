@@ -20,9 +20,8 @@
 <body>
     <canvas id="matrixCanvas"></canvas>
 
-    <!-- Top controls / Mobile header -->
+    <!-- Profile button (desktop: fixed top-right; mobile: compact fixed top-right) -->
     <div class="profile-button-container">
-        <button id="chatToggleBtn" class="chat-toggle-btn" aria-label="Global Chat">💬</button>
         <button id="profileBtn" class="profile-btn">
             <img id="navAvatarImg" class="nav-avatar-img" src="" alt="">
             <span class="profile-icon" id="profileIconFallback">⬡</span>
@@ -53,18 +52,33 @@
 
     <!-- Main content -->
     <div class="home-container">
-        <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-lg">
-
         <div class="home-main">
-            <!-- Left: Leaderboard -->
+            <!-- Panel 0 (mobile) / Fixed left (desktop): Leaderboard -->
             <section class="leaderboard-section glass-card">
                 <h2 class="leaderboard-title">🏆 Leaderboard</h2>
                 <ol class="leaderboard-list" id="leaderboardList">
                 </ol>
             </section>
 
-            <!-- Center: game buttons + shop -->
+            <!-- Panel 1 (mobile) / Fixed right (desktop): Global Chat -->
+            <section class="chat-section glass-card">
+                <h2 class="chat-header">
+                    <span class="chat-icon">💬</span> Global Chat
+                    <button id="chatCloseBtn" class="chat-close-btn" aria-label="Go back">✕</button>
+                </h2>
+                <div id="chatMessages" class="chat-messages">
+                    <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
+                    <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
+                </div>
+                <div class="chat-input-bar">
+                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
+                    <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
+                </div>
+            </section>
+
+            <!-- Panel 2 (mobile) / Center (desktop): game buttons + shop/rules -->
             <div class="home-left">
+                <img src="../assets/khrypto_logo.png" alt="KHRYPTO" class="khrypto-logo logo-lg">
                 <div class="game-mode-buttons">
                     <button id="localBtn" class="mode-card glass-card">
                         <span class="mode-icon">🎮</span>
@@ -86,10 +100,6 @@
                 </div>
 
                 <div class="home-left-links">
-                    <a href="../shopPage/index.html" class="shop-card glass-card" id="shopNavBtn" style="display:none;">
-                        <span class="shop-card-icon">🛒</span>
-                        <span class="shop-card-label">Shop</span>
-                    </a>
                     <a href="../rulesPage/index.html" class="rules-card glass-card" id="rulesNavBtn">
                         <span class="rules-card-icon">📜</span>
                         <span class="rules-card-label">How to Play</span>
@@ -97,23 +107,32 @@
                 </div>
             </div>
 
-            <!-- Right: Global Chat -->
-            <section class="chat-section glass-card">
-                <h2 class="chat-header">
-                    <span class="chat-icon">💬</span> Global Chat
-                    <button id="chatCloseBtn" class="chat-close-btn" aria-label="Close chat">✕</button>
-                </h2>
-                <div id="chatMessages" class="chat-messages">
-                    <div id="chatLoading" class="chat-loading" style="display:none;">Loading older messages...</div>
-                    <p class="chat-empty" id="chatEmpty">No messages yet. Say hello!</p>
-                </div>
-                <div class="chat-input-bar">
-                    <input type="text" id="chatInput" class="input-dark" placeholder="Type a message..." autocomplete="off">
-                    <button id="chatSendBtn" class="btn btn-gold chat-send-btn">Send</button>
-                </div>
-            </section>
+            <!-- Panel 3 (mobile): Shop embedded -->
+            <div class="shop-panel" id="panelShop">
+                <iframe id="shopIframe" class="shop-iframe" title="Shop"></iframe>
+            </div>
         </div>
     </div>
+
+    <!-- Mobile bottom navigation bar (hidden on desktop via CSS) -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+        <button class="nav-tab" id="navLeaderboardBtn">
+            <span class="nav-tab-icon">🏆</span>
+            <span class="nav-tab-label">Leaderboard</span>
+        </button>
+        <button class="nav-tab" id="navChatBtn">
+            <span class="nav-tab-icon">💬</span>
+            <span class="nav-tab-label">Chat</span>
+        </button>
+        <button class="nav-tab nav-tab-home active" id="navHomeBtn">
+            <span class="nav-tab-icon">🏠</span>
+            <span class="nav-tab-label">Home</span>
+        </button>
+        <button class="nav-tab" id="navShopBtn">
+            <span class="nav-tab-icon">🛒</span>
+            <span class="nav-tab-label">Shop</span>
+        </button>
+    </nav>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

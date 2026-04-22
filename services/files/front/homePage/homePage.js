@@ -16,8 +16,7 @@ const profilePanel = document.getElementById("profilePanel");
 const logoutBtn = document.getElementById("logoutBtn");
 const goToProfileBtn = document.getElementById("goToProfileBtn");
 
-// DOM elements - mobile header
-const chatToggleBtn = document.getElementById("chatToggleBtn");
+// DOM elements - mobile
 const chatCloseBtn = document.getElementById("chatCloseBtn");
 
 
@@ -40,7 +39,8 @@ function applyGuestUI() {
     if (rejoinBtn) rejoinBtn.style.display = 'none';
     const chatSection = document.querySelector('.chat-section');
     if (chatSection) chatSection.style.display = 'none';
-    if (chatToggleBtn) chatToggleBtn.style.display = 'none';
+    const navChatBtn = document.getElementById('navChatBtn');
+    if (navChatBtn) navChatBtn.style.display = 'none';
     if (goToProfileBtn) goToProfileBtn.style.display = 'none';
     if (logoutBtn) logoutBtn.textContent = 'Exit Guest Mode';
 }
@@ -173,10 +173,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (span) span.textContent = username;
     }
 
-    // Show shop button, load balance/avatar, and init social socket for logged-in users
+    // Load balance/avatar, and init social socket for logged-in users
     if (sessionStorage.getItem('isGuest') !== 'true') {
-        const shopNavBtn = document.getElementById('shopNavBtn');
-        if (shopNavBtn) shopNavBtn.style.display = 'flex';
         fetchAndDisplayBalance();
         fetchAndDisplayAvatar();
         // Init social socket here so auth is guaranteed ready (no timing race)
@@ -186,6 +184,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loadLeaderboard();
+
+    // Mobile navigation
+    initMobileNav();
+    initMobileSwipe();
+    // Ensure correct panel is shown on load
+    if (isMobileLayout()) setActivePanel(2);
 });
 
 async function fetchAndDisplayAvatar() {
@@ -278,30 +282,12 @@ async function loadLeaderboard() {
 // Toggle profile panel
 profileBtn.addEventListener('click', () => {
     profilePanel.classList.toggle('active');
-    // Close chat overlay when opening profile
-    const chatSection = document.querySelector('.chat-section');
-    if (chatSection) chatSection.classList.remove('chat-open');
-    if (chatToggleBtn) chatToggleBtn.classList.remove('chat-active');
 });
 
-// Chat toggle button (mobile)
-if (chatToggleBtn) {
-    chatToggleBtn.addEventListener('click', () => {
-        const chatSection = document.querySelector('.chat-section');
-        if (!chatSection) return;
-        const isOpen = chatSection.classList.toggle('chat-open');
-        chatToggleBtn.classList.toggle('chat-active', isOpen);
-        // Close profile panel when opening chat
-        if (isOpen) profilePanel.classList.remove('active');
-    });
-}
-
-// Chat close button (mobile)
+// Chat close button — navigates back to home panel on mobile
 if (chatCloseBtn) {
     chatCloseBtn.addEventListener('click', () => {
-        const chatSection = document.querySelector('.chat-section');
-        if (chatSection) chatSection.classList.remove('chat-open');
-        if (chatToggleBtn) chatToggleBtn.classList.remove('chat-active');
+        setActivePanel(2);
     });
 }
 
@@ -327,18 +313,105 @@ if (goToProfileBtn) {
     });
 }
 
-// Close panels when clicking outside
+// Close profile panel when clicking outside
 document.addEventListener('click', (e) => {
     if (!profilePanel.contains(e.target) && !profileBtn.contains(e.target)) {
         profilePanel.classList.remove('active');
     }
-    const chatSection = document.querySelector('.chat-section');
-    if (chatSection && chatToggleBtn &&
-        !chatSection.contains(e.target) && !chatToggleBtn.contains(e.target)) {
-        chatSection.classList.remove('chat-open');
-        chatToggleBtn.classList.remove('chat-active');
-    }
 });
+
+// ========== MOBILE PANEL NAVIGATION ==========
+
+// Panel indices: 0=leaderboard, 1=chat, 2=home (default)
+let activePanel = 2;
+
+function isMobileLayout() {
+    return window.innerWidth <= 768;
+}
+
+function setActivePanel(index) {
+    if (!isMobileLayout()) return;
+    activePanel = index;
+
+    const slider = document.querySelector('.home-main');
+    if (slider) {
+        slider.style.transform = `translateX(-${index * 100}vw)`;
+    }
+
+    // Sync bottom nav active state (tab order: 0=leaderboard, 1=chat, 2=home, 3=shop)
+    document.querySelectorAll('.nav-tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+    });
+
+    // Lazy-load shop iframe on first visit
+    if (index === 3) {
+        const iframe = document.getElementById('shopIframe');
+        if (iframe && !iframe.src) {
+            iframe.src = '../shopPage/index.html';
+        }
+    }
+
+    // Close profile panel when switching away
+    profilePanel.classList.remove('active');
+}
+
+function initMobileNav() {
+    const navLeaderboardBtn = document.getElementById('navLeaderboardBtn');
+    const navChatBtn = document.getElementById('navChatBtn');
+    const navHomeBtn = document.getElementById('navHomeBtn');
+    const navShopBtn = document.getElementById('navShopBtn');
+
+    if (navLeaderboardBtn) navLeaderboardBtn.addEventListener('click', () => setActivePanel(0));
+    if (navChatBtn) navChatBtn.addEventListener('click', () => setActivePanel(1));
+    if (navHomeBtn) navHomeBtn.addEventListener('click', () => setActivePanel(2));
+    if (navShopBtn) navShopBtn.addEventListener('click', () => setActivePanel(3));
+
+    // Handle "Back" button from the embedded shop iframe
+    window.addEventListener('message', (e) => {
+        if (e.data?.action === 'goHome') setActivePanel(2);
+    });
+}
+
+function initMobileSwipe() {
+    const slider = document.querySelector('.home-main');
+    if (!slider) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isHorizontalSwipe = false;
+
+    slider.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isHorizontalSwipe = false;
+    }, { passive: true });
+
+    slider.addEventListener('touchmove', (e) => {
+        if (isHorizontalSwipe) return;
+        const dx = Math.abs(e.touches[0].clientX - touchStartX);
+        const dy = Math.abs(e.touches[0].clientY - touchStartY);
+        // Classify as horizontal only after a clear directional intent
+        if (dx > 8 && dx > dy * 1.2) {
+            isHorizontalSwipe = true;
+        }
+    }, { passive: true });
+
+    slider.addEventListener('touchend', (e) => {
+        if (!isHorizontalSwipe || !isMobileLayout()) return;
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(deltaX) < 45) return;
+
+        if (deltaX < 0) {
+            // Swipe left → next panel (higher index, max 3)
+            if (activePanel < 3) setActivePanel(activePanel + 1);
+        } else {
+            // Swipe right → previous panel (lower index)
+            if (activePanel > 0) setActivePanel(activePanel - 1);
+        }
+    }, { passive: true });
+}
+
+// ========== GAME MODE FUNCTIONS ==========
 
 // Game mode functions
 function emitGame(gameMode) {

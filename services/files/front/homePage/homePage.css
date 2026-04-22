@@ -568,6 +568,18 @@ body {
     display: none;
 }
 
+/* ── Mode sublabel (rejoin countdown) ── */
+.mode-sublabel {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+}
+
+/* ── Mobile bottom nav: hidden on desktop ── */
+.mobile-bottom-nav {
+    display: none;
+}
+
 /* ── Responsive: Tablet ── */
 @media (max-width: 900px) {
     .home-main {
@@ -584,149 +596,193 @@ body {
 @media (max-width: 768px) {
     body {
         padding: 0;
+        overflow: hidden;
     }
 
-    /* Full-width mobile header bar */
+    /* ─ Profile button: compact, fixed top-right corner ─ */
     .profile-button-container {
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: 3.25rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
-        padding: 0 1rem;
-        background: rgba(11, 11, 11, 0.95);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-        z-index: 1000;
+        top: 0.6rem;
+        right: 0.6rem;
+        left: auto;
+        width: auto;
+        height: auto;
+        background: none;
+        border: none;
+        backdrop-filter: none;
+        padding: 0;
+        z-index: 200;
     }
 
-    /* Show chat toggle button */
     .chat-toggle-btn {
-        display: flex;
+        display: none;
     }
 
-    /* Compact profile button */
     .profile-btn {
-        padding: 0.35rem 0.6rem;
+        padding: 0.4rem 0.65rem;
         font-size: 0.75rem;
         gap: 0.35rem;
     }
 
     .nav-avatar-img {
-        width: 28px;
-        height: 28px;
+        width: 26px;
+        height: 26px;
     }
 
-    /* Hide coin info from profile button — shown in panel instead */
-    .profile-coin-sep {
-        display: none !important;
-    }
-
+    .profile-coin-sep,
     .profile-coin-wrap {
         display: none !important;
     }
 
-    /* Profile panel — full-width dropdown from top */
+    /* Profile panel — drops below the top-right button */
     .profile-panel {
-        top: 3.25rem;
-        right: 0;
-        left: 0;
-        width: 100%;
-        max-width: 100%;
-        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        top: 3.1rem;
+        right: 0.6rem;
+        left: auto;
+        width: min(88vw, 17rem);
+        max-width: min(88vw, 17rem);
+        border-radius: var(--radius-lg);
     }
 
-    /* Show balance row inside the panel */
     .panel-balance-row {
         display: flex;
         align-items: center;
         gap: 0.35rem;
     }
 
-    /* Chat section — full-screen overlay, slides in from right */
-    .chat-section {
+    /* ─ Main container: full-screen panel viewport ─ */
+    .home-container {
         position: fixed;
-        top: 3.25rem;
+        top: 0;
+        left: 0;
         right: 0;
-        left: auto;
-        width: 100%;
-        height: calc(100vh - 3.25rem);
+        bottom: 60px;
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+        display: block;
+        overflow: hidden;
+    }
+
+    /* ─ Panels slider (4 panels × 100vw) ─ */
+    .home-main {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap;
+        width: 400vw;
+        height: 100%;
+        gap: 0;
+        align-items: stretch;
+        /* default: show home panel (index 2) */
+        transform: translateX(-200vw);
+        transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* ─ Shared panel base ─ */
+    .leaderboard-section,
+    .chat-section,
+    .home-left,
+    .shop-panel {
+        position: static !important;
+        width: 100vw !important;
+        min-width: 100vw;
+        flex-shrink: 0;
+        height: 100%;
+        transform: none !important;
+        top: auto !important;
+        right: auto !important;
+        left: auto !important;
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-sizing: border-box;
         border-radius: 0;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        z-index: 950;
     }
 
-    .chat-section.chat-open {
-        transform: translateX(0);
+    /* ─ Panel ordering: leaderboard=0, chat=1, home=2, shop=3 ─ */
+    .leaderboard-section {
+        order: 0;
+        display: flex !important;
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0.75rem;
     }
 
-    /* Show close button inside chat header */
+    .chat-section {
+        order: 1;
+        display: flex !important;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .home-left {
+        order: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        /* top padding clears the profile button; bottom padding clears nav bar */
+        padding: 2.75rem 1rem 0.75rem;
+        overflow: hidden;
+    }
+
+    .shop-panel {
+        order: 3;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    /* ─ Shop iframe fills the panel ─ */
+    .shop-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+
+    /* Chat close button: navigates back to home panel */
     .chat-close-btn {
         display: flex;
         align-items: center;
     }
 
-    /* Main layout — vertically centered, no scroll */
-    .home-container {
-        margin-top: 3.25rem;
-        min-height: calc(100vh - 3.25rem);
-        padding: 0.75rem 1rem;
-        gap: 0.75rem;
-        justify-content: center;
-    }
-
-    /* Smaller logo */
+    /* ─ Logo inside home panel ─ */
     .khrypto-logo.logo-lg {
-        height: 8rem;
+        height: 5.5rem;
+        flex-shrink: 0;
     }
 
-    /* Home left fills width */
-    .home-left {
-        width: 100%;
-        gap: 0.75rem;
-    }
-
-    /* Home main fills width */
-    .home-main {
-        width: 100%;
-        gap: 0;
-    }
-
-    /* Game buttons — single row */
+    /* ─ Game buttons ─ */
     .game-mode-buttons {
         flex-wrap: nowrap;
         gap: 0.5rem;
         width: 100%;
+        flex-shrink: 0;
     }
 
     .mode-card {
         flex: 1;
         min-width: 0;
-        padding: 0.75rem 0.25rem;
-        flex-direction: column;
-        gap: 0.4rem;
+        padding: 0.65rem 0.25rem;
+        gap: 0.35rem;
+        flex-shrink: 0;
     }
 
     .mode-icon {
-        font-size: 1.75rem;
+        font-size: 1.6rem;
     }
 
     .mode-label {
-        font-size: 0.6rem;
+        font-size: 0.58rem;
         letter-spacing: 0.05em;
     }
 
-    /* Shop + Rules row */
+    /* ─ Rules row (shop removed from home panel) ─ */
     .home-left-links {
         flex-wrap: nowrap;
         gap: 0.5rem;
         width: 100%;
+        flex-shrink: 0;
     }
 
     .shop-card,
@@ -734,18 +790,75 @@ body {
         flex: 1;
         min-width: 0;
         max-width: none;
-        padding: 0.6rem 0.5rem;
+        padding: 0.55rem 0.5rem;
         gap: 0.5rem;
     }
 
     .shop-card-icon,
     .rules-card-icon {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
     }
 
     .shop-card-label,
     .rules-card-label {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         letter-spacing: 0.06em;
+    }
+
+    /* ─ Bottom navigation bar ─ */
+    .mobile-bottom-nav {
+        display: flex !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: rgba(11, 11, 11, 0.97);
+        backdrop-filter: blur(14px);
+        border-top: 1px solid rgba(212, 175, 55, 0.2);
+        z-index: 1000;
+        align-items: stretch;
+    }
+
+    .nav-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: color var(--transition-fast), background var(--transition-fast);
+        padding: 0.25rem 0;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .nav-tab-icon {
+        font-size: 1.3rem;
+        line-height: 1;
+    }
+
+    .nav-tab-label {
+        font-size: 0.48rem;
+        font-family: var(--font-heading);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+    }
+
+    .nav-tab.active {
+        color: var(--gold);
+    }
+
+    .nav-tab:active {
+        background: rgba(212, 175, 55, 0.08);
+    }
+
+    .nav-tab-home .nav-tab-icon {
+        font-size: 1.5rem;
     }
 }

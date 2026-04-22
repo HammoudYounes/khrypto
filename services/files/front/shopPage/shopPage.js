@@ -199,7 +199,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await fetchBalance();
 
     document.getElementById('backBtn').addEventListener('click', () => {
-        window.location.href = '../homePage/index.html';
+        if (window !== window.top) {
+            window.parent.postMessage({ action: 'goHome' }, '*');
+        } else {
+            window.location.href = '../homePage/index.html';
+        }
     });
 
     document.getElementById('buyBtn').addEventListener('click', buyLootbox);
