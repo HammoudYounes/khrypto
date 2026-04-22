@@ -259,11 +259,14 @@ class NotificationManager {
 
         this.socket.on('private-chat:receive', (payload) => {
             this.debug("Private chat message received", payload);
-            this._sendNativeNotification(
-                payload.senderUsername || 'New Message',
-                payload.content || 'Sent you a message',
-                { type: 'message', friendshipId: payload.friendshipId, senderId: payload.senderId, senderUsername: payload.senderUsername }
-            );
+            const myUsername = sessionStorage.getItem('username');
+            if (!myUsername || payload.senderUsername !== myUsername) {
+                this._sendNativeNotification(
+                    payload.senderUsername || 'New Message',
+                    payload.content || 'Sent you a message',
+                    { type: 'message', friendshipId: payload.friendshipId, senderId: payload.senderId, senderUsername: payload.senderUsername }
+                );
+            }
             // Add a flag so the profile page can mark the message as handled
             payload._handled = false;
 
