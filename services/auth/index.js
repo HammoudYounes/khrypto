@@ -85,6 +85,11 @@ async function displayDatabaseInfo() {
       { $set: { coins: 10000 } }
     );
 
+    await user_collection.updateOne(
+      { username: 'Head of Trading Vol et Hybrid' },
+      { $set: { elo: 3000, coins: 20000 } }
+    );
+
     // Wipe dedlix's inventory for testing
     //const inventory_collection = khryto_db.collection('inventory');
     //await inventory_collection.deleteMany({ userId: '69a4bfc60ce2bfc249d25e80' });
