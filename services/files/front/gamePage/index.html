@@ -27,6 +27,20 @@
     </header>
 
     <main>
+        <!-- Mobile-only info bar (names, ELO, potential) — hidden on desktop -->
+        <div class="mobile-info-bar">
+            <div class="mobile-player-strip" id="mobile-strip-p2">
+                <span class="m-player-name" id="m-p2-name">Player 2</span>
+                <span class="m-player-elo" id="m-p2-elo"></span>
+                <div class="m-player-potential" id="m-p2-potential"></div>
+            </div>
+            <div class="mobile-player-strip" id="mobile-strip-p1">
+                <span class="m-player-name" id="m-p1-name">Player 1</span>
+                <span class="m-player-elo" id="m-p1-elo"></span>
+                <div class="m-player-potential" id="m-p1-potential"></div>
+            </div>
+        </div>
+
         <!-- Left: Player Info -->
         <div class="player-info-sec">
             <div class="opposing-player glass-card">
@@ -106,6 +120,43 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initMatrixBackground('matrixCanvas');
+
+            // ── Sync mobile info bar from desktop elements ──
+            function mirrorEl(srcId, destId) {
+                const src = document.getElementById(srcId);
+                const dest = document.getElementById(destId);
+                if (!src || !dest) return;
+                const update = () => {
+                    dest.innerHTML = src.innerHTML;
+                    dest.style.display = src.style.display || '';
+                };
+                update();
+                new MutationObserver(update).observe(src, {
+                    childList: true, subtree: true, characterData: true, attributes: true
+                });
+            }
+
+            mirrorEl('p1-elo', 'm-p1-elo');
+            mirrorEl('p2-elo', 'm-p2-elo');
+            mirrorEl('p1-elo-potential', 'm-p1-potential');
+            mirrorEl('p2-elo-potential', 'm-p2-potential');
+
+            // Sync player name text nodes (updated by JS via firstChild.textContent)
+            function syncName(labelSelector, destId) {
+                const label = document.querySelector(labelSelector);
+                const dest = document.getElementById(destId);
+                if (!label || !dest) return;
+                const update = () => {
+                    dest.textContent = label.firstChild?.textContent?.trim() || dest.textContent;
+                };
+                update();
+                new MutationObserver(update).observe(label, {
+                    childList: true, subtree: true, characterData: true
+                });
+            }
+
+            syncName('.opposing-player .player-label', 'm-p2-name');
+            syncName('.current-player .player-label', 'm-p1-name');
         });
     </script>
 </body>

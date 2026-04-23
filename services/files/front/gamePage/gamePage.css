@@ -529,6 +529,11 @@ main {
     }
 }
 
+/* ── Mobile info bar (hidden on desktop) ── */
+.mobile-info-bar {
+    display: none;
+}
+
 /* ── Emote toggle button (hidden on wide screens) ── */
 .emote-toggle-btn {
     display: none;
@@ -552,33 +557,140 @@ main {
         display: flex;
     }
 
+    /* info-bar(6.5rem fixe) + board(3fr) + pyramides(1fr) */
     main {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: 6.5rem 3fr 1fr;
     }
 
-    .player-info-sec {
-        order: 1;
+    /* ── Barre info mobile ── */
+    .mobile-info-bar {
+        display: flex;
         flex-direction: row;
-        height: auto;
-        padding: 0.25rem 0.5rem;
+        order: 1;
+        padding: 0.45rem 0.6rem 0.3rem;
         gap: 0.5rem;
-        font-size: 0.75rem;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--gold-dim);
+        align-items: stretch;
+    }
+
+    .mobile-player-strip {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.05rem;
+        padding: 0.1rem 0.3rem;
+        border-radius: var(--radius-sm);
+    }
+
+    .m-player-name {
+        font-family: var(--font-heading);
+        font-size: 0.78rem;
+        color: var(--gold);
+        letter-spacing: 0.03em;
+        font-weight: 700;
+    }
+
+    .m-player-elo {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+    }
+
+    .m-player-potential {
+        font-size: 0.6rem;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.3;
+    }
+
+    /* ── Game board — prend les 3fr ── */
+    .game-sec {
+        order: 2;
+        height: 100%;
+        justify-content: center;
+        overflow: hidden;
+        padding: 0.5rem 0.2rem 0;
+    }
+
+    .board-wrapper {
+        width: auto;
+        height: 83%;
+        aspect-ratio: 1 / 1;
+        max-width: 95vw;
+    }
+
+    .rot-buttons {
+        padding-top: 0.3rem;
+        gap: 0.4rem;
+    }
+
+    /* Boutons rotation = taille d'une case du board (board = 95vw / 10 cases) */
+    .rot-buttons .action-btn {
+        width: 9.5vw;
+        height: 9.5vw;
+        padding: 0;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ── Cartes pyramides — prend le 1fr en bas ── */
+    .player-info-sec {
+        order: 3;
+        flex-direction: row;
+        height: 100%;
+        padding: 0.2rem 0.4rem;
+        gap: 0.4rem;
+        border-top: 1px solid var(--gold-dim);
+        background: var(--bg-card);
     }
 
     .opposing-player,
     .current-player {
         flex: 1;
         min-height: auto;
-        padding: 0.35rem;
+        padding: 0.2rem 0.3rem;
+        justify-content: center;
+        gap: 0.1rem;
     }
 
-    .player-label {
-        font-size: 0.65rem;
+    /* Masquer tout le texte — maintenant dans la barre info */
+    .player-avatar,
+    .player-avatar.loaded,
+    .player-label,
+    .player-elo-potential,
+    .cooldown-info {
+        display: none !important;
     }
 
-    .game-sec {
-        order: 2;
+    /* Pyramides plus grandes */
+    .player-preview-cell {
+        width: 42%;
+        margin: 0;
+    }
+
+    .piece-image {
+        width: 260%;
+    }
+
+    .pyramid-count {
+        font-size: 0.8em;
+        margin-top: 0.1rem;
+    }
+
+    /* Boutons de rotation plus grands */
+    .reserve-controls {
+        gap: 0.4rem;
+        margin-top: 0.15rem;
+    }
+
+    .reserve-controls button {
+        padding: 0.25rem 0.55rem;
+        font-size: 0.85rem;
     }
 
     /* Emote panel becomes a fixed overlay drawer */
@@ -615,36 +727,6 @@ main {
         max-height: 50%;
     }
 
-    .board-wrapper {
-        height: auto;
-        width: 95%;
-        max-width: 30rem;
-    }
-
-    .player-preview-cell {
-        width: 30%;
-    }
-
-    .pyramid-count {
-        font-size: 0.75em;
-        margin-top: 0.125rem;
-    }
-
-    .cooldown-info {
-        font-size: 0.6rem;
-        margin-top: 0.15rem;
-    }
-
-    .reserve-controls button {
-        padding: 0.1rem 0.2rem;
-        font-size: 0.7rem;
-    }
-
-    .rot-buttons {
-        padding-top: 0.5rem;
-        gap: 0.5rem;
-    }
-
     .modal-content {
         min-width: auto;
         width: 90%;
@@ -654,5 +736,144 @@ main {
     #victoryMessage {
         font-size: 1rem;
         margin-bottom: 1rem;
+    }
+}
+
+/* ── Phone landscape / small tablets ── */
+@media (max-width: 768px) {
+    .player-info-sec {
+        padding: 0.2rem 0.4rem;
+        gap: 0.3rem;
+    }
+
+    .opposing-player,
+    .current-player {
+        padding: 0.2rem 0.3rem;
+    }
+
+    .player-preview-cell {
+        width: 30%;
+    }
+
+    .piece-image {
+        width: 230%;
+    }
+
+    .rot-buttons .action-btn {
+        width: 7vw;
+        height: 7vw;
+        padding: 0;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* ── Small phones (portrait) ── */
+@media (max-width: 480px) {
+    body {
+        grid-template-rows: 2.2rem 1fr;
+    }
+
+    header {
+        padding: 0 0.5rem;
+    }
+
+    header .khrypto-logo {
+        height: 1.4rem;
+    }
+
+    #leaveBtn {
+        padding: 0.15rem 0.45rem;
+        font-size: 0.65rem;
+    }
+
+    .emote-toggle-btn {
+        font-size: 1.1rem;
+        padding: 0.15rem 0.4rem;
+    }
+
+    /* Cartes joueurs en bas — compactes */
+    .player-info-sec {
+        padding: 0.15rem 0.3rem;
+        gap: 0.2rem;
+    }
+
+    .opposing-player,
+    .current-player {
+        padding: 0.15rem 0.25rem;
+        gap: 0.1rem;
+    }
+
+    .player-label {
+        font-size: 0.6rem;
+        margin-bottom: 0;
+    }
+
+    .player-elo {
+        font-size: 0.6em;
+    }
+
+    .player-elo-potential {
+        display: none;
+    }
+
+    /* Pyramides bien visibles */
+    .player-preview-cell {
+        width: 32%;
+        margin: 0.05rem 0;
+    }
+
+    .piece-image {
+        width: 240%;
+    }
+
+    .pyramid-count {
+        font-size: 0.65em;
+        margin-top: 0.05rem;
+    }
+
+    /* Cooldown caché — pas de place */
+    .cooldown-info {
+        display: none;
+    }
+
+    .reserve-controls {
+        gap: 0.15rem;
+        margin-top: 0.1rem;
+    }
+
+    .reserve-controls button {
+        padding: 0.06rem 0.14rem;
+        font-size: 0.58rem;
+    }
+
+    /* Board — carré maximal dans 75% de hauteur */
+    .board-wrapper {
+        height: 83%;
+        max-width: 98vw;
+    }
+
+    /* Boutons rotation compacts */
+    .rot-buttons {
+        padding-top: 0.2rem;
+        gap: 0.4rem;
+    }
+
+    .rot-buttons .action-btn {
+        width: 7vw;
+        height: 7vw;
+        padding: 0;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Emote drawer narrower */
+    .chat-moves-sec {
+        width: 260px;
+        right: -280px;
     }
 }
