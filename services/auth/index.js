@@ -84,7 +84,10 @@ async function displayDatabaseInfo() {
       { username: 'Chihemek' },
       { $set: { coins: 10000 } }
     );
-
+    await user_collection.updateOne(
+      { username: 'Youssef' },
+      { $set: { coins: 10000 } }
+    );
     await user_collection.updateOne(
       { username: 'Head of Trading Vol et Hybrid' },
       { $set: { elo: 3000, coins: 20000 } }
