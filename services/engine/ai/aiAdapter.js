@@ -5,9 +5,20 @@ const bot = require('./smartBot');
 
 const AI_PLAYER_ID = 1;
 
-// Default (hard) search settings. The bot computes after a short cosmetic
-// delay in Game.playAITurn, so up to ~1s here stays imperceptible.
-const DEFAULT_OPTIONS = { timeLimitMs: 800, maxDepth: 6, randomness: 0 };
+// Difficulty tiers. randomness = probability of playing a top-3-but-not-best
+// move (never blundering into a forced loss). The bot computes after a short
+// cosmetic delay in Game.playAITurn, so up to ~1s stays imperceptible.
+const TIERS = {
+    easy:   { timeLimitMs: 100, maxDepth: 2, randomness: 0.45 },
+    medium: { timeLimitMs: 300, maxDepth: 4, randomness: 0.15 },
+    hard:   { timeLimitMs: 800, maxDepth: 6, randomness: 0 }
+};
+
+const DEFAULT_OPTIONS = TIERS.hard;
+
+function getTierOptions(difficulty) {
+    return TIERS[difficulty] || DEFAULT_OPTIONS;
+}
 
 async function initializeAI(_gameState) {
     // No-op: bot reads current state directly, no initialization required
@@ -25,4 +36,4 @@ async function askBot(_humanEngineAction, currentEngineState, options = DEFAULT_
     return bestMove;
 }
 
-module.exports = { initializeAI, askBot, DEFAULT_OPTIONS };
+module.exports = { initializeAI, askBot, getTierOptions, TIERS, DEFAULT_OPTIONS };

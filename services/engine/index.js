@@ -111,17 +111,26 @@ io.on('connection', (socket) => {
     }
 
     // 1. Player wants to start a game (local/AI — from homepage)
-    socket.on('game:create', (mode) => {
+    // Accepts either a mode string (legacy) or { mode, difficulty }
+    socket.on('game:create', (payload) => {
         if (rateLimited('misc')) return;
+
+        const mode = typeof payload === 'string' ? payload : payload && payload.mode;
+        const difficulty = (payload && payload.difficulty) || 'hard';
 
         // Online games are created exclusively by matchmaking/social via HTTP
         if (!['local', 'ai'].includes(mode)) {
             socket.emit('game:error', { message: 'Invalid game mode' });
             return;
         }
+        if (!['easy', 'medium', 'hard'].includes(difficulty)) {
+            socket.emit('game:error', { message: 'Invalid difficulty' });
+            return;
+        }
 
         const game = gameManager.createGame(mode);
-        console.log(`[Engine] Game created: ${game.id}, Mode: ${mode}`);
+        if (mode === 'ai') game.aiDifficulty = difficulty;
+        console.log(`[Engine] Game created: ${game.id}, Mode: ${mode}${mode === 'ai' ? ` (${difficulty})` : ''}`);
         socket.emit('game:created', { gameId: game.id });
     });
 

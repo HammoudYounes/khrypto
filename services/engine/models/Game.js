@@ -18,6 +18,7 @@ class Game {
         this.restartVotes = new Set(); // Track which players voted to restart
         this.usersCollection = usersCollection;
         this.matchRecorder = matchRecorder;
+        this.aiDifficulty = 'hard'; // easy | medium | hard (ai mode only)
 
         // Disconnect grace: cumulative budget, not a fresh window per drop
         this.reconnectTimers = {};            // playerId → setTimeout handle
@@ -325,8 +326,12 @@ class Game {
                 await aiAdapter.initializeAI({ board: this.initialBoardSnapshot });
             }
 
-            console.log("L'IA réfléchit...");
-            const engineFormattedBotMove = await aiAdapter.askBot(this.lastHumanAction, this.state);
+            console.log(`L'IA réfléchit... (${this.aiDifficulty})`);
+            const engineFormattedBotMove = await aiAdapter.askBot(
+                this.lastHumanAction,
+                this.state,
+                aiAdapter.getTierOptions(this.aiDifficulty)
+            );
 
             if (engineFormattedBotMove) {
                 console.log("L'IA a choisi de jouer :", engineFormattedBotMove);
