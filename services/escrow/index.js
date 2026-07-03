@@ -27,6 +27,7 @@ const ORACLE_KEYPAIR_PATH = process.env.ORACLE_KEYPAIR_PATH || null;
 
 const DEPOSIT_DEADLINE_S = 15 * 60;   // players must deposit within 15 min
 const SETTLE_POLL_MS = 15_000;
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || null;
 
 // Hard devnet guard — this service must never touch mainnet in this phase
 if (/mainnet/i.test(SOLANA_RPC_URL)) {
@@ -80,11 +81,69 @@ function send(res, code, obj) {
     res.end(JSON.stringify(obj));
 }
 
+/**
+ * Initialize the on-chain escrow for a match. Shared by the internal
+ * (matchmaking-driven, wager mode) and player-facing paths.
+ * Returns { code, body } ready to send.
+ */
+async function initEscrowForGame(gameId, stakeLamports, requestingUserId = null) {
+    const match = await matches.findOne({ gameId });
+    if (!match) return { code: 404, body: { error: 'Unknown game' } };
+    if (match.status !== 'active') return { code: 409, body: { error: 'Match already finished' } };
+
+    const playerIds = [match.users['0'], match.users['1']];
+    if (requestingUserId && !playerIds.includes(requestingUserId)) {
+        return { code: 403, body: { error: 'You are not a player in this game' } };
+    }
+
+    const [u0, u1] = await Promise.all(playerIds.map(id => users.findOne({ _id: ObjectId.createFromHexString(id) })));
+    if (!u0?.walletAddress || !u1?.walletAddress) {
+        return { code: 409, body: { error: 'Both players must have a linked wallet' } };
+    }
+    if (playerIds[0] === playerIds[1] || u0.walletAddress === u1.walletAddress) {
+        return { code: 409, body: { error: 'Players must be two distinct accounts with different wallets' } };
+    }
+
+    const existing = await escrows.findOne({ gameId });
+    if (existing) return { code: 409, body: { error: 'Escrow already exists for this game', pda: existing.pda } };
+
+    const deadline = Math.floor(Date.now() / 1000) + DEPOSIT_DEADLINE_S;
+    const { pda, signature } = await escrowClient.initializeMatch(
+        gameId, u0.walletAddress, u1.walletAddress, stakeLamports, deadline
+    );
+
+    await escrows.insertOne({
+        gameId, pda, stakeLamports, deadline,
+        mode: match.mode,
+        wallets: { 0: u0.walletAddress, 1: u1.walletAddress },
+        users: { 0: playerIds[0], 1: playerIds[1] },
+        status: 'open', createdAt: new Date(), initSignature: signature
+    });
+
+    console.log(`[Escrow] Initialized escrow ${pda} for game ${gameId} (${stakeLamports} lamports)`);
+    return { code: 200, body: { pda, stakeLamports, deadline } };
+}
+
 const server = http.createServer(async (req, res) => {
     const userId = req.headers['x-user-id'];
     const url = req.url.split('?')[0];
 
     try {
+        // Internal: matchmaking initializes the escrow for a wager-mode game.
+        // Guarded by the shared service secret, never routed via the gateway.
+        if (req.method === 'POST' && url === '/internal/init') {
+            if (INTERNAL_API_SECRET && req.headers['x-internal-secret'] !== INTERNAL_API_SECRET) {
+                return send(res, 403, { error: 'Forbidden' });
+            }
+            if (!escrowClient || !matches) return send(res, 503, { error: 'Escrow not configured' });
+            const { gameId, stakeLamports } = await readJsonBody(req);
+            if (typeof gameId !== 'string' || !Number.isInteger(stakeLamports) || stakeLamports <= 0) {
+                return send(res, 400, { error: 'gameId and positive integer stakeLamports required' });
+            }
+            const { code, body } = await initEscrowForGame(gameId, stakeLamports);
+            return send(res, code, body);
+        }
+
         // Health/config — safe without escrow enabled
         if (req.method === 'GET' && url === '/api/escrow/status') {
             return send(res, 200, {
@@ -100,45 +159,21 @@ const server = http.createServer(async (req, res) => {
         }
         if (!userId) return send(res, 401, { error: 'Unauthorized' });
 
-        // Create a wager escrow for a game (either player may call it once)
+        // Retry escrow creation for a wager-mode game (fallback if the
+        // automatic init at match time failed). Wager escrows are otherwise
+        // created by matchmaking — plain online games cannot be wagered.
         if (req.method === 'POST' && url === '/api/escrow/wager') {
             const { gameId, stakeLamports } = await readJsonBody(req);
             if (typeof gameId !== 'string' || !Number.isInteger(stakeLamports) || stakeLamports <= 0) {
                 return send(res, 400, { error: 'gameId and positive integer stakeLamports required' });
             }
-
             const match = await matches.findOne({ gameId });
             if (!match) return send(res, 404, { error: 'Unknown game' });
-            if (match.status !== 'active') return send(res, 409, { error: 'Match already finished' });
-
-            const playerIds = [match.users['0'], match.users['1']];
-            if (!playerIds.includes(userId)) return send(res, 403, { error: 'You are not a player in this game' });
-
-            const [u0, u1] = await Promise.all(playerIds.map(id => users.findOne({ _id: ObjectId.createFromHexString(id) })));
-            if (!u0?.walletAddress || !u1?.walletAddress) {
-                return send(res, 409, { error: 'Both players must have a linked wallet' });
+            if (match.mode !== 'wager') {
+                return send(res, 403, { error: 'Only wager-mode games can hold a stake' });
             }
-            if (playerIds[0] === playerIds[1] || u0.walletAddress === u1.walletAddress) {
-                return send(res, 409, { error: 'Players must be two distinct accounts with different wallets' });
-            }
-
-            const existing = await escrows.findOne({ gameId });
-            if (existing) return send(res, 409, { error: 'Escrow already exists for this game', escrow: { pda: existing.pda } });
-
-            const deadline = Math.floor(Date.now() / 1000) + DEPOSIT_DEADLINE_S;
-            const { pda, signature } = await escrowClient.initializeMatch(
-                gameId, u0.walletAddress, u1.walletAddress, stakeLamports, deadline
-            );
-
-            await escrows.insertOne({
-                gameId, pda, stakeLamports, deadline,
-                wallets: { 0: u0.walletAddress, 1: u1.walletAddress },
-                users: { 0: playerIds[0], 1: playerIds[1] },
-                status: 'open', createdAt: new Date(), initSignature: signature
-            });
-
-            console.log(`[Escrow] Initialized escrow ${pda} for game ${gameId} (${stakeLamports} lamports)`);
-            return send(res, 200, { pda, stakeLamports, deadline });
+            const { code, body } = await initEscrowForGame(gameId, stakeLamports, userId);
+            return send(res, code, body);
         }
 
         // Build the deposit transaction for the calling player (signed in Phantom)

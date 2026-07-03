@@ -1,7 +1,8 @@
 /**
- * Wager panel (devnet) — lets the two players of an online match escrow a
- * SOL stake via Phantom. Renders nothing unless the escrow service is
- * enabled on this deployment and the game is an online match.
+ * Wager panel (devnet) — shown only for wager-mode matches. The stake is
+ * fixed by the tier chosen in matchmaking and the escrow is created
+ * automatically at match time; players just deposit via Phantom and watch
+ * the settlement status. Plain online games never show this panel.
  *
  * Uses the solanaWeb3 IIFE bundle (loaded from CDN in index.html) to
  * deserialize the deposit transaction built by the escrow service.
@@ -27,7 +28,7 @@ function authHeaders() {
 }
 
 async function api(path, opts = {}) {
-    const res = await fetch(`${ApiHost.getHost()}${path}`, { headers: authHeaders(), ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
+    const res = await fetch(`${ApiHost.getHost()}${path}`, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
     const body = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, body };
 }
@@ -38,21 +39,18 @@ function setStatus(msg, color = '#ccc') {
 }
 
 export async function initWagerPanel(gameId) {
-    if (state.gameMode !== 'online') return;
+    const stakeSol = sessionStorage.getItem('wagerStake') || localStorage.getItem('activeWagerStake');
+    if (!stakeSol) return; // not a wager match
     if (sessionStorage.getItem('isGuest') === 'true') return;
     if (!TokenManager.getAccessToken()) return;
     currentGameId = gameId;
-
-    // Only render if escrow is actually configured on this deployment
-    const status = await api('/api/escrow/status').catch(() => null);
-    if (!status || !status.body.enabled) return;
 
     panel = h(`
         <div id="wagerPanel" style="position:fixed;bottom:12px;right:12px;z-index:6000;
              background:rgba(10,10,10,0.92);border:1px solid #c9a227;border-radius:10px;
              padding:10px 14px;min-width:230px;font-size:0.9rem;color:#eee;">
-            <div style="font-weight:bold;color:#c9a227;margin-bottom:6px;">💰 Wager (devnet SOL)</div>
-            <div id="wagerBody"></div>
+            <div style="font-weight:bold;color:#c9a227;margin-bottom:6px;">💰 Wager match — ◎ ${stakeSol} SOL</div>
+            <div id="wagerBody"><em>Setting up escrow…</em></div>
             <div id="wagerStatus" style="margin-top:6px;font-size:0.8rem;color:#ccc;"></div>
         </div>
     `);
@@ -72,36 +70,13 @@ async function refresh() {
     if (!panel) return;
     const { ok, status, body } = await api(`/api/escrow/game/${encodeURIComponent(currentGameId)}`);
 
-    if (!ok && status === 404) return renderPropose();
-    if (!ok) return setStatus('Escrow unavailable', '#e74c3c');
+    if (!ok && status === 404) {
+        // Matchmaking creates the escrow asynchronously — usually appears
+        // within a few seconds of the match starting
+        return setStatus('Waiting for the escrow to be created…', '#f1c40f');
+    }
+    if (!ok) return setStatus(body.error || 'Escrow unavailable', '#e74c3c');
     renderEscrow(body);
-}
-
-function renderPropose() {
-    const bodyEl = panel.querySelector('#wagerBody');
-    if (bodyEl.dataset.mode === 'propose') return;
-    bodyEl.dataset.mode = 'propose';
-    bodyEl.innerHTML = `
-        <div style="display:flex;gap:6px;align-items:center;">
-            <input id="wagerStake" type="number" min="0.001" step="0.001" value="0.01"
-                   style="width:80px;background:#111;color:#eee;border:1px solid #444;border-radius:6px;padding:4px;"> SOL
-            <button id="wagerProposeBtn" class="btn btn-gold" style="padding:4px 10px;">Propose</button>
-        </div>`;
-    setStatus('Both players need a linked wallet.');
-
-    bodyEl.querySelector('#wagerProposeBtn').addEventListener('click', async () => {
-        const sol = parseFloat(bodyEl.querySelector('#wagerStake').value);
-        if (!(sol > 0)) return setStatus('Enter a valid stake', '#e74c3c');
-        setStatus('Creating escrow…');
-        const { ok, body } = await api('/api/escrow/wager', {
-            method: 'POST',
-            body: JSON.stringify({ gameId: currentGameId, stakeLamports: Math.round(sol * 1e9) })
-        });
-        if (!ok) return setStatus(body.error || 'Failed to create escrow', '#e74c3c');
-        setStatus('Escrow created — deposit your stake');
-        panel.querySelector('#wagerBody').dataset.mode = '';
-        refresh();
-    });
 }
 
 function renderEscrow(info) {
@@ -109,10 +84,10 @@ function renderEscrow(info) {
     const oc = info.onChain;
     const stakeSol = (info.local.stakeLamports / 1e9).toFixed(3);
 
-    if (!oc) return setStatus('Waiting for on-chain state…');
+    if (!oc) return setStatus('Waiting for on-chain confirmation…', '#f1c40f');
 
     if (oc.settled) {
-        bodyEl.innerHTML = `<div>Stake: <b>${stakeSol} SOL</b> each</div>`;
+        bodyEl.innerHTML = `<div>Pot: <b>${(2 * stakeSol).toFixed(3)} SOL</b></div>`;
         return setStatus(`Settled ✓ pot paid to ${oc.winner.slice(0, 4)}…${oc.winner.slice(-4)}`, '#2ecc71');
     }
     if (oc.cancelled) {
@@ -127,7 +102,7 @@ function renderEscrow(info) {
     if (bodyEl.dataset.mode !== 'escrow') {
         bodyEl.dataset.mode = 'escrow';
         bodyEl.innerHTML = `
-            <div>Stake: <b>${stakeSol} SOL</b> each</div>
+            <div>Stake: <b>${stakeSol} SOL</b> each — winner takes <b>${(2 * stakeSol).toFixed(3)} SOL</b></div>
             <button id="wagerDepositBtn" class="btn btn-gold" style="margin-top:6px;padding:4px 10px;">Deposit stake</button>`;
         bodyEl.querySelector('#wagerDepositBtn').addEventListener('click', deposit);
     }
@@ -137,7 +112,7 @@ function renderEscrow(info) {
     setStatus(
         iDeposited && oppDeposited ? 'Both stakes locked — winner takes the pot!' :
         iDeposited ? 'Waiting for opponent to deposit…' :
-        oppDeposited ? 'Opponent deposited — your turn!' : 'Nobody has deposited yet',
+        oppDeposited ? 'Opponent deposited — your turn!' : 'Deposit your stake to activate the wager',
         iDeposited && oppDeposited ? '#2ecc71' : '#ccc'
     );
 }

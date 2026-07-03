@@ -339,6 +339,10 @@ body {
     gap: 1.25rem;
     justify-content: center;
     flex-wrap: wrap;
+    /* Keep the cards inside the center column (a 4th card was sliding
+       under the chat panel); wrap 2×2 instead */
+    max-width: 480px;
+    margin: 0 auto;
 }
 
 .mode-card {

@@ -318,6 +318,7 @@ socket.on('game:turn_deadline', ({ playerId, deadline }) => {
 
 socket.on('game:over', (winner) => {
     hideTurnClock();
+    localStorage.removeItem('activeWagerStake');
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');
     localStorage.removeItem('activeGameExpiresAt');

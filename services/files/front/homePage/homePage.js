@@ -423,16 +423,93 @@ socket.on("game:created", (data) => {
     window.location.href = '../gamePage/index.html';
 });
 
-// ========== ONLINE MATCHMAKING ==========
+// ========== ONLINE & WAGER MATCHMAKING ==========
 
 let matchmakingSocket = null;
+let activeSearchButton = null;
+
+const wagerButton = document.getElementById("wagerBtn");
+const WAGER_TIERS = [0.01, 0.1, 0.5, 1, 5];
 
 onlineButton.addEventListener('click', () => {
     if (matchmakingSocket && matchmakingSocket.connected) {
-        // Already searching — treat as cancel
         cancelMatchmaking();
         return;
     }
+    startMatchmaking(null, onlineButton);
+});
+
+if (wagerButton) {
+    wagerButton.addEventListener('click', async () => {
+        if (matchmakingSocket && matchmakingSocket.connected) {
+            cancelMatchmaking();
+            return;
+        }
+        // Wagering requires a linked wallet — check before queueing
+        try {
+            const res = await fetch(`${ApiHost.getHost()}/api/profile`, {
+                headers: { 'Authorization': `Bearer ${TokenManager.getAccessToken()}` }
+            });
+            const profile = await res.json();
+            if (!profile.walletAddress) {
+                alert('Link your Phantom wallet on the profile page before wagering.');
+                return;
+            }
+        } catch (e) {
+            alert('Could not verify your wallet link. Try again.');
+            return;
+        }
+        showWagerTierPicker();
+    });
+
+    // Reveal the wager card only when escrow is configured (and not a guest)
+    if (sessionStorage.getItem('isGuest') !== 'true' && TokenManager.getAccessToken()) {
+        fetch(`${ApiHost.getHost()}/api/escrow/status`, {
+            headers: { 'Authorization': `Bearer ${TokenManager.getAccessToken()}` }
+        }).then(r => r.json())
+          .then(s => { if (s.enabled) wagerButton.style.display = ''; })
+          .catch(() => {});
+    }
+}
+
+function showWagerTierPicker() {
+    if (document.getElementById('wager-tier-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'wager-tier-overlay';
+    overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.65)',
+        'display:flex', 'flex-direction:column', 'align-items:center',
+        'justify-content:center', 'z-index:9999', 'gap:0.7rem'
+    ].join(';');
+
+    const title = document.createElement('p');
+    title.textContent = '💰 Choose your stake (devnet SOL)';
+    title.style.cssText = 'color:white;font-size:1.3rem;font-weight:bold;margin-bottom:0.4rem;';
+    overlay.appendChild(title);
+
+    for (const tier of WAGER_TIERS) {
+        const btn = document.createElement('button');
+        btn.textContent = `◎ ${tier} SOL`;
+        btn.className = 'mode-card glass-card';
+        btn.style.cssText = 'min-width:200px;padding:0.7rem 1.5rem;font-size:1.1rem;cursor:pointer;';
+        btn.addEventListener('click', () => {
+            overlay.remove();
+            startMatchmaking(tier, wagerButton);
+        });
+        overlay.appendChild(btn);
+    }
+
+    const hint = document.createElement('p');
+    hint.textContent = 'You only match opponents wagering the same amount. Winner takes the pot.';
+    hint.style.cssText = 'color:#aaa;font-size:0.85rem;max-width:320px;text-align:center;';
+    overlay.appendChild(hint);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function startMatchmaking(wagerTier, triggerButton) {
+    activeSearchButton = triggerButton;
 
     // Connect to the matchmaking service via its own Socket.IO path
     matchmakingSocket = io(ApiHost.getHost(), {
@@ -450,16 +527,16 @@ onlineButton.addEventListener('click', () => {
     matchmakingSocket.on('connect', () => {
         console.log("[Matchmaking] Connected, joining queue...");
         const username = sessionStorage.getItem('username') || 'Player';
-        matchmakingSocket.emit('matchmaking:join', { username });
+        matchmakingSocket.emit('matchmaking:join',
+            wagerTier ? { username, mode: 'wager', stakeSol: wagerTier } : { username });
     });
 
     matchmakingSocket.on('matchmaking:waiting', (data) => {
         console.log("[Matchmaking] Waiting for an opponent...");
         const rangeStr = data && data.eloRange ? ` (+/- ${data.eloRange})` : '';
-        const label = onlineButton.querySelector('.mode-label');
+        const label = activeSearchButton.querySelector('.mode-label');
         if (label) label.textContent = `Searching...${rangeStr}`;
-        localButton.disabled = true;
-        aiButton.disabled = true;
+        setModeButtonsDisabled(true);
     });
 
     matchmakingSocket.on('matchmaking:found', (data) => {
@@ -474,6 +551,15 @@ onlineButton.addEventListener('click', () => {
         if (data.myElo) sessionStorage.setItem("myElo", data.myElo.toString());
         if (data.opponentElo) sessionStorage.setItem("opponentElo", data.opponentElo.toString());
 
+        // Wager games carry a fixed stake; the game page shows the escrow panel
+        if (data.mode === 'wager' && data.stakeSol) {
+            sessionStorage.setItem("wagerStake", data.stakeSol.toString());
+            localStorage.setItem("activeWagerStake", data.stakeSol.toString());
+        } else {
+            sessionStorage.removeItem("wagerStake");
+            localStorage.removeItem("activeWagerStake");
+        }
+
         // Clean up matchmaking socket before navigating
         matchmakingSocket.disconnect();
         matchmakingSocket = null;
@@ -483,7 +569,12 @@ onlineButton.addEventListener('click', () => {
 
     matchmakingSocket.on('matchmaking:error', (data) => {
         console.error("[Matchmaking] Error:", data.message);
-        // Stay in queue — the server re-queued us
+        // Hard rejections (wallet not linked, bad tier) end the search
+        if (data.message && /wallet|tier/i.test(data.message)) {
+            alert(data.message);
+            cancelMatchmaking();
+        }
+        // Otherwise stay in queue — the server re-queued us
     });
 
     matchmakingSocket.on('connect_error', async (err) => {
@@ -499,14 +590,21 @@ onlineButton.addEventListener('click', () => {
     });
 
     // Show searching state & connect
-    const label = onlineButton.querySelector('.mode-label');
+    const label = activeSearchButton.querySelector('.mode-label');
     if (label) label.textContent = "Searching...";
-    localButton.disabled = true;
-    aiButton.disabled = true;
+    setModeButtonsDisabled(true);
 
     matchmakingSocket.io.opts.query = { token: TokenManager.getAccessToken() };
     matchmakingSocket.connect();
-});
+}
+
+function setModeButtonsDisabled(disabled) {
+    localButton.disabled = disabled;
+    aiButton.disabled = disabled;
+    // The searching button itself stays clickable so it can act as Cancel
+    if (activeSearchButton !== onlineButton) onlineButton.disabled = disabled;
+    if (wagerButton && activeSearchButton !== wagerButton) wagerButton.disabled = disabled;
+}
 
 function cancelMatchmaking() {
     if (matchmakingSocket) {
@@ -514,10 +612,17 @@ function cancelMatchmaking() {
         matchmakingSocket.disconnect();
         matchmakingSocket = null;
     }
-    const label = onlineButton.querySelector('.mode-label');
-    if (label) label.textContent = "Online";
+    const onlineLabel = onlineButton.querySelector('.mode-label');
+    if (onlineLabel) onlineLabel.textContent = "Online";
+    if (wagerButton) {
+        const wagerLabel = wagerButton.querySelector('.mode-label');
+        if (wagerLabel) wagerLabel.textContent = "Wager";
+    }
+    activeSearchButton = null;
     localButton.disabled = false;
     aiButton.disabled = false;
+    onlineButton.disabled = false;
+    if (wagerButton) wagerButton.disabled = false;
 }
 
 // ========== GLOBAL CHAT ==========

@@ -3,7 +3,7 @@ const { initializeBoard } = require('../rules/initBoard');
 const { applyAction, computeLaserPath, applyDestructions } = require('../rules/actions');
 const aiAdapter = require('../ai/aiAdapter');
 
-const ONLINE_MODES = ['online', 'ranked_challenge', 'unranked'];
+const ONLINE_MODES = ['online', 'ranked_challenge', 'unranked', 'wager'];
 const TURN_CLOCK_MS = 60_000;        // per-turn time budget (online modes)
 const GRACE_BUDGET_MS = 90_000;      // cumulative disconnect grace per player per game
 
@@ -223,7 +223,9 @@ class Game {
         const forfeitLike = ['forfeit', 'timeout'].includes(reason);
         this.io.to(this.id).emit('game:over', { ...this.state.winner, reason, forfeit: forfeitLike });
 
-        if (['online', 'ranked_challenge'].includes(this.mode)) {
+        // Wager games are rated like ranked challenges (Elo yes, coins no —
+        // the SOL pot is the reward)
+        if (['online', 'ranked_challenge', 'wager'].includes(this.mode)) {
             this.applyEloAndCoins();
         }
         if (this.isOnline() && this.matchRecorder) {

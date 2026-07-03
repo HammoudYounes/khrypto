@@ -42,7 +42,7 @@ class MatchmakingQueue {
      * @param {string} username - The user's username
      * @param {number} elo - The user's Elo rating
      */
-    add(socket, userId, username = 'Player', elo = 600) {
+    add(socket, userId, username = 'Player', elo = 600, tier = null) {
         // Prevent duplicate entries
         if (this.waiting.some(entry => entry.socket.id === socket.id)) {
             console.log(`[Queue] Socket ${socket.id} already in queue, skipping.`);
@@ -57,8 +57,8 @@ class MatchmakingQueue {
                 this.waiting = this.waiting.filter(entry => entry.userId !== userId);
             }
         }
-        this.waiting.push({ socket, userId, username, elo, joinedAt: Date.now() });
-        console.log(`[Queue] Player added (${username}, Elo: ${elo}). Queue size: ${this.waiting.length}`);
+        this.waiting.push({ socket, userId, username, elo, tier, joinedAt: Date.now() });
+        console.log(`[Queue] Player added (${username}, Elo: ${elo}${tier ? `, Wager tier: ${tier} SOL` : ''}). Queue size: ${this.waiting.length}`);
     }
 
     /**
@@ -110,6 +110,9 @@ class MatchmakingQueue {
 
                 // Never match an account against itself
                 if (p1.userId && p1.userId === p2.userId) continue;
+                // Wager players only match within the same stake tier;
+                // normal players (tier null) only match other normal players
+                if (p1.tier !== p2.tier) continue;
                 if (this.isOnCooldown(p1.userId, p2.userId)) continue;
 
                 // Both players must mutually accept the Elo difference
