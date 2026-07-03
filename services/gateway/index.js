@@ -33,12 +33,18 @@ proxy.on('proxyRes', (proxyRes, req) => {
     proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
 });
 
-const tlsConfig = {
-    cert: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/fullchain.pem'),
-    key: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/privkey.pem')
-};
+// TLS when certs are present (production); plain HTTP fallback for local dev
+let tlsConfig = null;
+try {
+    tlsConfig = {
+        cert: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/fullchain.pem'),
+        key: fs.readFileSync('/etc/letsencrypt/khrypto.ps8.pns.academy/privkey.pem')
+    };
+} catch (e) {
+    console.warn('[Gateway] TLS certificates not found — starting in plain HTTP mode (dev only)');
+}
 
-const server = https.createServer(tlsConfig, function (request, response) {
+const requestHandler = function (request, response) {
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
         const origin = request.headers['origin'] || '*';
@@ -111,7 +117,11 @@ const server = https.createServer(tlsConfig, function (request, response) {
     }
 
 
-})
+};
+
+const server = tlsConfig
+    ? https.createServer(tlsConfig, requestHandler)
+    : http.createServer(requestHandler);
 
 server.on('upgrade', async function (req, socket, head) {
     // 1. Extract the token from the WebSocket URL query

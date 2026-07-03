@@ -1,0 +1,14 @@
+# Local development overrides — gateway runs plain HTTP (no TLS certs on dev
+# machines; it falls back automatically) and is reachable on port 8000.
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+version: '3.8'
+
+services:
+  gateway:
+    ports:
+      - "8000:8000"
+
+  auth:
+    environment:
+      # Gateway runs plain HTTP locally
+      - GATEWAY_URL=http://gateway:8000
