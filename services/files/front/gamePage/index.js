@@ -37,6 +37,7 @@ import {
 
 import { notificationManager } from "../js/notificationManager.js";
 import { TokenManager, ApiHost } from "../js/tokenManager.js";
+import { initWagerPanel } from "./wagerPanel.js";
 
 // ========== INITIALIZATION ==========
 
@@ -117,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem('activeOpponentUsername', sessionStorage.getItem('opponentUsername') || '');
             localStorage.setItem('activeMyElo', sessionStorage.getItem('myElo') || '');
             localStorage.setItem('activeOpponentElo', sessionStorage.getItem('opponentElo') || '');
+            initWagerPanel(resolvedGameId); // no-op unless escrow is configured
         }
         hasJoined = true;
     } else {

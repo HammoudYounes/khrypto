@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 
 // Placeholder — replaced by the real program id after `anchor keys sync`
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("F64yExtSv3K2k11TCa1j3fXsiU3Vygcpb7UWZSAjsb4L");
 
 pub const ESCROW_SEED: &[u8] = b"escrow";
 
