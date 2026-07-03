@@ -129,19 +129,50 @@ const server = http.createServer(async (req, res) => {
     const url = req.url.split('?')[0];
 
     try {
-        // Internal: matchmaking initializes the escrow for a wager-mode game.
-        // Guarded by the shared service secret, never routed via the gateway.
-        if (req.method === 'POST' && url === '/internal/init') {
+        // Internal endpoints: matchmaking orchestrates wager escrows through
+        // these. Guarded by the shared service secret, never routed via the
+        // gateway.
+        if (url.startsWith('/internal/')) {
             if (INTERNAL_API_SECRET && req.headers['x-internal-secret'] !== INTERNAL_API_SECRET) {
                 return send(res, 403, { error: 'Forbidden' });
             }
             if (!escrowClient || !matches) return send(res, 503, { error: 'Escrow not configured' });
-            const { gameId, stakeLamports } = await readJsonBody(req);
-            if (typeof gameId !== 'string' || !Number.isInteger(stakeLamports) || stakeLamports <= 0) {
-                return send(res, 400, { error: 'gameId and positive integer stakeLamports required' });
+
+            if (req.method === 'POST' && url === '/internal/init') {
+                const { gameId, stakeLamports } = await readJsonBody(req);
+                if (typeof gameId !== 'string' || !Number.isInteger(stakeLamports) || stakeLamports <= 0) {
+                    return send(res, 400, { error: 'gameId and positive integer stakeLamports required' });
+                }
+                const { code, body } = await initEscrowForGame(gameId, stakeLamports);
+                return send(res, code, body);
             }
-            const { code, body } = await initEscrowForGame(gameId, stakeLamports);
-            return send(res, code, body);
+
+            // Deposit/settlement flags for the pre-game staking gate
+            if (req.method === 'GET' && url.startsWith('/internal/status/')) {
+                const gameId = decodeURIComponent(url.slice('/internal/status/'.length));
+                const escrow = await escrows.findOne({ gameId });
+                if (!escrow) return send(res, 404, { error: 'No escrow for this game' });
+                const oc = await escrowClient.getEscrowState(gameId);
+                if (!oc) return send(res, 200, { depositedA: false, depositedB: false, settled: false, cancelled: false, pending: true });
+                return send(res, 200, {
+                    depositedA: oc.depositedA, depositedB: oc.depositedB,
+                    settled: oc.settled, cancelled: oc.cancelled, pending: false
+                });
+            }
+
+            // Abort a wager before the game starts: refund any deposits
+            if (req.method === 'POST' && url === '/internal/cancel') {
+                const { gameId } = await readJsonBody(req);
+                const escrow = await escrows.findOne({ gameId });
+                if (!escrow) return send(res, 404, { error: 'No escrow for this game' });
+                if (escrow.status !== 'open') return send(res, 409, { error: `Escrow is ${escrow.status}` });
+                const sig = await escrowClient.cancel(gameId, escrow.wallets['0'], escrow.wallets['1']);
+                await escrows.updateOne({ _id: escrow._id }, { $set: { status: 'aborted', settleSignature: sig, settledAt: new Date() } });
+                console.log(`[Escrow] Aborted pre-game escrow for ${gameId}: ${sig}`);
+                return send(res, 200, { cancelled: true, signature: sig });
+            }
+
+            return send(res, 404, { error: 'Not found' });
         }
 
         // Health/config — safe without escrow enabled

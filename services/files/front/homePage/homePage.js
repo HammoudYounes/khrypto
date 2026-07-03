@@ -541,6 +541,7 @@ function startMatchmaking(wagerTier, triggerButton) {
 
     matchmakingSocket.on('matchmaking:found', (data) => {
         console.log("[Matchmaking] Match found!", data);
+        removeDepositOverlay();
 
         sessionStorage.setItem("gameId", data.gameId);
         sessionStorage.setItem("playerId", data.playerId.toString());
@@ -577,6 +578,23 @@ function startMatchmaking(wagerTier, triggerButton) {
         // Otherwise stay in queue — the server re-queued us
     });
 
+    // Wager staking gate: both players must lock their stake before the
+    // game starts. The server sends deposit_required, tracks progress,
+    // and only emits matchmaking:found once both deposits confirm.
+    matchmakingSocket.on('matchmaking:deposit_required', (data) => {
+        showDepositOverlay(data);
+    });
+
+    matchmakingSocket.on('matchmaking:deposit_status', (data) => {
+        updateDepositOverlay(data);
+    });
+
+    matchmakingSocket.on('matchmaking:wager_aborted', (data) => {
+        removeDepositOverlay();
+        alert(data.message || 'Wager cancelled — stakes refunded.');
+        cancelMatchmaking();
+    });
+
     matchmakingSocket.on('connect_error', async (err) => {
         console.error("[Matchmaking] Connection error:", err.message);
 
@@ -606,7 +624,97 @@ function setModeButtonsDisabled(disabled) {
     if (wagerButton && activeSearchButton !== wagerButton) wagerButton.disabled = disabled;
 }
 
+// ========== PRE-GAME STAKE DEPOSIT OVERLAY ==========
+
+let depositCountdownTimer = null;
+
+function showDepositOverlay({ gameId, stakeSol, deadlineAt, opponentUsername }) {
+    removeDepositOverlay();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'deposit-overlay';
+    overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.8)',
+        'display:flex', 'flex-direction:column', 'align-items:center',
+        'justify-content:center', 'z-index:9999', 'gap:0.8rem', 'color:white', 'text-align:center'
+    ].join(';');
+
+    overlay.innerHTML = `
+        <p style="font-size:1.4rem;font-weight:bold;color:#c9a227;">💰 Opponent found: ${opponentUsername}</p>
+        <p>Stake <b>◎ ${stakeSol} SOL</b> to start the match — winner takes <b>◎ ${(stakeSol * 2).toFixed(3)}</b></p>
+        <p id="depositCountdown" style="font-size:1.6rem;font-weight:bold;"></p>
+        <button id="depositNowBtn" class="mode-card glass-card" style="min-width:220px;padding:0.8rem 1.5rem;font-size:1.1rem;cursor:pointer;">Deposit stake</button>
+        <p id="depositState" style="color:#ccc;font-size:0.95rem;">Waiting for deposits…</p>
+        <button id="depositCancelBtn" style="background:none;border:1px solid #666;color:#aaa;border-radius:8px;padding:6px 16px;cursor:pointer;">Cancel (refunds stakes)</button>
+    `;
+    document.body.appendChild(overlay);
+
+    const countdownEl = overlay.querySelector('#depositCountdown');
+    depositCountdownTimer = setInterval(() => {
+        const left = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
+        countdownEl.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+        countdownEl.style.color = left <= 20 ? '#e74c3c' : 'white';
+        if (left <= 0) clearInterval(depositCountdownTimer);
+    }, 500);
+
+    overlay.querySelector('#depositCancelBtn').addEventListener('click', () => {
+        removeDepositOverlay();
+        cancelMatchmaking();
+    });
+
+    overlay.querySelector('#depositNowBtn').addEventListener('click', async () => {
+        const stateEl = overlay.querySelector('#depositState');
+        const btn = overlay.querySelector('#depositNowBtn');
+        const provider = window.solana;
+        if (!provider || !provider.isPhantom) { stateEl.textContent = 'Phantom extension not found'; return; }
+        if (typeof solanaWeb3 === 'undefined') { stateEl.textContent = 'Solana web3 library failed to load'; return; }
+        btn.disabled = true;
+        try {
+            stateEl.textContent = 'Building transaction…';
+            const res = await fetch(`${ApiHost.getHost()}/api/escrow/deposit-tx`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${TokenManager.getAccessToken()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameId })
+            });
+            const body = await res.json();
+            if (!res.ok) { stateEl.textContent = body.error || 'Failed to build deposit'; btn.disabled = false; return; }
+
+            await provider.connect();
+            const tx = solanaWeb3.Transaction.from(Uint8Array.from(atob(body.transaction), c => c.charCodeAt(0)));
+            stateEl.textContent = 'Confirm in Phantom…';
+            const { signature } = await provider.signAndSendTransaction(tx);
+            stateEl.textContent = `Deposit sent (${signature.slice(0, 8)}…) — waiting for confirmation`;
+        } catch (e) {
+            console.error('Deposit error:', e);
+            stateEl.textContent = e.code === 4001 ? 'Deposit cancelled — try again' : 'Deposit failed — try again';
+            btn.disabled = false;
+        }
+    });
+}
+
+function updateDepositOverlay({ you, opponent }) {
+    const overlay = document.getElementById('deposit-overlay');
+    if (!overlay) return;
+    const stateEl = overlay.querySelector('#depositState');
+    const btn = overlay.querySelector('#depositNowBtn');
+    if (you) {
+        btn.style.display = 'none';
+        stateEl.textContent = opponent ? 'Both stakes locked — starting…' : 'Stake locked ✓ waiting for opponent…';
+        stateEl.style.color = opponent ? '#2ecc71' : '#f1c40f';
+    } else if (opponent) {
+        stateEl.textContent = 'Opponent already staked — your turn!';
+        stateEl.style.color = '#f1c40f';
+    }
+}
+
+function removeDepositOverlay() {
+    if (depositCountdownTimer) clearInterval(depositCountdownTimer);
+    const overlay = document.getElementById('deposit-overlay');
+    if (overlay) overlay.remove();
+}
+
 function cancelMatchmaking() {
+    removeDepositOverlay();
     if (matchmakingSocket) {
         matchmakingSocket.emit('matchmaking:cancel');
         matchmakingSocket.disconnect();

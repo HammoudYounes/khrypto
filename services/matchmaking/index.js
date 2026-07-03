@@ -77,30 +77,137 @@ function createGameOnEngine(mode = 'online', player1UserId, player2UserId, playe
     });
 }
 
-// --- Helper: ask the Escrow service to initialize the on-chain escrow ---
-async function initEscrowWithRetry(gameId, stakeLamports, attempts = 3) {
+// --- Escrow service internal API helpers ---
+function escrowHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        ...(INTERNAL_API_SECRET ? { 'x-internal-secret': INTERNAL_API_SECRET } : {})
+    };
+}
+
+async function escrowInit(gameId, stakeLamports, attempts = 2) {
     for (let i = 1; i <= attempts; i++) {
         try {
             const res = await fetch(`${ESCROW_URL}/internal/init`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(INTERNAL_API_SECRET ? { 'x-internal-secret': INTERNAL_API_SECRET } : {})
-                },
+                method: 'POST', headers: escrowHeaders(),
                 body: JSON.stringify({ gameId, stakeLamports })
             });
-            if (res.ok) {
-                console.log(`[Matchmaking] Escrow initialized for wager game ${gameId}`);
-                return;
-            }
+            if (res.ok) return true;
             const body = await res.json().catch(() => ({}));
             console.error(`[Matchmaking] Escrow init attempt ${i} failed for ${gameId}: ${body.error || res.status}`);
         } catch (e) {
             console.error(`[Matchmaking] Escrow init attempt ${i} error for ${gameId}:`, e.message);
         }
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 4000));
     }
-    console.error(`[Matchmaking] Escrow init permanently failed for ${gameId} — game proceeds unwagered`);
+    return false;
+}
+
+async function escrowStatus(gameId) {
+    const res = await fetch(`${ESCROW_URL}/internal/status/${encodeURIComponent(gameId)}`, { headers: escrowHeaders() });
+    return res.ok ? res.json() : null;
+}
+
+async function escrowCancel(gameId) {
+    try {
+        const res = await fetch(`${ESCROW_URL}/internal/cancel`, {
+            method: 'POST', headers: escrowHeaders(), body: JSON.stringify({ gameId })
+        });
+        if (!res.ok) console.error(`[Matchmaking] Escrow cancel failed for ${gameId}: ${res.status}`);
+    } catch (e) {
+        console.error(`[Matchmaking] Escrow cancel error for ${gameId}:`, e.message);
+    }
+}
+
+// --- Found notification shared by normal and wager matches ---
+function emitFound(player1, player2, gameId, mode, tier) {
+    const common = { gameId, mode, stakeSol: tier || null };
+    player1.socket.emit('matchmaking:found', {
+        ...common, playerId: 0,
+        myUsername: player1.username, opponentUsername: player2.username,
+        myElo: player1.elo, opponentElo: player2.elo
+    });
+    player2.socket.emit('matchmaking:found', {
+        ...common, playerId: 1,
+        myUsername: player2.username, opponentUsername: player1.username,
+        myElo: player2.elo, opponentElo: player1.elo
+    });
+    console.log(`[Matchmaking] Match sent! ${player1.username} (${player1.elo}) vs ${player2.username} (${player2.elo})${tier ? ` — wager ${tier} SOL` : ''}`);
+}
+
+// --- Wager staking gate ---
+// The game exists on the engine but players are NOT told about it until
+// both stakes are locked on-chain. Nobody deposits → escrow cancelled,
+// any deposit refunded, game never starts (engine sweeps it later).
+const PENDING_DEPOSIT_MS = 120_000;
+
+async function runWagerStakingGate(player1, player2, tier, gameId) {
+    const stakeLamports = Math.round(tier * 1e9);
+
+    const ok = await escrowInit(gameId, stakeLamports);
+    if (!ok) {
+        // Re-queue both — the wager could not be set up
+        queue.add(player1.socket, player1.userId, player1.username, player1.elo, player1.tier);
+        queue.add(player2.socket, player2.userId, player2.username, player2.elo, player2.tier);
+        [player1, player2].forEach(p => p.socket.emit('matchmaking:error', { message: 'Failed to set up the wager escrow. Retrying...' }));
+        return;
+    }
+
+    const deadlineAt = Date.now() + PENDING_DEPOSIT_MS;
+    player1.socket.emit('matchmaking:deposit_required', { gameId, stakeSol: tier, deadlineAt, opponentUsername: player2.username });
+    player2.socket.emit('matchmaking:deposit_required', { gameId, stakeSol: tier, deadlineAt, opponentUsername: player1.username });
+    console.log(`[Matchmaking] Staking gate opened for ${gameId} (${tier} SOL, 2 min)`);
+
+    let done = false;
+    const cleanup = () => {
+        done = true;
+        clearTimeout(deadlineTimer);
+        clearInterval(pollTimer);
+        player1.socket.off('disconnect', onGone1);
+        player2.socket.off('disconnect', onGone2);
+        player1.socket.off('matchmaking:cancel', onGone1);
+        player2.socket.off('matchmaking:cancel', onGone2);
+    };
+
+    const abort = async (reason) => {
+        if (done) return;
+        cleanup();
+        console.log(`[Matchmaking] Wager aborted for ${gameId}: ${reason}`);
+        await escrowCancel(gameId); // refunds whoever already deposited
+        [player1, player2].forEach(p => {
+            if (p.socket.connected) p.socket.emit('matchmaking:wager_aborted', { message: reason });
+        });
+    };
+
+    const onGone1 = () => abort(`${player1.username} left before staking — deposits refunded`);
+    const onGone2 = () => abort(`${player2.username} left before staking — deposits refunded`);
+    player1.socket.once('disconnect', onGone1);
+    player2.socket.once('disconnect', onGone2);
+    player1.socket.once('matchmaking:cancel', onGone1);
+    player2.socket.once('matchmaking:cancel', onGone2);
+
+    const deadlineTimer = setTimeout(() => abort('Deposit deadline passed — stakes refunded'), PENDING_DEPOSIT_MS);
+
+    const pollTimer = setInterval(async () => {
+        if (done) return;
+        try {
+            const st = await escrowStatus(gameId);
+            if (!st || st.pending) return;
+            if (st.cancelled) return abort('Escrow was cancelled');
+
+            // Keep both players' UI in sync with deposit progress
+            player1.socket.emit('matchmaking:deposit_status', { you: st.depositedA, opponent: st.depositedB });
+            player2.socket.emit('matchmaking:deposit_status', { you: st.depositedB, opponent: st.depositedA });
+
+            if (st.depositedA && st.depositedB) {
+                cleanup();
+                console.log(`[Matchmaking] Both stakes locked for ${gameId} — starting game`);
+                emitFound(player1, player2, gameId, 'wager', tier);
+            }
+        } catch (e) {
+            console.error(`[Matchmaking] Staking gate poll error for ${gameId}:`, e.message);
+        }
+    }, 4000);
 }
 
 // --- HTTP Server (for health checks / future REST endpoints) ---
@@ -207,29 +314,13 @@ setInterval(async () => {
             const { gameId } = await createGameOnEngine(mode, player1.userId, player2.userId, player1.elo, player2.elo);
             console.log(`[Matchmaking] Game created: ${gameId} (${mode}${tier ? ` ${tier} SOL` : ''})`);
 
-            // Wager games: create the on-chain escrow in the background —
-            // the wager panel on the game page waits for it to appear
-            if (tier) initEscrowWithRetry(gameId, Math.round(tier * 1e9));
-
-            const common = { gameId, mode, stakeSol: tier };
-            player1.socket.emit('matchmaking:found', {
-                ...common,
-                playerId: 0,
-                myUsername: player1.username,
-                opponentUsername: player2.username,
-                myElo: player1.elo,
-                opponentElo: player2.elo
-            });
-            player2.socket.emit('matchmaking:found', {
-                ...common,
-                playerId: 1,
-                myUsername: player2.username,
-                opponentUsername: player1.username,
-                myElo: player2.elo,
-                opponentElo: player1.elo
-            });
-
-            console.log(`[Matchmaking] Match sent! ${player1.username} (${player1.elo}) vs ${player2.username} (${player2.elo})`);
+            if (tier) {
+                // Wager games are gated: both players must deposit their
+                // stake before matchmaking:found is sent and play begins
+                runWagerStakingGate(player1, player2, tier, gameId);
+            } else {
+                emitFound(player1, player2, gameId, mode, tier);
+            }
         } catch (err) {
             console.error('[Matchmaking] Failed to create game on engine:', err.message);
 
