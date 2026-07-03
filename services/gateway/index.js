@@ -12,7 +12,8 @@ const PORTS = {
     TOKEN: process.env.TOKEN_URL || 'http://127.0.0.1:8004',
     MATCHMAKING: process.env.MATCHMAKING_URL || 'http://127.0.0.1:8005',
     SOCIAL: process.env.SOCIAL_URL || 'http://127.0.0.1:8006',
-    MARKET: process.env.MARKET_URL || 'http://127.0.0.1:8007'
+    MARKET: process.env.MARKET_URL || 'http://127.0.0.1:8007',
+    ESCROW: process.env.ESCROW_URL || 'http://127.0.0.1:8008'
 };
 
 const proxy = httpProxy.createProxyServer();
@@ -83,6 +84,10 @@ const requestHandler = function (request, response) {
             if (filePath[2] === "friend" || filePath[2] === "social" || filePath[2] === "chat") {
                 console.log("Routing API request to Friend Service");
                 return proxyWithTokenCheck(request, response, PORTS.SOCIAL);
+            }
+            if (filePath[2] === "escrow") {
+                console.log("Routing API request to Escrow Service");
+                return proxyWithTokenCheck(request, response, PORTS.ESCROW);
             }
             if (filePath[2] === "market") {
                 // Public endpoints (no token required)

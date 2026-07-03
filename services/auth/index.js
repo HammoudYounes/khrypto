@@ -1,6 +1,9 @@
 const http = require('http');
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
+const nacl = require('tweetnacl');
+const bs58 = require('bs58');
+const crypto = require('crypto');
 const { error } = require('console');
 
 let DB_NAME = null;
@@ -305,7 +308,8 @@ http.createServer(async function (request, response) {
         username: user.username,
         email: user.mail,
         elo: user.elo,
-        coins: user.coins
+        coins: user.coins,
+        walletAddress: user.walletAddress || null
       }));
 
     } catch (error) {
@@ -315,4 +319,129 @@ http.createServer(async function (request, response) {
     }
   }
 
+  // ========== WALLET LINKING (optional, Phantom / Solana) ==========
+  // Challenge-response: the user proves control of the wallet by signing a
+  // server-issued nonce. Linking is optional — accounts work without it.
+
+  else if (request.url === "/api/profile/wallet/nonce" && request.method === "POST") {
+    const userIdStr = request.headers['x-user-id'];
+    if (!userIdStr) {
+      response.writeHead(401, { "Content-Type": "application/json" });
+      return response.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+
+    const nonce = crypto.randomBytes(24).toString('hex');
+    const message = `Link this wallet to your Khrypto account.\nUser: ${userIdStr}\nNonce: ${nonce}`;
+    walletNonces.set(userIdStr, { message, expiresAt: Date.now() + 5 * 60_000 });
+
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ message }));
+  }
+
+  else if (request.url === "/api/profile/wallet/link" && request.method === "POST") {
+    const userIdStr = request.headers['x-user-id'];
+    if (!userIdStr) {
+      response.writeHead(401, { "Content-Type": "application/json" });
+      return response.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+
+    try {
+      const body = await readJsonBody(request);
+      const { walletAddress, signature } = body;
+
+      const pending = walletNonces.get(userIdStr);
+      if (!pending || Date.now() > pending.expiresAt) {
+        response.writeHead(400, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "No pending nonce — request a new one" }));
+      }
+
+      if (typeof walletAddress !== 'string' || typeof signature !== 'string') {
+        response.writeHead(400, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "walletAddress and signature required" }));
+      }
+
+      // Verify the ed25519 signature of the nonce message
+      let pubkeyBytes;
+      try {
+        pubkeyBytes = bs58.decode(walletAddress);
+        if (pubkeyBytes.length !== 32) throw new Error('bad length');
+      } catch (e) {
+        response.writeHead(400, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "Invalid wallet address" }));
+      }
+
+      const sigBytes = Buffer.from(signature, 'base64');
+      const msgBytes = Buffer.from(pending.message, 'utf8');
+      const valid = nacl.sign.detached.verify(msgBytes, sigBytes, pubkeyBytes);
+      if (!valid) {
+        response.writeHead(400, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "Signature verification failed" }));
+      }
+
+      // One wallet per account: reject if another user already linked it
+      const taken = await user_collection.findOne({
+        walletAddress: walletAddress,
+        _id: { $ne: new ObjectId(userIdStr) }
+      });
+      if (taken) {
+        response.writeHead(409, { "Content-Type": "application/json" });
+        return response.end(JSON.stringify({ error: "This wallet is already linked to another account" }));
+      }
+
+      await user_collection.updateOne(
+        { _id: new ObjectId(userIdStr) },
+        { $set: { walletAddress: walletAddress, walletLinkedAt: new Date() } }
+      );
+      walletNonces.delete(userIdStr);
+
+      console.log(`Wallet ${walletAddress} linked to user ${userIdStr}`);
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ walletAddress }));
+    } catch (error) {
+      console.error("Error linking wallet:", error);
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  }
+
+  else if (request.url === "/api/profile/wallet" && request.method === "DELETE") {
+    const userIdStr = request.headers['x-user-id'];
+    if (!userIdStr) {
+      response.writeHead(401, { "Content-Type": "application/json" });
+      return response.end(JSON.stringify({ error: "Unauthorized" }));
+    }
+
+    try {
+      await user_collection.updateOne(
+        { _id: new ObjectId(userIdStr) },
+        { $unset: { walletAddress: "", walletLinkedAt: "" } }
+      );
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ message: "Wallet unlinked" }));
+    } catch (error) {
+      console.error("Error unlinking wallet:", error);
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  }
+
 }).listen(PORT, () => console.log(`Auth service listening on port ${PORT}`));
+
+// Pending wallet-link nonces: userId → { message, expiresAt }
+const walletNonces = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of walletNonces) if (now > v.expiresAt) walletNonces.delete(k);
+}, 60_000).unref();
+
+function readJsonBody(request) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    request.on('data', chunk => body += chunk);
+    request.on('end', () => {
+      try { resolve(body ? JSON.parse(body) : {}); }
+      catch (e) { reject(e); }
+    });
+    request.on('error', reject);
+  });
+}

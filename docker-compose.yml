@@ -31,6 +31,7 @@ services:
       - MATCHMAKING_URL=http://matchmaking:8005
       - SOCIAL_URL=http://social:8006
       - MARKET_URL=http://market:8007
+      - ESCROW_URL=http://escrow:8008
     volumes:
       - /etc/letsencrypt/khrypto.ps8.pns.academy:/etc/letsencrypt/khrypto.ps8.pns.academy:ro
     depends_on:
@@ -136,6 +137,27 @@ services:
     depends_on:
       - mongo
       - engine
+    networks:
+      - app_network
+
+  escrow:
+    build: ./services/escrow
+    container_name: khrypto_escrow
+    restart: always
+    expose:
+      - "8008"
+    environment:
+      - PORT=8008
+      - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      # Devnet only. Leave unset to run with escrow disabled.
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - ESCROW_PROGRAM_ID=${ESCROW_PROGRAM_ID:-}
+      - ORACLE_KEYPAIR_PATH=${ORACLE_KEYPAIR_PATH:-}
+    volumes:
+      # Mount the host keys directory read-only; point ORACLE_KEYPAIR_PATH at /keys/<file>.json
+      - ./keys:/keys:ro
+    depends_on:
+      - mongo
     networks:
       - app_network
 

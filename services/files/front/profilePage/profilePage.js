@@ -79,6 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (emailEl) emailEl.textContent = email;
 
+    initWalletLink(token);
+
     notificationManager.init();
     initPrivateChatListeners();
     loadPendingInvitations(token);
@@ -1069,4 +1071,96 @@ function showToast(message, type = 'info') {
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
+// ==========================================
+// PHANTOM WALLET LINKING (optional)
+// ==========================================
+
+async function initWalletLink(token) {
+    const walletEl = document.getElementById('profileWallet');
+    const btn = document.getElementById('walletLinkBtn');
+    if (!walletEl || !btn || !token) return;
+
+    const shorten = (addr) => addr.slice(0, 4) + '…' + addr.slice(-4);
+
+    const render = (address) => {
+        if (address) {
+            walletEl.textContent = shorten(address);
+            walletEl.title = address;
+            btn.textContent = 'Unlink';
+            btn.dataset.linked = '1';
+        } else {
+            walletEl.textContent = 'Not linked';
+            walletEl.title = '';
+            btn.textContent = 'Link Phantom';
+            btn.dataset.linked = '';
+        }
+    };
+
+    // Load current state from the server profile
+    try {
+        const res = await fetch(`${ApiHost.getHost()}/api/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const profile = await res.json();
+            render(profile.walletAddress);
+        }
+    } catch (e) { /* profile fetch failure is non-fatal */ }
+
+    btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+            if (btn.dataset.linked) {
+                // Unlink
+                const res = await fetch(`${ApiHost.getHost()}/api/profile/wallet`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) { render(null); showToast('Wallet unlinked', 'info'); }
+                else showToast('Failed to unlink wallet', 'error');
+                return;
+            }
+
+            // Link flow: connect Phantom → sign server nonce → submit proof
+            const provider = window.solana;
+            if (!provider || !provider.isPhantom) {
+                showToast('Phantom wallet not found — install the Phantom browser extension', 'error');
+                return;
+            }
+
+            const conn = await provider.connect();
+            const walletAddress = conn.publicKey.toString();
+
+            const nonceRes = await fetch(`${ApiHost.getHost()}/api/profile/wallet/nonce`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!nonceRes.ok) { showToast('Failed to get link challenge', 'error'); return; }
+            const { message } = await nonceRes.json();
+
+            const signed = await provider.signMessage(new TextEncoder().encode(message), 'utf8');
+            const signature = btoa(String.fromCharCode(...signed.signature));
+
+            const linkRes = await fetch(`${ApiHost.getHost()}/api/profile/wallet/link`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ walletAddress, signature })
+            });
+
+            if (linkRes.ok) {
+                render(walletAddress);
+                showToast('Wallet linked ✓', 'success');
+            } else {
+                const err = await linkRes.json().catch(() => ({}));
+                showToast(err.error || 'Failed to link wallet', 'error');
+            }
+        } catch (e) {
+            if (e && e.code === 4001) showToast('Wallet connection cancelled', 'info');
+            else showToast('Wallet linking failed', 'error');
+            console.error('Wallet link error:', e);
+        } finally {
+            btn.disabled = false;
+        }
+    });
 }

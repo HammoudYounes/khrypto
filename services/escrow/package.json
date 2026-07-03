@@ -1,0 +1,13 @@
+{
+  "name": "khrypto-escrow-service",
+  "version": "1.0.0",
+  "description": "Khrypto devnet escrow bridge — settles wagers from match records",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.0",
+    "mongodb": "^6.3.0"
+  }
+}
