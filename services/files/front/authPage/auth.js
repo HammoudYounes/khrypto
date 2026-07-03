@@ -86,9 +86,18 @@ registerForm.addEventListener('submit', async (e) => {
         sessionStorage.setItem('username', username)
         window.location.href = '../homePage/index.html';
     } else {
-        alert('Registration failed. Please try again.');
+        alert(`Registration failed: ${friendlyAuthError(result.message)}`);
     }
 });
+
+// Map raw backend errors ("Error 400: USERNAME ALREADY EXIST") to readable messages
+function friendlyAuthError(message) {
+    const m = String(message || '').replace(/ /g, '_').toUpperCase();
+    if (m.includes('USERNAME_ALREADY_EXIST')) return 'this username is already taken.';
+    if (m.includes('MAIL_ALREADY_EXIST')) return 'this email is already registered.';
+    if (m.includes('INVALID_MAIL')) return 'invalid email format.';
+    return message || 'please try again.';
+}
 
 // Auth API call
 async function auth(endpoint, data) {
@@ -101,11 +110,15 @@ async function auth(endpoint, data) {
             body: JSON.stringify(data)
         });
 
-        const result = await response.json();
+        // Error responses may be plain text ("Error 400: ..."), so don't
+        // assume JSON — surface the server's actual reason to the user.
+        const raw = await response.text();
+        let result;
+        try { result = JSON.parse(raw); } catch (e) { result = { message: raw }; }
 
         if (!response.ok) {
-            console.log(`HTTP error! status: ${response.status}`);
-            return { error: true, message: result.message || "Request failed", status: response.status };
+            console.log(`HTTP error! status: ${response.status}: ${raw}`);
+            return { error: true, message: result.message || raw || "Request failed", status: response.status };
         }
 
         console.log('Success:', result);
