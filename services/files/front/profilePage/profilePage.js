@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (emailEl) emailEl.textContent = email;
 
     initWalletLink(token);
+    loadWagerHistory(token);
 
     notificationManager.init();
     initPrivateChatListeners();
@@ -1163,4 +1164,70 @@ async function initWalletLink(token) {
             btn.disabled = false;
         }
     });
+}
+
+// ==========================================
+// WAGER HISTORY
+// ==========================================
+
+async function loadWagerHistory(token) {
+    const panel = document.getElementById('wagersPanel');
+    const tabBtn = document.getElementById('wagersTabBtn');
+    const list = document.getElementById('wagersList');
+    const empty = document.getElementById('wagersEmpty');
+    const netEl = document.getElementById('wagerNetTotal');
+    if (!panel || !token) return;
+
+    let history;
+    try {
+        const res = await fetch(`${ApiHost.getHost()}/api/escrow/history`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return; // escrow not configured — keep the tab hidden
+        history = (await res.json()).history;
+    } catch (e) {
+        return;
+    }
+
+    panel.style.display = '';
+    if (tabBtn) tabBtn.style.display = '';
+    if (!history.length) return;
+    empty.style.display = 'none';
+
+    const RESULT_STYLE = {
+        won:      { label: 'WON',      color: '#2ecc71' },
+        lost:     { label: 'LOST',     color: '#e74c3c' },
+        refunded: { label: 'REFUNDED', color: '#f39c12' },
+        pending:  { label: 'PENDING',  color: '#f1c40f' }
+    };
+
+    let net = 0;
+    list.innerHTML = history.map(w => {
+        const r = RESULT_STYLE[w.result] || RESULT_STYLE.pending;
+        if (w.result === 'won') net += w.stakeSol;
+        else if (w.result === 'lost') net -= w.stakeSol;
+        const when = new Date(w.createdAt).toLocaleString(undefined, {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        const delta = w.result === 'won' ? `+◎ ${w.stakeSol}` :
+                      w.result === 'lost' ? `-◎ ${w.stakeSol}` : '◎ 0';
+        const proof = w.settleSignature
+            ? `<a href="https://explorer.solana.com/tx/${w.settleSignature}?cluster=devnet" target="_blank"
+                  rel="noopener" style="color:#7ec8ff;font-size:0.78rem;text-decoration:none;">proof ↗</a>`
+            : '';
+        return `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.9rem;">
+                <span style="font-weight:bold;color:${r.color};min-width:76px;">${r.label}</span>
+                <span style="flex:1;">vs <b>${w.opponent}</b> — stake ◎ ${w.stakeSol}</span>
+                <span style="color:${r.color};font-weight:bold;min-width:70px;text-align:right;">${delta}</span>
+                <span style="color:#888;font-size:0.78rem;min-width:110px;text-align:right;">${when}</span>
+                ${proof}
+            </div>`;
+    }).join('');
+
+    if (netEl) {
+        const sign = net > 0 ? '+' : '';
+        netEl.textContent = `— net ${sign}◎ ${net.toFixed(3)} SOL`;
+        netEl.style.color = net > 0 ? '#2ecc71' : net < 0 ? '#e74c3c' : '#aaa';
+    }
 }

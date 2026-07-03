@@ -64,6 +64,7 @@
             <button class="tab-btn tab-active" data-target="friends">Friends</button>
             <button class="tab-btn" data-target="social">Social</button>
             <button class="tab-btn" data-target="inventory">Inventory</button>
+            <button class="tab-btn" data-target="wagers" id="wagersTabBtn" style="display:none;">Wagers</button>
         </nav>
 
         <!-- MIDDLE COLUMN: Friends & Chat -->
@@ -167,6 +168,15 @@
                     <h3 class="inventory-group-title">Emotes</h3>
                     <div class="inventory-grid" id="gridEmotes"></div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Wager history (shown only when escrow is configured) -->
+        <section class="glass-card inventory-panel" id="wagersPanel" data-tab="wagers" style="display:none;">
+            <h2 class="inventory-title">💰 Wager History <span id="wagerNetTotal" style="font-size:0.9rem;font-weight:normal;"></span></h2>
+            <div id="wagersContent">
+                <p class="inventory-empty" id="wagersEmpty">No wagers yet — try the Wager mode on the home page!</p>
+                <div id="wagersList"></div>
             </div>
         </section>
 

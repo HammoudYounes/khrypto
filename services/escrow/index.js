@@ -220,6 +220,41 @@ const server = http.createServer(async (req, res) => {
             return send(res, 200, { transaction: txBase64, stakeLamports: escrow.stakeLamports });
         }
 
+        // The calling user's wager history (most recent first)
+        if (req.method === 'GET' && url === '/api/escrow/history') {
+            const myEscrows = await escrows.find({
+                $or: [{ 'users.0': userId }, { 'users.1': userId }]
+            }).sort({ createdAt: -1 }).limit(50).toArray();
+
+            // Resolve opponent usernames in one query
+            const oppIds = [...new Set(myEscrows.map(e => e.users['0'] === userId ? e.users['1'] : e.users['0']))]
+                .filter(id => ObjectId.isValid(id));
+            const oppDocs = await users.find(
+                { _id: { $in: oppIds.map(id => ObjectId.createFromHexString(id)) } },
+                { projection: { username: 1 } }
+            ).toArray();
+            const nameById = Object.fromEntries(oppDocs.map(u => [u._id.toString(), u.username]));
+
+            const history = myEscrows.map(e => {
+                const mySeat = e.users['0'] === userId ? '0' : '1';
+                const oppId = e.users[mySeat === '0' ? '1' : '0'];
+                let result = 'pending';
+                if (e.status === 'settled') result = e.winnerWallet === e.wallets[mySeat] ? 'won' : 'lost';
+                else if (['cancelled', 'aborted', 'refunded_draw'].includes(e.status)) result = 'refunded';
+                return {
+                    gameId: e.gameId,
+                    stakeSol: e.stakeLamports / 1e9,
+                    potSol: (2 * e.stakeLamports) / 1e9,
+                    result,
+                    status: e.status,
+                    opponent: nameById[oppId] || 'Unknown',
+                    settleSignature: e.settleSignature || null,
+                    createdAt: e.createdAt
+                };
+            });
+            return send(res, 200, { history });
+        }
+
         // On-chain + local state for a game's escrow
         if (req.method === 'GET' && url.startsWith('/api/escrow/game/')) {
             const gameId = decodeURIComponent(url.slice('/api/escrow/game/'.length));
