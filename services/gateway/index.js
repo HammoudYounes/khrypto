@@ -148,9 +148,28 @@ server.on('upgrade', async function (req, socket, head) {
         }
     } 
     else {
-        console.log("Proxying WebSocket upgrade to Engine");
-        // Depending on your engine setup, you might want to add token auth here eventually too!
-        proxy.ws(req, socket, head, { target: PORTS.ENGINE });
+        // Engine WebSocket: verify the token when present, tag tokenless
+        // connections as guests. The engine only lets verified users into
+        // online games; guests are restricted to local/AI play.
+        if (!token) {
+            req.headers['x-user-id'] = `guest_${Math.random().toString(36).slice(2, 10)}`;
+            console.log("Proxying WebSocket upgrade to Engine (guest)");
+            return proxy.ws(req, socket, head, { target: PORTS.ENGINE });
+        }
+
+        try {
+            const check = await callTokenService('/verify', { token });
+            if (check.valid && check.userId) {
+                req.headers['x-user-id'] = check.userId;
+                console.log("Proxying WebSocket upgrade to Engine (authenticated)");
+                return proxy.ws(req, socket, head, { target: PORTS.ENGINE });
+            }
+        } catch (err) {
+            console.error("Gateway Engine WS auth error:", err.message);
+        }
+
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
     }
 });
 

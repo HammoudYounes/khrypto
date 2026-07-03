@@ -251,3 +251,39 @@ export function hideReconnectOverlay() {
         overlay.remove();
     }
 }
+
+// ========== TURN CLOCK ==========
+
+let turnClockInterval = null;
+
+export function showTurnClock(deadline, isMyTurn) {
+    let badge = document.getElementById('turn-clock');
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'turn-clock';
+        badge.style.cssText = [
+            'position:fixed', 'top:10px', 'left:50%', 'transform:translateX(-50%)',
+            'background:rgba(0,0,0,0.7)', 'color:white', 'padding:4px 14px',
+            'border-radius:14px', 'font-size:1.1rem', 'font-weight:bold',
+            'z-index:5000', 'pointer-events:none'
+        ].join(';');
+        document.body.appendChild(badge);
+    }
+
+    if (turnClockInterval) clearInterval(turnClockInterval);
+
+    const update = () => {
+        const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        badge.textContent = `${isMyTurn ? 'Your turn' : 'Opponent'} — ${remaining}s`;
+        badge.style.color = remaining <= 10 && isMyTurn ? '#ff6b6b' : 'white';
+        if (remaining <= 0) clearInterval(turnClockInterval);
+    };
+    update();
+    turnClockInterval = setInterval(update, 500);
+}
+
+export function hideTurnClock() {
+    if (turnClockInterval) clearInterval(turnClockInterval);
+    const badge = document.getElementById('turn-clock');
+    if (badge) badge.remove();
+}

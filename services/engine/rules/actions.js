@@ -39,7 +39,7 @@ function applyAction(gameState, action, playerId) {
 
     const { type, x, y } = action;
 
-    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
         throw new Error("Invalid coordinates!");
     }
 
@@ -53,13 +53,15 @@ function applyAction(gameState, action, playerId) {
         case 'PLACE':
 
             if (gameState.reserves[playerId] <= 0) {
-                console.log("Not enough pyramid in reserve")
-                return;
+                throw new Error("Not enough pyramids in reserve.");
             }
 
             if (piece || !checkPlacementConstraints(gameState, x, y, playerId)) {
-                console.log("Not allowed to place it here")
-                return;
+                throw new Error("Not allowed to place a pyramid here.");
+            }
+
+            if (![0, 1, 2, 3].includes(action.orientation)) {
+                throw new Error("Invalid orientation.");
             }
 
             gameState.board[y][x] = new Pyramid(playerId, action.orientation);
@@ -69,32 +71,31 @@ function applyAction(gameState, action, playerId) {
 
         case 'SWAP':
             if (!piece) {
-                console.log("No piece at selected position."); return;
+                throw new Error("No piece at selected position.");
             }
-            if (piece.player !== playerId) { console.log("You can only move your own pieces."); return; }
+            if (piece.player !== playerId) { throw new Error("You can only move your own pieces."); }
             if (!piece.canSwap) {
-                console.log("Only Scarabs can swap."); return;
+                throw new Error("Only Scarabs can swap.");
             }
 
             const { targetX, targetY } = action;
 
-            if (!isValidCoordinate(targetX, targetY)) { console.log("Invalid target coordinates."); return; }
+            if (!isValidCoordinate(targetX, targetY)) { throw new Error("Invalid target coordinates."); }
 
             const targetPiece = gameState.board[targetY][targetX];
 
-            if (!targetPiece) { console.log("Target cell is empty."); return; }
+            if (!targetPiece) { throw new Error("Target cell is empty."); }
 
-            if (targetPiece.player !== playerId) { console.log("Cannot swap with opponent's pieces."); return; }
+            if (targetPiece.player !== playerId) { throw new Error("Cannot swap with opponent's pieces."); }
 
-            if (!['Sphinx', 'Pharaoh'].includes(targetPiece.type)) { console.log("Can only swap with Sphinx or Pharaoh."); return; }
+            if (!['Sphinx', 'Pharaoh'].includes(targetPiece.type)) { throw new Error("Can only swap with Sphinx or Pharaoh."); }
 
             const lastSwapTurn = gameState.swapHistory[playerId][targetPiece.type];
             const turnsPassed = gameState.turnCount - lastSwapTurn;
 
             if (turnsPassed < 8) {
                 const turnsRemaining = Math.ceil((8 - turnsPassed) / 2);
-                console.log(`Swap with ${targetPiece.type} is cooling down. Wait ${turnsRemaining} more of your turns.`);
-                return;
+                throw new Error(`Swap with ${targetPiece.type} is cooling down. Wait ${turnsRemaining} more of your turns.`);
             }
 
             gameState.board[y][x] = targetPiece;
@@ -108,6 +109,12 @@ function applyAction(gameState, action, playerId) {
             break;
 
         case 'MOVE':
+            if (!piece) {
+                throw new Error("No piece at selected position.");
+            }
+            if (piece.player !== playerId) {
+                throw new Error("You can only move your own pieces.");
+            }
             // Vérification du type de pièce
             if (piece.type === 'Sphinx' || piece.type === 'Pharaoh') {
                 throw new Error("Le Sphinx et le Pharaon ne peuvent pas se déplacer !");
@@ -139,9 +146,9 @@ function applyAction(gameState, action, playerId) {
 
         case 'ROTATE':
             if (!piece) {
-                console.log("No piece at selected position."); return;
+                throw new Error("No piece at selected position.");
             }
-            if (piece.player !== playerId) { console.log("You can only move your own pieces."); return; }
+            if (piece.player !== playerId) { throw new Error("You can only move your own pieces."); }
             // RULE: Pharaoh cannot rotate
             if (piece.type === 'Pharaoh') {
                 throw new Error("The Pharaoh cannot rotate!");

@@ -5,9 +5,34 @@
  * Phase 2: replace with ELO-based matching logic.
  */
 
+const REMATCH_COOLDOWN_MS = 5 * 60 * 1000; // don't re-pair the same two users within 5 minutes
+
 class MatchmakingQueue {
     constructor() {
         this.waiting = []; // Array of { socket, userId, username, elo, joinedAt }
+        this.recentPairs = new Map(); // "userIdA|userIdB" (sorted) → matchedAt timestamp
+    }
+
+    pairKey(userIdA, userIdB) {
+        return [String(userIdA), String(userIdB)].sort().join('|');
+    }
+
+    /** Anti-collusion friction: the same two accounts can't immediately re-match. */
+    isOnCooldown(userIdA, userIdB) {
+        if (!userIdA || !userIdB) return false;
+        const matchedAt = this.recentPairs.get(this.pairKey(userIdA, userIdB));
+        return matchedAt !== undefined && Date.now() - matchedAt < REMATCH_COOLDOWN_MS;
+    }
+
+    recordPair(userIdA, userIdB) {
+        if (!userIdA || !userIdB) return;
+        this.recentPairs.set(this.pairKey(userIdA, userIdB), Date.now());
+
+        // Prune expired entries so the map doesn't grow forever
+        const now = Date.now();
+        for (const [key, ts] of this.recentPairs) {
+            if (now - ts >= REMATCH_COOLDOWN_MS) this.recentPairs.delete(key);
+        }
     }
 
     /**
@@ -74,6 +99,8 @@ class MatchmakingQueue {
 
                 const eloDiff = Math.abs(p1.elo - p2.elo);
 
+                if (this.isOnCooldown(p1.userId, p2.userId)) continue;
+
                 // Both players must mutually accept the Elo difference
                 if (eloDiff <= p1Range && eloDiff <= p2Range) {
                     console.log(`[Queue] Match found! ${p1.username}(${p1.elo}) [±${p1Range}] vs ${p2.username}(${p2.elo}) [±${p2Range}] (Diff: ${eloDiff})`);
@@ -83,6 +110,7 @@ class MatchmakingQueue {
                     this.waiting.splice(j, 1);
                     this.waiting.splice(i, 1);
 
+                    this.recordPair(p1.userId, p2.userId);
                     return [p1, p2];
                 }
             }

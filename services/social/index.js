@@ -8,6 +8,7 @@ const { filterSwearWords } = require('./utils');
 
 const PORT = process.env.PORT || 8006;
 const ENGINE_URL = process.env.ENGINE_URL || 'http://127.0.0.1:8002';
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || null;
 const CHALLENGE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 // In-memory store for pending challenges { challengeId -> { senderId, receiverId, mode, createdAt, timer } }
@@ -25,7 +26,8 @@ function callEngine(body) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(jsonBody)
+                'Content-Length': Buffer.byteLength(jsonBody),
+                ...(INTERNAL_API_SECRET ? { 'x-internal-secret': INTERNAL_API_SECRET } : {})
             }
         };
         const req = http.request(options, (res) => {

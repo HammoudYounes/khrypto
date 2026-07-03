@@ -9,10 +9,12 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { MongoClient, ObjectId } = require('mongodb');
 const MatchmakingQueue = require('./queue');
+const TokenBucket = require('./rateLimit');
 
 const PORT = process.env.PORT || 8005;
 const ENGINE_URL = process.env.ENGINE_URL || 'http://127.0.0.1:8002';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || null;
 
 const queue = new MatchmakingQueue();
 const client = new MongoClient(MONGO_URL);
@@ -43,7 +45,8 @@ function createGameOnEngine(mode = 'online', player1UserId, player2UserId, playe
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body)
+                'Content-Length': Buffer.byteLength(body),
+                ...(INTERNAL_API_SECRET ? { 'x-internal-secret': INTERNAL_API_SECRET } : {})
             }
         };
 
@@ -96,8 +99,10 @@ io.on('connection', (socket) => {
     console.log(`[Matchmaking] Socket connected: ${socket.id}`);
 
     const userId = socket.handshake.headers['x-user-id'];
+    const bucket = new TokenBucket(5, 0.2); // join/cancel spam guard
 
     socket.on('matchmaking:join', async (data) => {
+        if (!bucket.tryRemove()) return;
         const username = (data && data.username) || 'Player';
         console.log(`[Matchmaking] Player ${userId} (${username}) wants to play`);
 
@@ -128,6 +133,7 @@ io.on('connection', (socket) => {
     }
 
     socket.on('matchmaking:cancel', () => {
+        if (!bucket.tryRemove()) return;
         console.log(`[Matchmaking] Player on socket : ${socket.id} cancelled matchmaking`);
         queue.remove(socket.id);
         socket.emit('matchmaking:cancelled');

@@ -1,20 +1,39 @@
 const { ObjectId } = require('mongodb');
 const { initializeBoard } = require('../rules/initBoard');
 const { applyAction, computeLaserPath, applyDestructions } = require('../rules/actions');
-const aiAdapter = require('../ai/aiAdapter'); 
+const aiAdapter = require('../ai/aiAdapter');
+
+const ONLINE_MODES = ['online', 'ranked_challenge', 'unranked'];
+const TURN_CLOCK_MS = 60_000;        // per-turn time budget (online modes)
+const GRACE_BUDGET_MS = 90_000;      // cumulative disconnect grace per player per game
 
 class Game {
-    constructor(id, mode, io, player1UserId = null, player2UserId = null, player1Elo = 600, player2Elo = 600, usersCollection = null) {
+    constructor(id, mode, io, player1UserId = null, player2UserId = null, player1Elo = 600, player2Elo = 600, usersCollection = null, matchRecorder = null) {
         this.id = id;
-        this.mode = mode; // local ai online
+        this.mode = mode; // local | ai | online | ranked_challenge | unranked
         this.io = io;     // Reference to socket.io server
         this.players = new Map(); // socketId → playerId (0 or 1) — used for online games
         this.userIds = { 0: player1UserId, 1: player2UserId };
         this.elos = { 0: player1Elo, 1: player2Elo };
         this.restartVotes = new Set(); // Track which players voted to restart
         this.usersCollection = usersCollection;
-        this.reconnectTimers = {};           // playerId → setTimeout handle
+        this.matchRecorder = matchRecorder;
+
+        // Disconnect grace: cumulative budget, not a fresh window per drop
+        this.reconnectTimers = {};            // playerId → setTimeout handle
         this.disconnectedPlayers = new Set(); // playerIds currently in grace period
+        this.graceRemaining = { 0: GRACE_BUDGET_MS, 1: GRACE_BUDGET_MS };
+        this.disconnectedAt = {};             // playerId → timestamp of last drop
+
+        // Turn clock (starts once both seats have joined)
+        this.turnTimer = null;
+        this.clockStarted = false;
+        this.seatsJoined = new Set();
+
+        // Lifecycle
+        this.ended = false;
+        this.endedAt = null;
+        this.lastActivityAt = Date.now();
 
         // Initial State
         this.state = {
@@ -29,74 +48,199 @@ class Game {
         this.initialBoardSnapshot = JSON.parse(JSON.stringify(this.state.board));
     }
 
+    isOnline() {
+        return ONLINE_MODES.includes(this.mode);
+    }
+
     handleMove(action, playerId) {
+        if (this.ended) throw new Error("Game is over");
+
         // Server-side turn enforcement for online games
-        if (['online', 'ranked_challenge', 'unranked'].includes(this.mode) && this.state.turn !== playerId) {
+        if (this.isOnline() && this.state.turn !== playerId) {
             throw new Error("Not your turn");
         }
 
-        try {
-            // 1. Logic
-            const laserShouldFire = applyAction(this.state, action, playerId);
-            const boardSnapshot = JSON.parse(JSON.stringify(this.state.board));
-            const laserResult = computeLaserPath(this.state, playerId, laserShouldFire);
+        // 1. Logic
+        const laserShouldFire = applyAction(this.state, action, playerId);
+        const boardSnapshot = JSON.parse(JSON.stringify(this.state.board));
+        const laserResult = computeLaserPath(this.state, playerId, laserShouldFire);
 
-            if (laserResult)
-                applyDestructions(this.state, laserResult.hitCoords);
+        if (laserResult)
+            applyDestructions(this.state, laserResult.hitCoords);
 
+        this.lastActivityAt = Date.now();
+        if (this.isOnline() && this.matchRecorder) {
+            this.matchRecorder.recordMove(this.id, playerId, action, this.state.turnCount);
+        }
 
-            if (this.state.winner[0] === false && this.state.winner[1] === false && this.state.canPassTurn) {
-                this.state.turn = (this.state.turn + 1) % 2;
-                this.state.turnCount = (this.state.turnCount || 0) + 1;
+        if (this.state.winner[0] === false && this.state.winner[1] === false && this.state.canPassTurn) {
+            this.state.turn = (this.state.turn + 1) % 2;
+            this.state.turnCount = (this.state.turnCount || 0) + 1;
 
-                console.log(`Turn ended. Now Player ${this.state.turn}'s turn. (Total: ${this.state.turnCount})`);
+            console.log(`Turn ended. Now Player ${this.state.turn}'s turn. (Total: ${this.state.turnCount})`);
 
-                const currentPlayer = this.state.turn;
-                const pendingList = this.state.pendingReserves[currentPlayer];
+            const currentPlayer = this.state.turn;
+            const pendingList = this.state.pendingReserves[currentPlayer];
 
-                for (let i = pendingList.length - 1; i >= 0; i--) {
-                    const unlockTime = pendingList[i];
+            for (let i = pendingList.length - 1; i >= 0; i--) {
+                const unlockTime = pendingList[i];
 
-                    if (this.state.turnCount >= unlockTime) {
-                        this.state.reserves[currentPlayer] += 1;
-                        pendingList.splice(i, 1);
-                        console.log(`P${currentPlayer} received a Pyramid from reserve queue!`);
-                    }
-                }
-                this.state.canPassTurn = false;
-            }
-
-            this.io.to(this.id).emit('game:action_response', {
-                boardAfterMove: boardSnapshot,
-                laserResult: laserResult,
-                finalState: this.state
-            });
-
-            if (this.state.winner[0] === true || this.state.winner[1] === true) {
-                this.io.to(this.id).emit('game:over', this.state.winner);
-                this.handleGameOver();
-            } else {
-                if (this.mode === 'ai' && playerId === 0) {
-                    this.lastHumanAction = action;
-                }
-                if (this.mode === 'ai' && this.state.turn === 1) {
-                    setTimeout(() => {
-                        this.playAITurn();
-                    }, 2500); 
+                if (this.state.turnCount >= unlockTime) {
+                    this.state.reserves[currentPlayer] += 1;
+                    pendingList.splice(i, 1);
+                    console.log(`P${currentPlayer} received a Pyramid from reserve queue!`);
                 }
             }
+            this.state.canPassTurn = false;
 
-            return true; // Success
+            if (this.clockStarted) this.startTurnClock();
+        }
 
-        } catch (error) {
-            throw error;
+        this.io.to(this.id).emit('game:action_response', {
+            boardAfterMove: boardSnapshot,
+            laserResult: laserResult,
+            finalState: this.state
+        });
+
+        if (this.state.winner[0] === true || this.state.winner[1] === true) {
+            const reason = (this.state.winner[0] && this.state.winner[1]) ? 'draw' : 'elimination';
+            this.endGame(reason);
+        } else {
+            if (this.mode === 'ai' && playerId === 0) {
+                this.lastHumanAction = action;
+            }
+            if (this.mode === 'ai' && this.state.turn === 1) {
+                // Short cosmetic delay; the bot's own search budget (~800ms)
+                // makes up the rest of a natural-feeling thinking pause.
+                setTimeout(() => {
+                    this.playAITurn();
+                }, 1500);
+            }
+        }
+
+        return true; // Success
+    }
+
+    // ── Turn clock ────────────────────────────────────────────────────────────
+
+    /** Called when a seat joins. Starts the clock once both players are present. */
+    registerSeatJoined(playerId) {
+        this.seatsJoined.add(playerId);
+        if (!this.clockStarted && this.seatsJoined.size === 2 && this.isOnline() && !this.ended) {
+            this.clockStarted = true;
+            this.startTurnClock();
+        }
+    }
+
+    startTurnClock() {
+        if (this.turnTimer) clearTimeout(this.turnTimer);
+        const deadline = Date.now() + TURN_CLOCK_MS;
+        this.io.to(this.id).emit('game:turn_deadline', { playerId: this.state.turn, deadline });
+
+        this.turnTimer = setTimeout(() => {
+            const slowPlayer = this.state.turn;
+            console.log(`[Game ${this.id}] Player ${slowPlayer} ran out of time`);
+            this.forfeit(slowPlayer, 'timeout');
+        }, TURN_CLOCK_MS);
+    }
+
+    /** Award the win to playerId's opponent and end the game. */
+    forfeit(playerId, reason) {
+        if (this.ended) return;
+        const opponentId = playerId === 0 ? 1 : 0;
+        this.state.winner[opponentId] = true;
+        this.endGame(reason);
+    }
+
+    // ── Disconnect / departure handling ───────────────────────────────────────
+
+    /**
+     * A seated player dropped (network) or left intentionally.
+     * Draws from the player's cumulative grace budget; forfeits when exhausted.
+     */
+    handleDeparture(playerId) {
+        if (this.ended || this.disconnectedPlayers.has(playerId)) return;
+
+        const remaining = this.graceRemaining[playerId];
+        if (remaining <= 0) {
+            console.log(`[Game ${this.id}] Player ${playerId} has no grace budget left — forfeit`);
+            this.forfeit(playerId, 'forfeit');
+            return;
+        }
+
+        this.disconnectedPlayers.add(playerId);
+        this.disconnectedAt[playerId] = Date.now();
+        this.io.to(this.id).emit('game:player_disconnected', {
+            playerId,
+            timeoutSeconds: Math.ceil(remaining / 1000)
+        });
+        console.log(`[Game ${this.id}] Player ${playerId} disconnected — ${Math.ceil(remaining / 1000)}s grace remaining`);
+
+        this.reconnectTimers[playerId] = setTimeout(() => {
+            this.disconnectedPlayers.delete(playerId);
+            this.graceRemaining[playerId] = 0;
+            console.log(`[Game ${this.id}] Grace expired for Player ${playerId}`);
+            this.forfeit(playerId, 'forfeit');
+        }, remaining);
+    }
+
+    /** Player rejoined within grace: stop the timer and deduct the time used. */
+    handleReconnect(playerId) {
+        if (!this.disconnectedPlayers.has(playerId)) return false;
+
+        clearTimeout(this.reconnectTimers[playerId]);
+        delete this.reconnectTimers[playerId];
+        this.disconnectedPlayers.delete(playerId);
+
+        const used = Date.now() - (this.disconnectedAt[playerId] || Date.now());
+        this.graceRemaining[playerId] = Math.max(0, this.graceRemaining[playerId] - used);
+        console.log(`[Game ${this.id}] Player ${playerId} reconnected (${Math.ceil(this.graceRemaining[playerId] / 1000)}s grace left)`);
+        return true;
+    }
+
+    clearAllTimers() {
+        if (this.turnTimer) { clearTimeout(this.turnTimer); this.turnTimer = null; }
+        for (const pid of Object.keys(this.reconnectTimers)) {
+            clearTimeout(this.reconnectTimers[pid]);
+            delete this.reconnectTimers[pid];
+        }
+        this.disconnectedPlayers.clear();
+    }
+
+    // ── Game end ──────────────────────────────────────────────────────────────
+
+    /**
+     * Single exit point for a finished game. Guarded so Elo/coins/records
+     * can never be applied twice.
+     */
+    endGame(reason) {
+        if (this.ended) return;
+        this.ended = true;
+        this.endedAt = Date.now();
+        this.clearAllTimers();
+
+        const forfeitLike = ['forfeit', 'timeout'].includes(reason);
+        this.io.to(this.id).emit('game:over', { ...this.state.winner, reason, forfeit: forfeitLike });
+
+        if (['online', 'ranked_challenge'].includes(this.mode)) {
+            this.applyEloAndCoins();
+        }
+        if (this.isOnline() && this.matchRecorder) {
+            this.matchRecorder.finishMatch(this, reason);
         }
     }
 
     resetGameState() {
-        this.state.board = initializeBoard(),
-            this.state.turn = 0,
-            this.state.reserves = { 0: 7, 1: 7 };
+        // Archive the finished record before reusing the gameId
+        if (this.isOnline() && this.matchRecorder) {
+            this.matchRecorder.archiveForRestart(this.id).then(() => {
+                this.matchRecorder.createMatch(this);
+            });
+        }
+
+        this.state.board = initializeBoard();
+        this.state.turn = 0;
+        this.state.reserves = { 0: 7, 1: 7 };
         this.state.winner = { 0: false, 1: false };
         this.state.turnCount = 0;
         this.state.swapHistory = {
@@ -107,35 +251,27 @@ class Game {
         this.state.canPassTurn = false;
         this.restartVotes.clear();
         this.initialBoardSnapshot = JSON.parse(JSON.stringify(this.state.board));
+
+        // Fresh lifecycle for the rematch
+        this.clearAllTimers();
+        this.ended = false;
+        this.endedAt = null;
+        this.lastActivityAt = Date.now();
+        this.graceRemaining = { 0: GRACE_BUDGET_MS, 1: GRACE_BUDGET_MS };
+        this.disconnectedAt = {};
+        if (this.clockStarted) this.startTurnClock();
     }
 
     /**
-     * Vote to restart. Returns true when both players have voted.
+     * Vote to restart. Only seated players count. Returns true when both voted.
      */
     voteRestart(playerId) {
+        if (playerId !== 0 && playerId !== 1) return false;
         this.restartVotes.add(playerId);
         return this.restartVotes.size >= 2;
     }
 
-    startReconnectTimer(playerId, onTimeout) {
-        this.disconnectedPlayers.add(playerId);
-        this.reconnectTimers[playerId] = setTimeout(() => {
-            this.disconnectedPlayers.delete(playerId);
-            onTimeout();
-        }, 60_000);
-    }
-
-    clearReconnectTimer(playerId) {
-        if (this.reconnectTimers[playerId]) {
-            clearTimeout(this.reconnectTimers[playerId]);
-            delete this.reconnectTimers[playerId];
-            this.disconnectedPlayers.delete(playerId);
-        }
-    }
-
-    handleGameOver() {
-        if (!['online', 'ranked_challenge'].includes(this.mode)) return;
-
+    applyEloAndCoins() {
         let p0Result = 0.5;
         let p1Result = 0.5;
 
@@ -182,8 +318,8 @@ class Game {
     }
 
     async playAITurn() {
-        if (this.state.winner[0] || this.state.winner[1] || this.mode !== 'ai' || this.state.turn !== 1) return;
-        
+        if (this.ended || this.state.winner[0] || this.state.winner[1] || this.mode !== 'ai' || this.state.turn !== 1) return;
+
         try {
             if (this.state.turnCount === 1) {
                 await aiAdapter.initializeAI({ board: this.initialBoardSnapshot });

@@ -53,6 +53,7 @@ services:
     environment:
       - PORT=8002
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
     depends_on:
       - mongo
     networks:
@@ -68,6 +69,7 @@ services:
       - PORT=8005
       - ENGINE_URL=http://engine:8002
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
     depends_on:
       - engine
       - mongo
@@ -130,6 +132,7 @@ services:
       - GATEWAY_URL=https://gateway:8000
       - ENGINE_URL=http://engine:8002
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
     depends_on:
       - mongo
       - engine

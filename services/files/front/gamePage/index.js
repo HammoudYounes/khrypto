@@ -22,7 +22,9 @@ import {
     goHome,
     initPlayerControls,
     showReconnectOverlay,
-    hideReconnectOverlay
+    hideReconnectOverlay,
+    showTurnClock,
+    hideTurnClock
 } from './offboardUI.js';
 import {
     animateLaserSequence
@@ -307,7 +309,13 @@ socket.on('game:action_response', (gameState) => {
     }
 });
 
+socket.on('game:turn_deadline', ({ playerId, deadline }) => {
+    if (state.gameMode !== 'online') return;
+    showTurnClock(deadline, playerId === state.myPlayerId);
+});
+
 socket.on('game:over', (winner) => {
+    hideTurnClock();
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');
     localStorage.removeItem('activeGameExpiresAt');
