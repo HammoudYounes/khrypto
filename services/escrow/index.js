@@ -118,6 +118,9 @@ const server = http.createServer(async (req, res) => {
             if (!u0?.walletAddress || !u1?.walletAddress) {
                 return send(res, 409, { error: 'Both players must have a linked wallet' });
             }
+            if (playerIds[0] === playerIds[1] || u0.walletAddress === u1.walletAddress) {
+                return send(res, 409, { error: 'Players must be two distinct accounts with different wallets' });
+            }
 
             const existing = await escrows.findOne({ gameId });
             if (existing) return send(res, 409, { error: 'Escrow already exists for this game', escrow: { pda: existing.pda } });
@@ -163,6 +166,11 @@ const server = http.createServer(async (req, res) => {
         return send(res, 404, { error: 'Not found' });
     } catch (e) {
         console.error('[Escrow] Request error:', e);
+        // Surface on-chain program rejections readably instead of a blank 500
+        const log = (e.transactionLogs || []).find(l => l.includes('Error Message:'));
+        if (log) {
+            return send(res, 502, { error: `On-chain program rejected: ${log.split('Error Message:')[1].trim()}` });
+        }
         return send(res, 500, { error: 'Internal error' });
     }
 });

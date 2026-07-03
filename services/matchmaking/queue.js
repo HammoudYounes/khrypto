@@ -48,6 +48,15 @@ class MatchmakingQueue {
             console.log(`[Queue] Socket ${socket.id} already in queue, skipping.`);
             return;
         }
+        // Same account queueing from another tab/device replaces the old entry
+        // (also prevents a user from being matched against themselves)
+        if (userId) {
+            const stale = this.waiting.find(entry => entry.userId === userId);
+            if (stale) {
+                console.log(`[Queue] User ${userId} re-queued from a new socket, replacing old entry.`);
+                this.waiting = this.waiting.filter(entry => entry.userId !== userId);
+            }
+        }
         this.waiting.push({ socket, userId, username, elo, joinedAt: Date.now() });
         console.log(`[Queue] Player added (${username}, Elo: ${elo}). Queue size: ${this.waiting.length}`);
     }
@@ -99,6 +108,8 @@ class MatchmakingQueue {
 
                 const eloDiff = Math.abs(p1.elo - p2.elo);
 
+                // Never match an account against itself
+                if (p1.userId && p1.userId === p2.userId) continue;
                 if (this.isOnCooldown(p1.userId, p2.userId)) continue;
 
                 // Both players must mutually accept the Elo difference
