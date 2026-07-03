@@ -29,6 +29,15 @@ export const ProfileManager = {
                 sessionStorage.setItem('coins', coins);
                 return true;
             }
+
+            // Token is valid but the account no longer exists (e.g. stale
+            // session against a reset database) — force a clean logout.
+            if (res.status === 404) {
+                console.warn('ProfileManager: account not found for stored session — clearing tokens');
+                TokenManager.clear();
+                this.clearProfile();
+                window.location.href = '/authPage/index.html';
+            }
             return false;
         } catch (error) {
             console.error("ProfileManager: Error loading profile", error);

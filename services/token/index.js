@@ -2,8 +2,14 @@ const http = require('http');
 const jwt = require('jsonwebtoken');
 
 const PORT = process.env.PORT || 8004;
-const ACCESS_SECRET = '0638586715';
-const REFRESH_SECRET = '0745565215';
+// Secrets come from env; the literals are a legacy fallback so existing
+// deployments keep working until JWT_* env vars are set. Set them — the
+// fallbacks are public in git history and unfit for anything real.
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || '0638586715';
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || '0745565215';
+if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
+    console.warn('[Token] JWT_ACCESS_SECRET / JWT_REFRESH_SECRET not set — using insecure legacy fallback secrets');
+}
 const ACCESS_LIFE = '75m';
 const REFRESH_LIFE = '30d';
 const RENEW_WINDOW = 604800; // 7 days

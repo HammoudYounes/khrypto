@@ -117,6 +117,8 @@ services:
       - PORT=8004
       #- MONGO_URL=mongodb://mongo:27017/khrypto
       - MONGO_URL=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-}
     depends_on:
       - mongo
     networks:
