@@ -642,12 +642,34 @@ function showDepositOverlay({ gameId, stakeSol, deadlineAt, opponentUsername }) 
     overlay.innerHTML = `
         <p style="font-size:1.4rem;font-weight:bold;color:#c9a227;">💰 Opponent found: ${opponentUsername}</p>
         <p>Stake <b>◎ ${stakeSol} SOL</b> to start the match — winner takes <b>◎ ${(stakeSol * 2).toFixed(3)}</b></p>
+        <p id="depositBalance" style="color:#888;font-size:0.85rem;margin:0;"></p>
         <p id="depositCountdown" style="font-size:1.6rem;font-weight:bold;"></p>
         <button id="depositNowBtn" class="mode-card glass-card" style="min-width:220px;padding:0.8rem 1.5rem;font-size:1.1rem;cursor:pointer;">Deposit stake</button>
         <p id="depositState" style="color:#ccc;font-size:0.95rem;">Waiting for deposits…</p>
         <button id="depositCancelBtn" style="background:none;border:1px solid #666;color:#aaa;border-radius:8px;padding:6px 16px;cursor:pointer;">Cancel (refunds stakes)</button>
     `;
     document.body.appendChild(overlay);
+
+    // Show the player's devnet balance and warn early about insufficient
+    // funds (deposits also need ~0.001 SOL headroom for fees + rent floor)
+    (async () => {
+        try {
+            const provider = window.solana;
+            if (!provider || typeof solanaWeb3 === 'undefined') return;
+            const conn = await provider.connect({ onlyIfTrusted: true }).catch(() => provider.connect());
+            const rpc = new solanaWeb3.Connection('https://api.devnet.solana.com', 'confirmed');
+            const balance = await rpc.getBalance(conn.publicKey) / 1e9;
+            const balEl = overlay.querySelector('#depositBalance');
+            if (!balEl) return;
+            const needed = stakeSol + 0.001;
+            if (balance < needed) {
+                balEl.textContent = `⚠ Wallet balance ◎ ${balance.toFixed(4)} — you need at least ◎ ${needed.toFixed(3)} (stake + fees). Top up or cancel.`;
+                balEl.style.color = '#e74c3c';
+            } else {
+                balEl.textContent = `Wallet balance: ◎ ${balance.toFixed(4)} (devnet)`;
+            }
+        } catch (e) { /* balance display is best-effort */ }
+    })();
 
     const countdownEl = overlay.querySelector('#depositCountdown');
     depositCountdownTimer = setInterval(() => {

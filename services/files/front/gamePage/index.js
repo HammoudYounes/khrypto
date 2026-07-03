@@ -37,7 +37,7 @@ import {
 
 import { notificationManager } from "../js/notificationManager.js";
 import { TokenManager, ApiHost } from "../js/tokenManager.js";
-import { initWagerPanel } from "./wagerPanel.js";
+import { initWagerPanel, wagerGameOver } from "./wagerPanel.js";
 
 // ========== INITIALIZATION ==========
 
@@ -318,6 +318,7 @@ socket.on('game:turn_deadline', ({ playerId, deadline }) => {
 
 socket.on('game:over', (winner) => {
     hideTurnClock();
+    wagerGameOver(); // no-op unless this is a wager match
     localStorage.removeItem('activeWagerStake');
     localStorage.removeItem('activeGameId');
     localStorage.removeItem('activePlayerId');

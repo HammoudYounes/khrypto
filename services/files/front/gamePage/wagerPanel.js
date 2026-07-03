@@ -66,6 +66,18 @@ export function destroyWagerPanel() {
     panel = null;
 }
 
+let gameIsOver = false;
+
+/** Called when the match ends: settlement is imminent, poll faster. */
+export function wagerGameOver() {
+    if (!panel) return;
+    gameIsOver = true;
+    setStatus('Match over — settling on-chain (takes ~15s)…', '#f1c40f');
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(refresh, 3000);
+    refresh();
+}
+
 async function refresh() {
     if (!panel) return;
     const { ok, status, body } = await api(`/api/escrow/game/${encodeURIComponent(currentGameId)}`);
@@ -79,20 +91,35 @@ async function refresh() {
     renderEscrow(body);
 }
 
+function explorerLink(sig) {
+    return `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+}
+
 function renderEscrow(info) {
     const bodyEl = panel.querySelector('#wagerBody');
     const oc = info.onChain;
     const stakeSol = (info.local.stakeLamports / 1e9).toFixed(3);
+    const potSol = (2 * info.local.stakeLamports / 1e9).toFixed(3);
 
     if (!oc) return setStatus('Waiting for on-chain confirmation…', '#f1c40f');
 
     if (oc.settled) {
-        bodyEl.innerHTML = `<div>Pot: <b>${(2 * stakeSol).toFixed(3)} SOL</b></div>`;
-        return setStatus(`Settled ✓ pot paid to ${oc.winner.slice(0, 4)}…${oc.winner.slice(-4)}`, '#2ecc71');
+        const iWon = info.local.myWallet && oc.winner === info.local.myWallet;
+        const proof = info.local.settleSignature
+            ? `<a href="${explorerLink(info.local.settleSignature)}" target="_blank" rel="noopener"
+                  style="color:#7ec8ff;font-size:0.8rem;">View payout on Solana Explorer ↗</a>`
+            : '';
+        bodyEl.innerHTML = iWon
+            ? `<div style="font-size:1.05rem;">🏆 <b style="color:#2ecc71;">You won ◎ ${potSol} SOL!</b></div>
+               <div style="font-size:0.8rem;color:#aaa;margin:4px 0;">Paid to your wallet ${oc.winner.slice(0, 4)}…${oc.winner.slice(-4)}.
+               Your balance updated even if Phantom's activity feed doesn't show it.</div>${proof}`
+            : `<div>Opponent won the pot (◎ ${potSol} SOL)</div>
+               <div style="font-size:0.8rem;color:#aaa;margin:4px 0;">Better luck next match.</div>${proof}`;
+        return setStatus('Settled on-chain ✓', '#2ecc71');
     }
     if (oc.cancelled) {
-        bodyEl.innerHTML = `<div>Stake: <b>${stakeSol} SOL</b> each</div>`;
-        return setStatus('Cancelled — stakes refunded', '#f39c12');
+        bodyEl.innerHTML = `<div>Wager cancelled — <b>◎ ${stakeSol}</b> stakes refunded</div>`;
+        return setStatus('Refunded on-chain ✓', '#f39c12');
     }
 
     const mySeat = state.myPlayerId;
@@ -109,12 +136,16 @@ function renderEscrow(info) {
 
     const btn = bodyEl.querySelector('#wagerDepositBtn');
     if (btn) btn.style.display = iDeposited ? 'none' : '';
-    setStatus(
-        iDeposited && oppDeposited ? 'Both stakes locked — winner takes the pot!' :
-        iDeposited ? 'Waiting for opponent to deposit…' :
-        oppDeposited ? 'Opponent deposited — your turn!' : 'Deposit your stake to activate the wager',
-        iDeposited && oppDeposited ? '#2ecc71' : '#ccc'
-    );
+    if (gameIsOver) {
+        setStatus('Match over — settling on-chain (takes ~15s)…', '#f1c40f');
+    } else {
+        setStatus(
+            iDeposited && oppDeposited ? 'Both stakes locked — winner takes the pot!' :
+            iDeposited ? 'Waiting for opponent to deposit…' :
+            oppDeposited ? 'Opponent deposited — your turn!' : 'Deposit your stake to activate the wager',
+            iDeposited && oppDeposited ? '#2ecc71' : '#ccc'
+        );
+    }
 }
 
 async function deposit() {

@@ -226,7 +226,18 @@ const server = http.createServer(async (req, res) => {
             const escrow = await escrows.findOne({ gameId });
             if (!escrow) return send(res, 404, { error: 'No escrow for this game' });
             const onChain = await escrowClient.getEscrowState(gameId);
-            return send(res, 200, { local: { status: escrow.status, pda: escrow.pda, stakeLamports: escrow.stakeLamports }, onChain });
+            return send(res, 200, {
+                local: {
+                    status: escrow.status,
+                    pda: escrow.pda,
+                    stakeLamports: escrow.stakeLamports,
+                    settleSignature: escrow.settleSignature || null,
+                    winnerWallet: escrow.winnerWallet || null,
+                    myWallet: escrow.users['0'] === userId ? escrow.wallets['0']
+                            : escrow.users['1'] === userId ? escrow.wallets['1'] : null
+                },
+                onChain
+            });
         }
 
         return send(res, 404, { error: 'Not found' });
