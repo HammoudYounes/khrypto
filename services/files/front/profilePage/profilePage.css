@@ -984,3 +984,32 @@ button:hover {
     0%, 100% { box-shadow: 0 0 6px var(--gold-glow); }
     50% { box-shadow: 0 0 14px var(--gold-glow), 0 0 20px rgba(212, 175, 55, 0.3); }
 }
+/* ── Wallet row: label on top, address + action below (addresses are long) ── */
+.wallet-stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
+.wallet-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.wallet-stat-row .stat-value {
+    font-family: monospace;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wallet-link-btn {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    padding: 4px 12px;
+    cursor: pointer;
+}

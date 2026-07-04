@@ -268,3 +268,78 @@ a:hover {
     background-color: var(--text-muted);
     box-shadow: none;
 }
+/* ═══════════════════════════════════════════════════════
+   Interaction polish layer
+   ═══════════════════════════════════════════════════════ */
+
+/* Gentle page entrance */
+body {
+    animation: pageFadeIn 0.35s ease;
+}
+
+@keyframes pageFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Interactive glass cards (mode buttons, shop links) lift on hover */
+button.glass-card,
+a.glass-card {
+    transition: transform var(--transition-fast),
+                box-shadow var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+button.glass-card:hover:not(:disabled),
+a.glass-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--gold);
+    box-shadow: 0 8px 24px var(--gold-glow), var(--shadow-card);
+}
+
+button.glass-card:active:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+/* Disabled state everywhere */
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Keyboard accessibility: visible gold focus ring */
+:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* Gold text selection */
+::selection {
+    background: var(--gold-glow);
+    color: var(--text-primary);
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+    body { animation: none; }
+    button.glass-card,
+    a.glass-card { transition: none; }
+    button.glass-card:hover:not(:disabled),
+    a.glass-card:hover { transform: none; }
+}
+
+/* Frosted-glass depth for modal overlays and the wager panel */
+#ai-difficulty-overlay,
+#wager-tier-overlay,
+#deposit-overlay,
+#reconnect-overlay {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#wagerPanel {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: var(--shadow-card);
+}
