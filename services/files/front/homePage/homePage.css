@@ -753,3 +753,129 @@ body {
         letter-spacing: 0.06em;
     }
 }
+/* ── AI Difficulty Picker ── */
+.difficulty-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    gap: 1.2rem;
+    animation: pageFadeIn 0.25s ease;
+}
+
+.difficulty-title {
+    font-family: var(--font-heading);
+    color: var(--gold);
+    font-size: 1.3rem;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 18px var(--gold-glow);
+}
+
+.difficulty-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 1rem;
+}
+
+.difficulty-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    width: 180px;
+    padding: 1.3rem 1rem 1.1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--gold-dim);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: transform var(--transition-fast),
+                box-shadow var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+.difficulty-card > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.difficulty-card .diff-emoji {
+    font-size: 2.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.difficulty-card .diff-name {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+}
+
+.difficulty-card .diff-stars {
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+}
+
+.difficulty-card .diff-desc {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.35;
+    min-height: 2.6em;
+}
+
+.difficulty-card:hover {
+    transform: translateY(-5px) scale(1.02);
+}
+
+.difficulty-card.diff-easy .diff-name { color: var(--neon-green); }
+.difficulty-card.diff-easy:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 10px 30px var(--neon-green-dim), 0 0 24px var(--neon-green-dim);
+}
+
+.difficulty-card.diff-medium .diff-name { color: var(--gold-light); }
+.difficulty-card.diff-medium:hover {
+    border-color: var(--gold);
+    box-shadow: 0 10px 30px var(--gold-glow), 0 0 24px var(--gold-glow);
+}
+
+.difficulty-card.diff-hard .diff-name { color: var(--neon-red); }
+.difficulty-card.diff-hard:hover {
+    border-color: var(--neon-red);
+    box-shadow: 0 10px 30px var(--neon-red-dim), 0 0 24px var(--neon-red-dim);
+}
+
+.difficulty-cancel {
+    background: none;
+    border: 1px solid #444;
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    padding: 6px 22px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.difficulty-cancel:hover {
+    border-color: var(--gold-dim);
+    color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+    .difficulty-cards { flex-direction: column; }
+    .difficulty-card { width: min(80vw, 280px); flex-direction: row; text-align: left; padding: 0.9rem 1.1rem; }
+    .difficulty-card .diff-emoji { font-size: 2rem; }
+    .difficulty-card > div { display: flex; flex-direction: column; gap: 0.15rem; }
+    .difficulty-card .diff-desc { min-height: 0; text-align: left; }
+}

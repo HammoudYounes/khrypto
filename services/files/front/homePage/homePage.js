@@ -374,44 +374,53 @@ aiButton.addEventListener('click', () => {
 function showAiDifficultyPicker() {
     if (document.getElementById('ai-difficulty-overlay')) return;
 
-    const overlay = document.createElement('div');
-    overlay.id = 'ai-difficulty-overlay';
-    overlay.style.cssText = [
-        'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.65)',
-        'display:flex', 'flex-direction:column', 'align-items:center',
-        'justify-content:center', 'z-index:9999', 'gap:0.8rem'
-    ].join(';');
-
-    const title = document.createElement('p');
-    title.textContent = '🤖 Choose difficulty';
-    title.style.cssText = 'color:white;font-size:1.4rem;font-weight:bold;margin-bottom:0.4rem;';
-    overlay.appendChild(title);
-
     const tiers = [
-        { id: 'easy',   label: '🟢 Easy' },
-        { id: 'medium', label: '🟡 Medium' },
-        { id: 'hard',   label: '🔴 Hard' }
+        {
+            id: 'easy', emoji: '🐣', name: 'Easy', stars: '★☆☆',
+            desc: 'A gentle opponent that makes plenty of mistakes. Perfect for learning the laser.'
+        },
+        {
+            id: 'medium', emoji: '🤖', name: 'Medium', stars: '★★☆',
+            desc: 'Solid tactics with the occasional slip. Keeps you honest.'
+        },
+        {
+            id: 'hard', emoji: '👑', name: 'Hard', stars: '★★★',
+            desc: 'The full engine, no mercy. One loose pyramid and it’s over.'
+        }
     ];
 
-    for (const tier of tiers) {
-        const btn = document.createElement('button');
-        btn.textContent = tier.label;
-        btn.className = 'mode-card glass-card';
-        btn.style.cssText = 'min-width:200px;padding:0.8rem 1.5rem;font-size:1.1rem;cursor:pointer;';
-        btn.addEventListener('click', () => {
+    const overlay = document.createElement('div');
+    overlay.id = 'ai-difficulty-overlay';
+    overlay.className = 'difficulty-overlay';
+    overlay.innerHTML = `
+        <p class="difficulty-title">🤖 CHOOSE YOUR OPPONENT</p>
+        <div class="difficulty-cards">
+            ${tiers.map(t => `
+                <button class="difficulty-card diff-${t.id}" data-difficulty="${t.id}">
+                    <span class="diff-emoji">${t.emoji}</span>
+                    <div>
+                        <span class="diff-name">${t.name}</span>
+                        <span class="diff-stars">${t.stars}</span>
+                        <span class="diff-desc">${t.desc}</span>
+                    </div>
+                </button>`).join('')}
+        </div>
+        <button class="difficulty-cancel">Cancel</button>
+    `;
+
+    overlay.querySelectorAll('.difficulty-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const difficulty = card.dataset.difficulty;
             overlay.remove();
             sessionStorage.setItem("gameMode", "ai");
             sessionStorage.setItem("isRanked", "false");
-            sessionStorage.setItem("aiDifficulty", tier.id);
-            emitGame({ mode: "ai", difficulty: tier.id });
+            sessionStorage.setItem("aiDifficulty", difficulty);
+            emitGame({ mode: "ai", difficulty });
         });
-        overlay.appendChild(btn);
-    }
-
-    // Click outside the buttons to cancel
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.remove();
     });
+
+    overlay.querySelector('.difficulty-cancel').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
     document.body.appendChild(overlay);
 }
