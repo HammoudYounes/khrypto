@@ -138,6 +138,23 @@ export function gameOverManager(winners) {
     messageElement.innerText = message;
     modal.style.display = "flex";
 
+    // Wager matches: show the pot in the victory modal. The wager panel
+    // fills in the settled result + explorer link when the payout lands.
+    const wagerStake = sessionStorage.getItem('wagerStake');
+    let wagerInfo = document.getElementById('gameOverWagerInfo');
+    if (wagerStake) {
+        if (!wagerInfo) {
+            wagerInfo = document.createElement('div');
+            wagerInfo.id = 'gameOverWagerInfo';
+            wagerInfo.style.cssText = 'margin:0.6rem 0;padding:0.6rem 0.8rem;border:1px solid rgba(212,175,55,0.4);border-radius:8px;font-size:0.95rem;';
+            messageElement.insertAdjacentElement('afterend', wagerInfo);
+        }
+        const pot = (parseFloat(wagerStake) * 2).toFixed(3);
+        wagerInfo.innerHTML = `💰 <b>◎ ${pot} SOL</b> pot — <span style="color:#f1c40f;">settling on-chain…</span>`;
+    } else if (wagerInfo) {
+        wagerInfo.remove();
+    }
+
     // Reset vote status and button visibility
     voteStatus.style.display = 'none';
     voteStatus.textContent = '';
@@ -154,6 +171,12 @@ export function gameOverManager(winners) {
     } else {
         restartBtn.textContent = 'Rejouer';
         leaveModalBtn.style.display = 'none';
+    }
+
+    // Wager games can't be restarted — the pot is already decided
+    if (wagerStake) {
+        restartBtn.style.display = 'none';
+        leaveModalBtn.style.display = 'inline-block';
     }
 
     restartBtn.onclick = function () {

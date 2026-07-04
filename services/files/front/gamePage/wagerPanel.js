@@ -109,6 +109,14 @@ function renderEscrow(info) {
             ? `<a href="${explorerLink(info.local.settleSignature)}" target="_blank" rel="noopener"
                   style="color:#7ec8ff;font-size:0.8rem;">View payout on Solana Explorer ↗</a>`
             : '';
+
+        // Mirror the result into the victory modal if it's open
+        const modalInfo = document.getElementById('gameOverWagerInfo');
+        if (modalInfo) {
+            modalInfo.innerHTML = iWon
+                ? `🏆 <b style="color:#2ecc71;">You won ◎ ${potSol} SOL!</b><br>${proof}`
+                : `💰 Opponent took the ◎ ${potSol} SOL pot.<br>${proof}`;
+        }
         bodyEl.innerHTML = iWon
             ? `<div style="font-size:1.05rem;">🏆 <b style="color:#2ecc71;">You won ◎ ${potSol} SOL!</b></div>
                <div style="font-size:0.8rem;color:#aaa;margin:4px 0;">Paid to your wallet ${oc.winner.slice(0, 4)}…${oc.winner.slice(-4)}.
@@ -119,6 +127,8 @@ function renderEscrow(info) {
     }
     if (oc.cancelled) {
         bodyEl.innerHTML = `<div>Wager cancelled — <b>◎ ${stakeSol}</b> stakes refunded</div>`;
+        const modalInfo = document.getElementById('gameOverWagerInfo');
+        if (modalInfo) modalInfo.innerHTML = `💰 Wager cancelled — <b style="color:#f39c12;">stakes refunded</b>`;
         return setStatus('Refunded on-chain ✓', '#f39c12');
     }
 

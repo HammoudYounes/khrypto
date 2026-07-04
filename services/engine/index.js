@@ -16,12 +16,17 @@ if (!INTERNAL_API_SECRET) {
     console.warn('[Engine] INTERNAL_API_SECRET is not set — /api/games is unauthenticated (dev mode only)');
 }
 
+let usersCollection = null;
+let matchesCollection = null;
+
 async function connectToMongo() {
     try {
         await client.connect();
         const db = client.db();
-        gameManager.setUsersCollection(db.collection('users'));
-        matchRecorder.setCollection(db.collection('matches'));
+        usersCollection = db.collection('users');
+        matchesCollection = db.collection('matches');
+        gameManager.setUsersCollection(usersCollection);
+        matchRecorder.setCollection(matchesCollection);
         console.log("Successfully connected to MongoDB server");
     } catch (e) {
         console.error("Engine failed to connect to DB:", e);
@@ -69,6 +74,55 @@ const server = http.createServer(async (req, res) => {
             res.end(JSON.stringify({ error: 'Failed to create game' }));
         }
         return;
+    }
+
+    // HTTP API: the calling user's recent finished matches (via gateway,
+    // which injects the verified x-user-id)
+    if (req.method === 'GET' && req.url.split('?')[0] === '/api/matches/history') {
+        const userId = req.headers['x-user-id'];
+        if (!userId || !matchesCollection) {
+            res.writeHead(userId ? 503 : 401);
+            return res.end(JSON.stringify({ error: userId ? 'Not ready' : 'Unauthorized' }));
+        }
+        try {
+            const recent = await matchesCollection.find({
+                status: 'finished',
+                $or: [{ 'users.0': userId }, { 'users.1': userId }]
+            }).sort({ endedAt: -1 }).limit(10).toArray();
+
+            const { ObjectId } = require('mongodb');
+            const oppIds = [...new Set(recent.map(m => m.users['0'] === userId ? m.users['1'] : m.users['0']))]
+                .filter(id => id && ObjectId.isValid(id));
+            const oppDocs = usersCollection ? await usersCollection.find(
+                { _id: { $in: oppIds.map(id => ObjectId.createFromHexString(id)) } },
+                { projection: { username: 1 } }
+            ).toArray() : [];
+            const nameById = Object.fromEntries(oppDocs.map(u => [u._id.toString(), u.username]));
+
+            const history = recent.map(m => {
+                const mySeat = m.users['0'] === userId ? '0' : '1';
+                const oppSeat = mySeat === '0' ? '1' : '0';
+                const iWon = m.result?.[mySeat] === true;
+                const oppWon = m.result?.[oppSeat] === true;
+                return {
+                    gameId: m.gameId,
+                    mode: m.mode,
+                    opponent: nameById[m.users[oppSeat]] || 'Unknown',
+                    result: iWon && oppWon ? 'draw' : iWon ? 'won' : 'lost',
+                    reason: m.result?.reason || null,
+                    eloDelta: (m.elosAfter && m.elosBefore) ? m.elosAfter[mySeat] - m.elosBefore[mySeat] : 0,
+                    moves: Array.isArray(m.moves) ? m.moves.length : 0,
+                    endedAt: m.endedAt
+                };
+            });
+
+            res.writeHead(200);
+            return res.end(JSON.stringify({ history }));
+        } catch (e) {
+            console.error('[Engine HTTP] match history error:', e);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: 'Internal error' }));
+        }
     }
 
     // Fallback for unknown HTTP routes

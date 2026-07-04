@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initWalletLink(token);
     loadWagerHistory(token);
+    loadRecentMatches(token);
 
     notificationManager.init();
     initPrivateChatListeners();
@@ -1230,4 +1231,52 @@ async function loadWagerHistory(token) {
         netEl.textContent = `— net ${sign}◎ ${net.toFixed(3)} SOL`;
         netEl.style.color = net > 0 ? '#2ecc71' : net < 0 ? '#e74c3c' : '#aaa';
     }
+}
+
+// ==========================================
+// RECENT MATCHES
+// ==========================================
+
+async function loadRecentMatches(token) {
+    const list = document.getElementById('recentMatchesList');
+    const recordEl = document.getElementById('recentMatchesRecord');
+    if (!list || !token) return;
+
+    let history;
+    try {
+        const res = await fetch(`${ApiHost.getHost()}/api/matches/history`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        history = (await res.json()).history;
+    } catch (e) {
+        return;
+    }
+    if (!history.length) return;
+
+    const MODE_LABEL = { online: '🌐 Ranked', ranked_challenge: '⚔ Ranked duel', unranked: '🤝 Friendly', wager: '💰 Wager' };
+    const RESULT = {
+        won:  { label: 'W', color: '#2ecc71' },
+        lost: { label: 'L', color: '#e74c3c' },
+        draw: { label: 'D', color: '#f39c12' }
+    };
+
+    let wins = 0, losses = 0;
+    list.innerHTML = history.map(m => {
+        const r = RESULT[m.result] || RESULT.draw;
+        if (m.result === 'won') wins++; else if (m.result === 'lost') losses++;
+        const when = new Date(m.endedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const elo = m.eloDelta ? `<span style="color:${m.eloDelta > 0 ? '#2ecc71' : '#e74c3c'};font-size:0.8rem;">${m.eloDelta > 0 ? '+' : ''}${m.eloDelta} ELO</span>` : '';
+        const reason = m.reason === 'timeout' ? ' (time)' : m.reason === 'forfeit' ? ' (forfeit)' : '';
+        return `
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,0.07);font-size:0.88rem;">
+                <span style="font-weight:bold;color:${r.color};width:18px;text-align:center;">${r.label}</span>
+                <span style="flex:1;">vs <b>${m.opponent}</b>${reason}</span>
+                <span style="color:#a0a0a0;font-size:0.78rem;">${MODE_LABEL[m.mode] || m.mode}</span>
+                ${elo}
+                <span style="color:#777;font-size:0.75rem;min-width:100px;text-align:right;">${when}</span>
+            </div>`;
+    }).join('');
+
+    if (recordEl) recordEl.textContent = `— ${wins}W / ${losses}L (last ${history.length})`;
 }

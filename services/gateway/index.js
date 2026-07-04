@@ -89,6 +89,10 @@ const requestHandler = function (request, response) {
                 console.log("Routing API request to Escrow Service");
                 return proxyWithTokenCheck(request, response, PORTS.ESCROW);
             }
+            if (filePath[2] === "matches") {
+                console.log("Routing API request to Engine (match history)");
+                return proxyWithTokenCheck(request, response, PORTS.ENGINE);
+            }
             if (filePath[2] === "market") {
                 // Public endpoints (no token required)
                 if (filePath[3] === "assets" || filePath[3] === "avatar") {
