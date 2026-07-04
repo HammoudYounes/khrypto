@@ -140,7 +140,9 @@ export function gameOverManager(winners) {
 
     // Wager matches: show the pot in the victory modal. The wager panel
     // fills in the settled result + explorer link when the payout lands.
-    const wagerStake = sessionStorage.getItem('wagerStake');
+    // Only online games can be wagered — a stale flag from a previous wager
+    // session must never leak into local/AI matches.
+    const wagerStake = state.gameMode === 'online' ? sessionStorage.getItem('wagerStake') : null;
     let wagerInfo = document.getElementById('gameOverWagerInfo');
     if (wagerStake) {
         if (!wagerInfo) {

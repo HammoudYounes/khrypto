@@ -351,6 +351,7 @@ function emitGame(gameMode) {
     sessionStorage.removeItem("gameId");
     sessionStorage.removeItem("playerId");
     sessionStorage.removeItem("gameMode");
+    sessionStorage.removeItem("wagerStake");
     sessionStorage.removeItem("myUsername");
     sessionStorage.removeItem("opponentUsername");
     sessionStorage.removeItem("myElo");

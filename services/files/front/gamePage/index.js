@@ -64,6 +64,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log(`[GamePage] Mode: ${state.gameMode}, My Player ID: ${state.myPlayerId}`);
 
+    // Only online matches can carry a wager — drop any stale flag so it
+    // can't leak into local/AI games (wager panel, victory modal)
+    if (state.gameMode !== 'online') {
+        sessionStorage.removeItem('wagerStake');
+        localStorage.removeItem('activeWagerStake');
+    }
+
     // Display player usernames in online mode
     if (state.gameMode === 'online') {
         const myUsername = sessionStorage.getItem("myUsername") || localStorage.getItem("activeMyUsername") || 'You';
