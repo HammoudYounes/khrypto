@@ -1268,13 +1268,31 @@ async function loadRecentMatches(token) {
         const when = new Date(m.endedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const elo = m.eloDelta ? `<span style="color:${m.eloDelta > 0 ? '#2ecc71' : '#e74c3c'};font-size:0.8rem;">${m.eloDelta > 0 ? '+' : ''}${m.eloDelta} ELO</span>` : '';
         const reason = m.reason === 'timeout' ? ' (time)' : m.reason === 'forfeit' ? ' (forfeit)' : '';
+
+        // Wager matches: show the SOL outcome next to the ELO delta
+        let money = '';
+        if (m.wagerDeltaSol !== null && m.wagerDeltaSol !== undefined) {
+            const color = m.wagerDeltaSol > 0 ? '#2ecc71' : m.wagerDeltaSol < 0 ? '#e74c3c' : '#f39c12';
+            const txt = m.wagerDeltaSol > 0 ? `+◎${m.wagerDeltaSol}` : m.wagerDeltaSol < 0 ? `−◎${Math.abs(m.wagerDeltaSol)}` : '◎0';
+            money = `<span style="color:${color};font-weight:bold;font-size:0.82rem;">${txt}</span>`;
+        } else if (m.wagerSol) {
+            money = `<span style="color:#f1c40f;font-size:0.8rem;">◎${m.wagerSol} pending</span>`;
+        }
+
+        const replay = m.hasReplay
+            ? `<a href="../replayPage/index.html?gameId=${encodeURIComponent(m.gameId)}"
+                  style="color:#7ec8ff;font-size:0.8rem;text-decoration:none;" title="Watch replay">▶ replay</a>`
+            : '';
+
         return `
             <div style="display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,0.07);font-size:0.88rem;">
                 <span style="font-weight:bold;color:${r.color};width:18px;text-align:center;">${r.label}</span>
                 <span style="flex:1;">vs <b>${m.opponent}</b>${reason}</span>
                 <span style="color:#a0a0a0;font-size:0.78rem;">${MODE_LABEL[m.mode] || m.mode}</span>
+                ${money}
                 ${elo}
                 <span style="color:#777;font-size:0.75rem;min-width:100px;text-align:right;">${when}</span>
+                ${replay}
             </div>`;
     }).join('');
 

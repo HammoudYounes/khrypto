@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khrypto — Replay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../theme.css">
+    <link rel="stylesheet" href="replay.css">
+    <script type="module" src="replay.js" defer></script>
+</head>
+
+<body>
+    <header class="replay-header">
+        <button id="backBtn" class="btn btn-ghost">← Back</button>
+        <h1 id="replayTitle">Replay</h1>
+        <span id="replayResult"></span>
+    </header>
+
+    <main class="replay-main">
+        <div id="replayBoard" class="replay-board glass-card"></div>
+
+        <div class="replay-controls glass-card">
+            <div class="replay-buttons">
+                <button id="btnFirst" class="btn btn-ghost" title="Start">⏮</button>
+                <button id="btnPrev" class="btn btn-ghost" title="Previous move">◀</button>
+                <button id="btnPlay" class="btn btn-gold" title="Play / pause">▶ Play</button>
+                <button id="btnNext" class="btn btn-ghost" title="Next move">▶</button>
+                <button id="btnLast" class="btn btn-ghost" title="End">⏭</button>
+                <select id="speedSelect" class="input-dark">
+                    <option value="1500">0.5×</option>
+                    <option value="800" selected>1×</option>
+                    <option value="400">2×</option>
+                    <option value="200">4×</option>
+                </select>
+            </div>
+            <input id="frameSlider" type="range" min="0" max="0" value="0">
+            <p id="moveInfo">Loading replay…</p>
+        </div>
+    </main>
+</body>
+
+</html>

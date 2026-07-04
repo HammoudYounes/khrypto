@@ -24,6 +24,8 @@ class MatchRecorder {
                 mode: game.mode,
                 users: { 0: game.userIds[0], 1: game.userIds[1] },
                 elosBefore: { 0: game.elos[0], 1: game.elos[1] },
+                // Starting position (randomized per game) — required for replays
+                initialBoard: JSON.parse(JSON.stringify(game.initialBoardSnapshot)),
                 createdAt: new Date(),
                 status: 'active',
                 moves: []
