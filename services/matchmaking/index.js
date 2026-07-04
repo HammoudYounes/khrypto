@@ -266,6 +266,9 @@ io.on('connection', (socket) => {
         if (isWager && (!user || !user.walletAddress)) {
             return socket.emit('matchmaking:error', { message: 'Link a Solana wallet on your profile before wagering' });
         }
+        if (isWager && user.wagerBanned) {
+            return socket.emit('matchmaking:error', { message: 'Wager access suspended pending an integrity review' });
+        }
 
         addToQueue(socket, userId, username, userElo, tier);
     });

@@ -5,12 +5,14 @@ const corsHelper = require('./helpers/cors.js');
 const { SocketLimiter } = require('./helpers/rateLimit.js');
 const GameManager = require('./managers/GameManager');
 const MatchRecorder = require('./managers/MatchRecorder');
+const IntegrityAnalyzer = require('./managers/IntegrityAnalyzer');
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/khrypto';
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || null;
 const client = new MongoClient(MONGO_URL);
 
 const matchRecorder = new MatchRecorder();
+const integrityAnalyzer = new IntegrityAnalyzer();
 
 if (!INTERNAL_API_SECRET) {
     console.warn('[Engine] INTERNAL_API_SECRET is not set — /api/games is unauthenticated (dev mode only)');
@@ -27,6 +29,8 @@ async function connectToMongo() {
         matchesCollection = db.collection('matches');
         gameManager.setUsersCollection(usersCollection);
         matchRecorder.setCollection(matchesCollection);
+        integrityAnalyzer.setCollections(matchesCollection, usersCollection);
+        integrityAnalyzer.start();
         console.log("Successfully connected to MongoDB server");
     } catch (e) {
         console.error("Engine failed to connect to DB:", e);

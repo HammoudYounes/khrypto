@@ -28,6 +28,9 @@ const ORACLE_KEYPAIR_PATH = process.env.ORACLE_KEYPAIR_PATH || null;
 const DEPOSIT_DEADLINE_S = 15 * 60;   // players must deposit within 15 min
 const SETTLE_POLL_MS = 15_000;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || null;
+// How long settlement waits for the engine's integrity verdict before
+// proceeding unverified (fail-open so an analyzer outage can't freeze pots)
+const INTEGRITY_WAIT_MS = parseInt(process.env.INTEGRITY_WAIT_MS || String(10 * 60_000), 10);
 
 // Hard devnet guard — this service must never touch mainnet in this phase
 if (/mainnet/i.test(SOLANA_RPC_URL)) {
@@ -293,6 +296,22 @@ server.listen(PORT, () => console.log(`Escrow service listening on port ${PORT}`
 // Consumes the engine's tamper-evident match records. Settles to the winner,
 // cancels (refunds) on draws. Retries on next tick if a transaction fails.
 
+/**
+ * Settlement decision from the match's integrity analysis.
+ * @returns {'wait' | 'refund' | 'settle' | 'unverified'}
+ */
+function integrityGate(match) {
+    if (match.mode !== 'wager') return 'settle';
+    const integ = match.integrity;
+    if (!integ) {
+        const age = Date.now() - new Date(match.endedAt).getTime();
+        return age < INTEGRITY_WAIT_MS ? 'wait' : 'unverified';
+    }
+    const v = integ.verdicts || {};
+    if (v['0'] === 'suspect' || v['1'] === 'suspect') return 'refund';
+    return 'settle';
+}
+
 async function settlementTick() {
     if (!escrowClient || !escrows || !matches) return;
 
@@ -301,6 +320,25 @@ async function settlementTick() {
         try {
             const match = await matches.findOne({ gameId: escrow.gameId });
             if (!match || match.status !== 'finished') continue;
+
+            // ── Integrity gate ────────────────────────────────────────────
+            // The pot is only paid out once the engine's machine-assistance
+            // analysis clears the match. A 'suspect' verdict refunds both
+            // players — cheaters can never profit; a false positive costs
+            // nothing but the win.
+            const gate = integrityGate(match);
+            if (gate === 'wait') continue;
+            if (gate === 'refund') {
+                const sig = await escrowClient.cancel(escrow.gameId, escrow.wallets['0'], escrow.wallets['1']);
+                await escrows.updateOne({ _id: escrow._id }, {
+                    $set: { status: 'integrity_refund', settleSignature: sig, settledAt: new Date() }
+                });
+                console.warn(`[Escrow] Integrity refund for ${escrow.gameId} (suspect verdict): ${sig}`);
+                continue;
+            }
+            if (gate === 'unverified') {
+                console.warn(`[Escrow] Settling ${escrow.gameId} without integrity verdict (analyzer timeout)`);
+            }
 
             const onChain = await escrowClient.getEscrowState(escrow.gameId);
             if (!onChain) continue;
